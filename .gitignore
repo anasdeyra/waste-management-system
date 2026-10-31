@@ -1,0 +1,43 @@
+# Build artefacts
+target/
+dist/
+build/
+*.jar
+*.war
+*.class
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local database and runtime data
+backend/data/
+*.mv.db
+*.trace.db
+
+# Environment files and secrets
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+nbproject/private/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build and coverage output
+coverage/
+*.log
+
+# Part 6 metric reports (regenerate with `bash tools/metrics.sh`)
+metrics/

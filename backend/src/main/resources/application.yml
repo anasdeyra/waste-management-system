@@ -1,0 +1,45 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: wastems-backend
+  datasource:
+    url: jdbc:h2:file:./data/wastems;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jackson:
+    default-property-inclusion: non_null
+
+wastems:
+  security:
+    # Lifetime of the opaque bearer tokens, in minutes.
+    token-ttl-minutes: 480
+  planning:
+    # Parameters of the duration model (D-015).
+    average-speed-kmh: 40
+    service-time-minutes: 10
+    # Capacity of the single vehicle of a tour, in kilograms. The demonstration data set
+    # holds about 16.4 t of demand, so the demo vehicle must be able to carry it in one tour.
+    vehicle-capacity-kg: 20000
+    # Coordinates of the depot in the synthetic planning plane, in kilometres.
+    depot-x: 0.0
+    depot-y: 0.0
+
+logging:
+  level:
+    com.ase.wastems: INFO
