@@ -694,8 +694,9 @@ Differences from a human-team sprint backlog, and why:
   (build, tests, HTTP checks). Perceptual claims ("looks fine") are not accepted as evidence.
 - **Contract sync is part of each task.** Changing a backend record changes
   `frontend/src/types/api.ts` in the same commit (D-018).
-- **Escalation over invention.** A task that needs an unresolved decision (AGENTS.md §4, e.g.
-  extracting the OSM road snapshot) is stopped and raised to the owner instead of guessed.
+- **Escalation over invention.** A task that needs an unresolved decision (AGENTS.md §4, e.g. a
+  new heavy dependency not covered by a decision) is stopped and raised to the owner instead
+  of guessed.
 
 ### 3.2 Agent operating procedure, repeated each sprint
 
@@ -751,8 +752,7 @@ Notes on the selection:
 - **S5 and S6 split the optimizer** (engine vs. its review UI) so the algorithm core — an
   isolated, heavily testable module per AGENTS.md §7 — is verified before any UI depends on it.
 - **S10 has no backlog stories** because it executes Part 6 (metrics + the fixed 60-scenario
-  campaign) and prepares presentation content; the deck format remains an open decision
-  (AGENTS.md §4).
+  campaign) and prepares presentation content; the deck format is fixed by D-041.
 
 ### 3.4 Sprint S1 — Secure foundation: identities, roles, waste categories
 
@@ -1375,44 +1375,80 @@ the capacity indicator and the issues panel.
 scenarios produce retained, road-following, directed-cost results; failed or infeasible runs
 change nothing.
 
-**Entrance criteria.** S4 done; OSM road snapshot not yet in repo — its acquisition is task 1
-of this sprint and **may require a tooling decision**, which the agent escalates rather than
-guesses (D-021; AGENTS.md §4, §7 "heavy dependencies").
+**Entrance criteria.** S4 done (green baseline: 150 backend tests, frontend build). The
+road-snapshot approach is fixed by D-037 (Overpass OSM XML extract, embedded GraphHopper), so no
+tooling decision is pending. The planner's spike (2026-11-01) retrieved the extract (4 148 737
+bytes, SHA-256 `e1f2fabaa937…341d6a01`, version `osm-mn01-e1f2fabaa937`), imported it with
+GraphHopper 11.1 under the Spring Boot 3.5 dependency set without conflicts (the full suite
+stayed green), measured an import of ≈2 s, a 101×101 directed matrix in ≈2 s, and directional
+legs of 312.6 m versus 797.3 m between two real baskets.
+
+**Scope notes.**
+
+- **Snapshot and version.** The extract is committed under
+  `backend/src/main/resources/routing/` with its Overpass query; its SHA-256 is checked at first
+  use and forms the routing version ID (`osm-mn01-` + 12 hex). A refresh is a new version. The
+  GraphHopper graph cache is derived, git-ignored data (`backend/routing-cache/`).
+- **Package boundaries (AGENTS.md §7).** `optimization/` imports only `java.*` and consumes the
+  `DirectedCostMatrix` interface (enforced by a test); `routing/` alone imports GraphHopper and
+  implements `DirectedCostMatrixProvider`; `service/EvaluationService` connects them. Class
+  names follow the sequence diagram (`TourService.loadDraftAndBuildScenario`,
+  `EvaluationService`, `DirectedCostMatrixProvider`, `TourOptimizationModule`).
+- **Methods (D-008, D-022).** Input order; capacity-aware nearest neighbor (ties to the lowest
+  input index); NN followed by best-improvement 2-opt whose move value is the exact directed
+  change, re-costing every reversed segment. All three make one trip from and back to the depot
+  and visit every stop once; capacity and coverage are checked identically for each.
+- **Costs.** One GraphHopper `car` request per ordered pair; every point must snap within 100 m;
+  distances and base times are rounded to 3 decimals before optimization so the retained matrix
+  reproduces every indicator. Duration = travel time + 600 s per stop (D-015, D-021). Traffic
+  is not an input.
+- **Freezing and failure semantics (US-21, US-22).** Only a DRAFT without structural issues is
+  evaluated (409/422, nothing retained). Names, coordinates and demand are frozen in the run, so
+  later point edits do not alter it (US-10/US-11 deferred item). An unroutable point or missing
+  leg is retained as a `ROUTING_FAILED` run with an explanation and no method results; an
+  unusable snapshot answers 503. The draft is never written by an evaluation.
+- **API.** `POST /api/tours/{id}/evaluations` (201 + `Location`), `GET
+  /api/tours/{id}/evaluations`, `GET /api/evaluations/{runId}`, `GET
+  /api/evaluations/{runId}/matrix`; PLANNER/ADMIN only. No evaluation UI (S6); the TypeScript
+  contract gains the types only.
 
 **Task backlog**
 
-1. (M) Provide the versioned Lower-Manhattan road-network snapshot for GraphHopper: add the
-   retrieval command and source to `docs/geospatial-data.md` §3, store the artifact outside
-   git-tracked vendoring if large (paths documented), and record a checksum/routing version ID.
-   Escalate to the owner before adding any new extraction tooling.
-2. (L) `routing/` package: GraphHopper import of the snapshot; expose leg geometry, directed
-   distance, and base travel time between WGS84 points; surface routing version ID per
-   request. **Tests:** directed asymmetry visible (a one-way pair), version corruption/
-   missing-snapshot failure is explicit.
-3. (L) Directed cost-matrix builder for a scenario (depot + ordered candidate stops),
-   retained with the run. **Test:** matrix indices consistent with stop order; missing leg
-   → explicit failure (US-22 input).
-4. (L) `optimization/` core with **no Spring, repository, or GraphHopper dependencies**
-   (AGENTS.md §7): `DirectedCostMatrix` core interface; `InputOrderBaseline`,
-   capacity-aware `NearestNeighbor`, and `NearestNeighbor + 2-opt` with directed
-   reversed-segment cost evaluation — no symmetric shortcut (D-008, D-022). **Tests:**
-   hand-built asymmetric matrices where the symmetric delta shortcut would pick a different
-   (wrong) segment; determinism across two runs; feasibility/point-coverage bookkeeping.
-5. (M) `EvaluationRun` retention schema + service (order, leg geometry, directed distance,
-   estimated duration via configurable service time/speed — D-015 remnants where applicable,
-   execution time, feasibility checks, algorithm configuration, scenario/seed/profile where
-   applicable, source + routing snapshot IDs).
-6. (M) API `POST /api/tours/{id}/evaluate` (+ run retrieval): frozen identical inputs to all
-   three methods; run failure leaves the draft untouched (US-21, US-22). **Tests:** failed
-   run → draft unchanged, no partial proposal; run detail exposes all retained fields.
-7. (S) Test/build pass; `docs/03-uml/` sequence remains the review reference.
+1. (S) Versioned snapshot: commit the extract and query, `tools/fetch-road-snapshot.sh`,
+   `.gitignore` for the graph cache, `docs/geospatial-data.md` §3.1 (query, date, size,
+   checksum, version ID, ODbL) and §4 routing rules.
+2. (L) `optimization/` core: `DirectedCostMatrix`, `PlanningScenario`, `TourOptimizationModule`
+   with the three methods. **Tests:** hand-built asymmetric matrices where the symmetric delta
+   accepts a worsening move or picks a different move; expected orders/distances for a
+   three-method example; capacity infeasibility for every method; tie rule; determinism;
+   brute-force 2-optimality on random asymmetric matrices; package independence.
+3. (L) `routing/`: embedded GraphHopper 11.1 (checksum check, version ID, cache per version,
+   lazy init, `dev` warm-up), snapping limit, directed legs with geometry. **Tests:** a one-way
+   pair of real baskets differs by direction; far point not routable; checksum mismatch,
+   missing and corrupt snapshot fail explicitly.
+4. (M) Directed cost-matrix builder (depot + ordered stops). **Tests:** indices follow node
+   order; missing leg and unroutable point fail explicitly with node indices; real-snapshot
+   matrix is directed.
+5. (M) `EvaluationRun` retention (frozen stops, matrix, per-method order, leg GeoJSON,
+   distance, duration, execution time, checks, configuration, scenario/seed/profile columns for
+   S10, source and routing snapshot IDs) and `EvaluationService`. **Tests:** round trip of a
+   completed run; retained routing failure; nothing retained when routing is unavailable.
+6. (M) API and contract types. **Tests:** role matrix; real three-method evaluation; draft
+   unchanged; retrieval; 422 for not-ready and over-capacity drafts; retained `ROUTING_FAILED`
+   for an unroutable point; frozen values after point edits; determinism; 404/400.
+7. (S) README, sequence-diagram alignment (201, 503, retained routing failure); test/build pass.
+8. (S) Review, retrospective and status updates.
 
 **Automated done checks**
 
-- `./mvnw test` green incl. all optimizer/routing tests above.
-- A scripted run: evaluate a small imported scenario and fetch the run detail showing three
-  method results with snapshot IDs.
-- `npm run build` remains green (no UI yet for evaluation).
+- `./mvnw test` green incl. all optimizer, routing, matrix, retention and API tests above.
+- Scripted HTTP checks on spare ports with a scratch database and an empty scratch routing cache
+  (D-040): evaluate a six-point real MN01 tour and fetch the run detail showing three method
+  results with routing and source snapshot IDs; an independent verifier recomputes every
+  distance, duration, the nearest-neighbor order and the 2-optimality of NN + 2-opt from the
+  retained matrix; 422 and `ROUTING_FAILED` cases leave the draft unchanged; runs survive a
+  restart; a backend with a wrong snapshot checksum answers 503 and retains nothing.
+- `npm run build` and `npm run lint` remain green (no UI for evaluation yet).
 
 **Review.** *To be filled at sprint close.*
 
@@ -1427,8 +1463,9 @@ or rejects the proposal explicitly, and only a fully valid draft becomes `PLANNE
 
 **Task backlog**
 
-1. (M) Endpoint: evaluation run list/detail for the tour; contract sync. **Tests:** retained
-   values round-trip.
+1. (M) Frontend data layer for evaluation runs: hooks over the S5 endpoints (`POST
+   /api/tours/{id}/evaluations`, run list/detail/matrix); contract sync if S6 changes a record.
+   **Tests:** retained values round-trip through any new or changed endpoint.
 2. (L) Comparison UI (US-23): distinct map layers per method, ordered stops, road geometry,
    synchronized indicators (distance, estimated duration, execution time, coverage/checks),
    % changes relative to input order; attribution visible; traffic never shown as optimizer
