@@ -382,3 +382,84 @@ artifacts, metrics, and presentation remain consistent.
   functional requirements. `ADMIN` inheritance of planner behavior is shown explicitly.
 - **Rationale:** Selected by the project owner. Grouping preserves readability while retaining
   atomic-story traceability.
+
+## D-035 — Sprint model tailored for AI-agent execution
+
+- **Date:** 2026-11-01
+- **Decision:** Development is organized in **ten scope-bounded sprints (S1–S10)** selected from
+  the Product Backlog in dependency order, ending with a metrics/closure sprint. Sprints have no
+  calendar dates (per D-006); each closes with a scripted review and a written retrospective.
+  Sprint backlogs in `docs/05-scrum.md` §3 are written for an AI-agent executor: ordered
+  self-contained tasks citing repo paths and governing documents, contract-sync rules, and
+  machine-verifiable done checks. Two deliberate deviations from strict priority order:
+  US-05/US-07 are pulled into S1 so deactivation semantics exist before demand validation, and
+  US-33 is split — MN01 import groundwork in S3, full demonstration load in S7 once the tour
+  lifecycle exists.
+- **Rationale:** Requested by the project owner ("create the sprints tailored for an AI agent").
+  Because the sprint executor has no memory between sessions, tasks must name where to work and
+  cite fixed decisions instead of restating models; completion must be verifiable by commands,
+  not impressions. The optimizer is split engine-first (S5) before its review UI (S6) so the
+  isolated algorithm core is fully tested before dependencies accrue. No sprint is claimed
+  executed until its review/retrospective notes are written.
+
+## D-036 — Sprint execution pipeline and git workflow
+
+- **Date:** 2026-11-01
+- **Decision:** Each sprint is run by a manager agent: an Opus agent refines and plans the
+  sprint backlog (`docs/05-scrum.md` §3), then a Sonnet agent executes it, and the manager
+  verifies the done checks independently before moving on. Each sprint is developed on branch
+  `sprint/sN` with one conventional commit per task and merged into `main` with `--no-ff` once it
+  is verified. No remote is configured and nothing is pushed. Untracked owner research notes
+  (`research*.txt`) are left untouched. If done checks fail, up to three Sonnet fix rounds are
+  run. If checks still fail, the scope is narrowed and the gap is recorded honestly in the sprint
+  review and in this log, without pausing the pipeline.
+- **Rationale:** Requested by the project owner, who wants fully autonomous completion with
+  every decision collected beforehand.
+
+## D-037 — Routing integration: Overpass extract and embedded GraphHopper
+
+- **Date:** 2026-11-01
+- **Decision:** The versioned road-network snapshot is an OSM XML extract of an MN01 bounding
+  box plus a margin, retrieved with `curl` from the Overpass API. The query, retrieval date and
+  SHA-256 checksum are documented in `docs/geospatial-data.md`, and the checksum forms the routing
+  version ID. GraphHopper is embedded as a Maven library inside the Spring Boot backend, behind the
+  `routing/` package. It does not run as a separate server. The optimization core stays free of
+  GraphHopper dependencies (AGENTS.md §7).
+- **Rationale:** This needs no new extraction tooling, keeps the file small, and makes the
+  extract scriptable and reproducible. Running everything in one process simplifies the demo and
+  the tests.
+
+## D-038 — Authentication mechanism
+
+- **Date:** 2026-11-01
+- **Decision:** Spring Security JSON login with a server-side `HttpSession` cookie and CSRF
+  protection for the same-origin SPA served through the Vite proxy. Logout invalidates the
+  session on the server. JWT is not used.
+- **Rationale:** Simplest secure option for a same-origin SPA. Deactivation and sign-out take
+  effect immediately (US-02, US-05).
+
+## D-039 — Basemap tiles
+
+- **Date:** 2026-11-01
+- **Decision:** The Leaflet maps use the standard OSM tiles (`tile.openstreetmap.org`) with
+  visible "© OpenStreetMap contributors" attribution, at low-volume dev/demo usage that follows
+  the OSM tile usage policy.
+- **Rationale:** Free, needs no key, and is consistent with the ODbL attribution already
+  required (D-020).
+
+## D-040 — Frontend verification level
+
+- **Date:** 2026-11-01
+- **Decision:** No frontend test framework is added. Frontend correctness is verified by the
+  strict TypeScript build (`npm run build`), the backend test suite, and scripted HTTP checks
+  against the running apps. Presentation screenshots in S10 are captured with tools already on
+  the machine (for example headless Firefox), and no browser-automation dependency is added.
+- **Rationale:** Chosen by the project owner. This keeps the dependency footprint small.
+
+## D-041 — Presentation format
+
+- **Date:** 2026-11-01
+- **Decision:** The final deck is a self-contained HTML slide deck at
+  `presentation/index.html`, versioned in git and opened in any browser. No presentation date is
+  fixed. The deck is produced in S10.
+- **Rationale:** Chosen by the project owner.

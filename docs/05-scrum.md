@@ -652,5 +652,495 @@ The backlog covers FR-01 through FR-30. In particular:
 - connected sensors, real-time GPS, automatic traffic-aware rerouting, public registration,
   commercial mapping/routing, a citizen application, and billing remain excluded.
 
-Sprint Backlogs, sprint reviews, and retrospectives will be added after the Product Backlog is
-validated and sprint selection begins; no completed sprint or measured outcome is claimed here.
+## 3. Sprint plan (tailored for AI-agent execution)
+
+### 3.1 Sprint model
+
+| Aspect | Setting |
+|---|---|
+| Team | Product owner and reviewer: project owner. Developer and record keeper: the AI coding agent, acting session by session (D-005). |
+| Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
+| Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
+| Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
+| Status | **No sprint has been executed yet.** Every sprint is planned, with review and retrospective slots left empty until the sprint actually closes. |
+
+Differences from a human-team sprint backlog, and why:
+
+- **Self-contained tasks.** Each task names the packages, files, or pages to touch so an
+  executor with session-only memory can resume without unstated context. Where a model is
+  already fixed, the task cites the governing document instead of restating it.
+- **Machine-verifiable done.** Every story carries explicit commands with expected outcomes
+  (build, tests, HTTP checks). Perceptual claims ("looks fine") are not accepted as evidence.
+- **Contract sync is part of each task.** Changing a backend record changes
+  `frontend/src/types/api.ts` in the same commit (D-018).
+- **Escalation over invention.** A task that needs an unresolved decision (AGENTS.md §4, e.g.
+  extracting the OSM road snapshot) is stopped and raised to the owner instead of guessed.
+
+### 3.2 Agent operating procedure, repeated each sprint
+
+**Start**
+
+1. Re-read `AGENTS.md` (§3 status, §4 open decisions), the latest entries in
+   `docs/decisions.md`, this sprint's subsection, and any `docs/01-analysis.md`/
+   `docs/03-uml/` sections the sprint cites.
+2. Prove a green baseline before the first change: `source ~/.local/opt/ase-env.sh &&
+   cd backend && ./mvnw test` and `cd frontend && npm run build`. If either fails, report to
+   the owner before starting the sprint.
+
+**Work**
+
+3. Execute the sprint tasks in order; one conventional commit per task
+   (e.g. `feat(tours): validate crew assignment`).
+4. A story leaves the sprint only when its listed automated checks pass.
+
+**Close**
+
+5. Run the **Review** demo script against both running apps; write the observed results in
+   the sprint's review subsection.
+6. Write the **Retrospective**: what went well, what went badly, and at least one concrete
+   process change for the next sprint.
+7. Update `AGENTS.md` §3 and §5, the sprint status table in §3.3, the story status in
+   this file, and log any decision in `docs/decisions.md`.
+
+### 3.3 Sprint overview
+
+| Sprint | Theme | Story selection | Status |
+|---|---|---|---|
+| S1 | Secure foundation: identities, roles, waste categories | US-01…US-07 | Not started |
+| S2 | Collection points and demand on the real map | US-08…US-12 | Not started |
+| S3 | Fleet, crew, and MN01 import groundwork | US-13…US-17 (+ US-33 groundwork) | Not started |
+| S4 | Tour drafts: stops, order, crew, capacity | US-18…US-20 | Not started |
+| S5 | Directed routing and the three-method optimizer | US-21, US-22 | Not started |
+| S6 | Optimization review, comparison, planning gate | US-23…US-25 | Not started |
+| S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Not started |
+| S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Not started |
+| S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Not started |
+| S10 | Metrics campaign and project closure | Part 6 execution + presentation content | Not started |
+
+Notes on the selection:
+
+- **US-05 and US-07 are pulled into S1** although they are P1, because deactivation semantics
+  (inactive accounts, inactive categories) must exist before demand entry (S2) can enforce
+  "active category" validation. All other epics' small P1 lifecycle stories (US-10, US-12,
+  US-16) stay inside their epic's sprint.
+- **US-33 is split across S3 and S7.** The MN01 baskets/depot import with provenance and
+  snapshot identity must exist before map work, but a *complete* demonstration load (including
+  tours in several lifecycle states) requires the whole lifecycle, so the story is closed in
+  S7.
+- **S5 and S6 split the optimizer** (engine vs. its review UI) so the algorithm core — an
+  isolated, heavily testable module per AGENTS.md §7 — is verified before any UI depends on it.
+- **S10 has no backlog stories** because it executes Part 6 (metrics + the fixed 60-scenario
+  campaign) and prepares presentation content; the deck format remains an open decision
+  (AGENTS.md §4).
+
+### 3.4 Sprint S1 — Secure foundation: identities, roles, waste categories
+
+**Sprint goal.** A reviewer can sign in as `ADMIN` or `PLANNER`, manage users and waste
+categories within their role, and every protected endpoint enforces authorization on the
+backend.
+
+**Entrance criteria.** Green baseline; `SecurityConfig.java` exists as a stub; H2 file mode
+configured (D-013).
+
+**Task backlog**
+
+1. (M) Domain + persistence: `User` (username, password hash, role enum, active, optional
+   agent link holdover for S3), `WasteCategory` (name, description, active flag) in
+   `domain/`; Spring Data repositories in `repository/`. **Test:** repository round-trip;
+   unique username/unique category name failure.
+2. (M) Authentication in `config/` + a `security/` slice: BCrypt hashing, stateless session
+   (token) issue/revoke, endpoints `POST /api/auth/login`, `POST /api/auth/logout`,
+   `GET /api/auth/me`. Bootstrap: initial `ADMIN` created by a documented dev seed, never a
+   public endpoint. **Test:** valid login; invalid credentials → generic error; deactivated
+   account rejected; password/passwordHash never serialized.
+3. (M) User administration API `/api/users` (create with role, activate/deactivate;
+   US-04/US-05). **Test:** `PLANNER` and `AGENT` get 403 on all `/api/users` operations;
+   `ADMIN` succeeds (role matrix test).
+4. (S) Waste-category API `/api/waste-categories` (create, edit preserving identity,
+   deactivate; US-06/US-07). **Test:** deactivation excludes category from a lightweight
+   "active categories" query later used by demand validation.
+5. (M) Frontend foundation: API client + auth store, TanStack Query provider wiring,
+   protected routes, role-aware `AppShell` (nav items per role) under `src/components/shared/`,
+   pages `src/pages/login.tsx`, `UsersAdminPage`, `CategoriesPage`; full contract in
+   `src/types/api.ts`. **Check:** `npm run build` passes in strict mode.
+6. (S) Update README run instructions with the seed account; final `./mvnw test &&
+   npm run build`.
+
+**Automated done checks**
+
+- `./mvnw test` green, including: role matrix, login failure handling, inactive-user and
+  inactive-category rules.
+- `npm run build` green.
+- `curl` checks: login → token; `GET /api/users` as `AGENT` → 403; logout → guarded endpoint
+  rejects.
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*
+
+### 3.5 Sprint S2 — Collection points and demand on the real map
+
+**Sprint goal.** A `PLANNER` sees the 449 MN01 basket locations as provable places (source
+provenance), manages points and demand entries through synchronized list/map UI, and invalid
+coordinates or demands are rejected by the backend.
+
+**Entrance criteria.** S1 done; import of MN01 locations may load via a temporary admin
+routine or test fixture — the permanent importer is S3's groundwork, so S2 tests may seed
+fixture data directly.
+
+**Task backlog**
+
+1. (M) Domain + persistence: `Depot`, `CollectionPoint` (WGS84 `longitude`/`latitude`,
+   active, name, sourceDataset/sourceId/sourceType/`real`vs`synthetic` provenance),
+   `DemandEntry` (category FK, positive kg) — D-019, D-024.
+2. (M) API `/api/collection-points` + `/api/depots`: create, inspect/filter
+   (status, category), edit details/coordinates, demand-entry add/edit/remove, deactivate
+   (US-08…US-12), keeping ≥1 active demand for active points. **Tests:** coordinate order and
+   range validation; positive-kg rule; inactive category rejected on new demand; editing does
+   not touch frozen evaluation snapshots (void check until S5); inactive points excluded from
+   "eligible" queries.
+3. (M) Map foundation per `docs/geospatial-data.md` §5: Leaflet + React Leaflet dependencies
+   with visible OSM attribution; `src/components/maps/BaseMap.tsx`, `PointsMapLayer` with
+   depot/active/inactive styling, popup inspection, map-click → coordinate capture for the
+   point form. **Check:** browser walkthrough in the review; build green.
+4. (M) Frontend pages `src/pages/CollectionPointsPage` (list+filters+details) with map/list
+   synchronization and non-map fallback for every essential action (US-09 AC). Contract sync
+   in `src/types/api.ts`.
+5. (S) Final test/build pass and AGENTS/README status updates.
+
+**Automated done checks**
+
+- `./mvnw test` green incl. validation and filter rules above.
+- `npm run build` green.
+- Browser: filters change visible markers; selecting in list focuses map and vice versa;
+  attribution visible.
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*
+
+### 3.6 Sprint S3 — Fleet, crew, and MN01 import groundwork
+
+**Sprint goal.** Vehicles, agents, and agent–account links are managed with availability and
+link-uniqueness rules; the MN01 basket/depot import runs idempotently from the included
+snapshots with recorded snapshot identity — ready to feed later sprints.
+
+**Entrance criteria.** S2 done; categories exist.
+
+**Task backlog**
+
+1. (M) `Vehicle` (registration, positive kg capacity, availability) and `Agent` (identifier,
+   display name, availability) domain + APIs (US-13…US-15, US-17). **Tests:** non-positive
+   capacity rejected; unavailable vehicle/agent excluded from usable-resource queries;
+   deactivation preserves existing assignments (assignment model arrives in S4 — resources
+   only need identity preservation here).
+2. (S) Agent↔`AGENT`-account one-to-one link endpoints, `ADMIN` only (US-16, D-030).
+   **Tests:** double linking rejected; non-`AGENT` account rejected; unlink preserves both
+   records.
+3. (M) **US-33 groundwork:** `data-importer` service reading classpath snapshots
+   `backend/src/main/resources/data/nyc-mn01-baskets.csv` and `nyc-mn01-depot.csv` (per
+   `docs/geospatial-data.md` §3): parse into `Depot`/`CollectionPoint`, preserve source IDs
+   and DSNY/other ownership labels (real provenance), compute a row count + checksum snapshot
+   identifier, upsert idempotently (natural key = source dataset + source ID). Demo vehicles,
+   agents, users, demands, and tours are **deferred to S7** because tours do not exist yet.
+   **Tests:** re-run import produces no duplicates and a stable report; snapshot identifier
+   retrievable via `GET /api/admin/import/report`.
+4. (M) Frontend: fleet and agents pages (tables, forms, availability toggles, link dialog);
+   API contract sync.
+5. (S) Test/build pass; README notes.
+
+**Automated done checks**
+
+- `./mvnw test` green incl. the rules above.
+- `npm run build` green.
+- Startup import (dev profile) ingests 449 baskets + depot without duplicates on second run.
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*
+
+### 3.7 Sprint S4 — Tour drafts: stops, order, crew, capacity
+
+**Sprint goal.** A `PLANNER` can create a `DRAFT` tour, add/map-select active points in an
+explicit input order, and assign a valid vehicle/crew; over-capacity or invalid assignments
+are reported and block the lifecycle.
+
+**Entrance criteria.** S3 done; imported points and available vehicles/agents exist.
+
+**Task backlog**
+
+1. (L) Tour domain per D-025: `Tour` (status enum, planning date, depot FK), `TourStop`
+   (ordered, point FK, per-stop outcome fields used in S7). Lifecycle transitions land with
+   confirm (S6) and start/complete (S7); this sprint models state and draft persistence.
+2. (M) Draft API `/api/tours`: create `DRAFT` (date, depot), add/remove stops (active points
+   only, no duplicates), reorder input order, read tour detail (US-18, US-19). **Tests:**
+   inactive point rejected; duplicate point rejected; order persists.
+3. (M) Assignment API: vehicle + driver + 0–2 collectors, distinctness, availability,
+   mixed-category capacity sum report (US-20, D-011/D-014/D-024). **Tests:** over-capacity
+   and unavailable-resource rejections; driver/collector role distinctness.
+4. (M) Map interaction 4 from `docs/geospatial-data.md`: stop selection from
+   `src/components/maps/` into the tour editor + synchronized ordered-stop list/editors.
+5. (M) Frontend `src/pages/TourPlannerPage` (create/edit draft; assignment panel; capacity
+   indicator). Contract sync.
+6. (S) Test/build pass.
+
+**Automated done checks**
+
+- `./mvnw test` green incl. stop/assignment validation matrix.
+- `npm run build` green.
+- Browser: map-selected stops appear in the list with correct order; removing from either
+  side synchronizes.
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*
+
+### 3.8 Sprint S5 — Directed routing and the three-method optimizer
+
+**Sprint goal.** Runs of input-order, nearest-neighbor, and NN + 2-opt over identical frozen
+scenarios produce retained, road-following, directed-cost results; failed or infeasible runs
+change nothing.
+
+**Entrance criteria.** S4 done; OSM road snapshot not yet in repo — its acquisition is task 1
+of this sprint and **may require a tooling decision**, which the agent escalates rather than
+guesses (D-021; AGENTS.md §4, §7 "heavy dependencies").
+
+**Task backlog**
+
+1. (M) Provide the versioned Lower-Manhattan road-network snapshot for GraphHopper: add the
+   retrieval command and source to `docs/geospatial-data.md` §3, store the artifact outside
+   git-tracked vendoring if large (paths documented), and record a checksum/routing version ID.
+   Escalate to the owner before adding any new extraction tooling.
+2. (L) `routing/` package: GraphHopper import of the snapshot; expose leg geometry, directed
+   distance, and base travel time between WGS84 points; surface routing version ID per
+   request. **Tests:** directed asymmetry visible (a one-way pair), version corruption/
+   missing-snapshot failure is explicit.
+3. (L) Directed cost-matrix builder for a scenario (depot + ordered candidate stops),
+   retained with the run. **Test:** matrix indices consistent with stop order; missing leg
+   → explicit failure (US-22 input).
+4. (L) `optimization/` core with **no Spring, repository, or GraphHopper dependencies**
+   (AGENTS.md §7): `DirectedCostMatrix` core interface; `InputOrderBaseline`,
+   capacity-aware `NearestNeighbor`, and `NearestNeighbor + 2-opt` with directed
+   reversed-segment cost evaluation — no symmetric shortcut (D-008, D-022). **Tests:**
+   hand-built asymmetric matrices where the symmetric delta shortcut would pick a different
+   (wrong) segment; determinism across two runs; feasibility/point-coverage bookkeeping.
+5. (M) `EvaluationRun` retention schema + service (order, leg geometry, directed distance,
+   estimated duration via configurable service time/speed — D-015 remnants where applicable,
+   execution time, feasibility checks, algorithm configuration, scenario/seed/profile where
+   applicable, source + routing snapshot IDs).
+6. (M) API `POST /api/tours/{id}/evaluate` (+ run retrieval): frozen identical inputs to all
+   three methods; run failure leaves the draft untouched (US-21, US-22). **Tests:** failed
+   run → draft unchanged, no partial proposal; run detail exposes all retained fields.
+7. (S) Test/build pass; `docs/03-uml/` sequence remains the review reference.
+
+**Automated done checks**
+
+- `./mvnw test` green incl. all optimizer/routing tests above.
+- A scripted run: evaluate a small imported scenario and fetch the run detail showing three
+  method results with snapshot IDs.
+- `npm run build` remains green (no UI yet for evaluation).
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*
+
+### 3.9 Sprint S6 — Optimization review, comparison, planning gate
+
+**Sprint goal.** The planner compares baseline/NN/NN+2-opt geometry and indicators, accepts
+or rejects the proposal explicitly, and only a fully valid draft becomes `PLANNED`.
+
+**Entrance criteria.** S5 done; at least one retained evaluation run reachable from the UI.
+
+**Task backlog**
+
+1. (M) Endpoint: evaluation run list/detail for the tour; contract sync. **Tests:** retained
+   values round-trip.
+2. (L) Comparison UI (US-23): distinct map layers per method, ordered stops, road geometry,
+   synchronized indicators (distance, estimated duration, execution time, coverage/checks),
+   % changes relative to input order; attribution visible; traffic never shown as optimizer
+   input.
+3. (M) Accept/reject flow (US-24): accept applies visit order + route reference to the
+   editable draft; reject changes nothing; acceptance does not start or confirm the tour.
+   **Tests:** accept → draft stop order matches proposal and status stays `DRAFT`; reject →
+   draft intact; retained run still lists all methods after rejection.
+4. (M) Confirm-to-planned lifecycle endpoint (US-25): full revalidation (date, depot, stops,
+   coverage, capacity, vehicle, driver, collectors, availability — D-025). **Tests:** invalid
+   draft stays `DRAFT` with structured errors; valid confirms; structural edits (stops,
+   order, resources) rejected while `PLANNED`.
+5. (M) Frontend tour review/confirm screens on `TourPlannerPage`/`TourPage`; stop-lock UI.
+6. (S) Test/build pass.
+
+**Automated done checks**
+
+- `./mvnw test` green incl. accept/reject/confirm rules.
+- `npm run build` green.
+- Browser: comparison layers toggle independently; indicators match the run detail endpoint
+  values for the same run.
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*
+
+### 3.10 Sprint S7 — Agent execution loop and the complete MN01 demonstration
+
+**Sprint goal.** Crew members see only their tours, drive the start→stop-outcome→complete
+loop correctly, and a documented demo command loads the full MN01 demonstration so a reviewer
+can try the workflow immediately.
+
+**Entrance criteria.** S6 done; agent accounts linkable (S3).
+
+**Task backlog**
+
+1. (M) Agent scope enforcement (US-26): `GET /api/tours/mine` (crew-filtered only); tour
+   detail includes ordered stops, demands, road geometry, stop states. **Tests:** assigned
+   crew sees the tour; other `AGENT` accounts (incl. correctly linked but unassigned) see
+   nothing; no map required to read the essentials.
+2. (M) Start restriction (US-27): only crew, only from `PLANNED`, rechecking vehicle/agent
+   availability and tour validity. **Tests:** recheck rejections; `IN_PROGRESS` stops remain
+   `PENDING` until outcomes are recorded.
+3. (M) Stop outcome recording (US-28, D-027/D-031): `COLLECTED` with non-negative per-category
+   quantities, `NOT_COLLECTED` with non-blank reason, actor + UTC timestamp, crew-only. **Tests:**
+   crew matrix; negative quantity rejected; PENDING-only rule; unassigned tour rejected.
+4. (M) Completion gate (US-29): all stops terminal required; execution updates rejected
+   afterwards (correction belongs to S8). **Test:** incomplete completion rejected; complete
+   retains all data and freezes the record.
+5. (L) **US-33 completion** — demo load command (dev profile or `tools/` script documented in
+   README): synthetic demand entries, vehicles, agents, demo users incl. linked `AGENT`
+   accounts, and tours seeded **per D-031/D-025 lifecycle** — e.g. one `DRAFT` with a retained
+   evaluation, one `PLANNED`, one `IN_PROGRESS`, one `COMPLETED` with realistic outcomes
+   (real provenance kept separate from synthetic). Idempotent, stable demo identities.
+   **Tests:** second run → no duplicate demo identities; demo data flagged `synthetic` where
+   synthetic.
+6. (M) Frontend `src/pages/MyToursPage` + stop action panels; planner-side execution status
+   (states visible on tour/map views). Contract sync.
+7. (S) Test/build pass; README demo walkthrough section (reviewer path).
+
+**Automated done checks**
+
+- `./mvnw test` green incl. crew authorization and lifecycle gates.
+- `npm run build` green.
+- Demo command runs twice: no duplicate identities; reviewer can log in as a demo agent and
+  execute the prepared tour end-to-end.
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*
+
+### 3.11 Sprint S8 — Corrections, history, and auditability
+
+**Sprint goal.** Cancellation, audited corrections, and searchable history work; the audit
+record covers sign-ins and data changes across previously built operations.
+
+**Entrance criteria.** S7 done.
+
+**Task backlog**
+
+1. (S) Cancellation (US-30): reason required; `DRAFT`/`PLANNED`/`IN_PROGRESS` → `CANCELLED`;
+   no re-cancel or post-completion cancel; existing outcomes retained. **Tests included.**
+2. (L) Audit foundation (US-39): `AuditEvent` domain + `AuditService`; emit on successful/
+   failed sign-ins and every create/update/status/correction operation built in S1–S7
+   (wire-up checklist over existing services); actor/attempted username, UTC, action, entity,
+   outcome, concise details; secrets never logged. **Tests:** representative events from
+   each feature area; no password/hash leakage.
+3. (M) Privileged correction operation (US-31): dedicated endpoint (not historical edit),
+   reason required, actor+UTC recorded, audit event created, `PLANNER`/`ADMIN` only.
+   **Tests:** agent gets 403; ordinary agent edits impossible; audit row references the
+   correction.
+4. (M) History search (US-32): filter completed/cancelled tours by date/status/vehicle/
+   agent/point; detail retains outcomes, quantities, incidents, cancellation reason,
+   timestamps; no reopen/hard delete. **Tests:** filters return correct subsets.
+5. (M) Admin audit review endpoint + page with filters (time range, actor, action, entity,
+   outcome); audit rows immutable to all users.
+6. (S) Frontend history + audit pages; contract sync; test/build pass.
+
+**Automated done checks**
+
+- `./mvnw test` green incl. audit/correction/history rules.
+- `npm run build` green.
+- Correction of one demo stop appears both in history and in the audit page.
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*
+
+### 3.12 Sprint S9 — Dashboards, evaluation explorer, CSV exchange, traffic overlay
+
+**Sprint goal.** Operational and evaluation dashboards exist; the fixed 60-scenario
+experiment can be generated and run locally; evaluation CSVs import/export per the documented
+schemas; the timestamped NYC DOT traffic overlay renders without touching optimizer costs.
+
+**Entrance criteria.** S8 done; retained evaluation runs exist (S5/S6).
+
+**Task backlog**
+
+1. (L) Fixed-matrix experiment support (D-016/D-022): seeded generator sampling real MN01
+   DSNY points without replacement (3 profiles × 5 seeds × 4 sizes), per-scenario identity
+   (seed/profile/size/source snapshot/routing version), reusing the run retention of S5.
+   Batch runner invocable from the backend (documentable command for S10). **Tests:**
+   sampled scenarios reproducible; runner produces one retained result per scenario/method
+   incl. failure rows.
+2. (M) Evaluation-explorer dashboard (US-36): scenario selector, per-method comparisons
+   (distance, estimated duration, execution time, coverage/checks), % vs input order from
+   retained values (not shown for missing/infeasible as "improvement"), reproducibility
+   fields; aggregates scoped to the fixed experiment, hand-crafted demo excluded.
+3. (M) Operational dashboard (US-35): resource/tour/stop summaries with filtered-view links;
+   no real-time tracking implication. **Tests:** summary math vs seeded demo data.
+4. (M) CSV import (US-37): documented schema (`docs/evaluation-csv.md`), strict validation
+   (headers, types, coordinate ranges, positive kg, category refs, duplicate
+   point/order entries), row-specific errors, atomic failure, provenance retained.
+   **Test:** validation matrix incl. partial-failure atomicity.
+5. (M) CSV export (US-38): all three methods incl. failures, columns sufficient to recompute
+   reported deltas, demo/experiment separation. **Test:** round-trip with an import or
+   independent parser check.
+6. (L) Traffic overlay (US-34): retrieval of the bounded NYC DOT link snapshot with
+   `data_as_of` retention and stale/invalid rejection (per `docs/geospatial-data.md` §4); API
+   + Leaflet layer with timestamp, coverage disclaimer text from §6; toggling never changes
+   optimization inputs (architecture: separate service/module). **Tests:** stale/invalid
+   handling; layer toggle state orthogonal to evaluation.
+7. (S) Contract sync; test/build pass; README updates.
+
+**Automated done checks**
+
+- `./mvnw test` green incl. runner determinism and CSV validation/export tests.
+- `npm run build` green.
+- Demo dashboards render from seeded demo data; explorer lists a small hand-run set of test
+  scenarios (the full 60-scenario campaign is S10).
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*
+
+### 3.13 Sprint S10 — Metrics campaign and project closure
+
+**Sprint goal.** Part 6 is *answered with measured data* (tooling executes, reports exist)
+and presentation content is ready; the prototype is coherent end-to-end for the reviewer.
+
+**Entrance criteria.** S9 done. **Blocked on open decision:** presentation date and deck
+format (PowerPoint vs HTML, AGENTS.md §4) — the agent prepares format-agnostic content and
+asks before rendering.
+
+**Task backlog**
+
+1. (L) Execute the fixed 60-scenario campaign (S9 runner) and store all outputs under
+   `metrics/` next to the `tools/metrics.sh` reports. Run `bash tools/metrics.sh` for LOC,
+   CKJM, PMD, JDepend; keep every number reproducible by a listed command.
+2. (M) Write `docs/06-metrics.md` from the real outputs: metric tables pointing at their
+   commands, generator parameters, and the research question **answered with the measured
+   data**. Do not report placeholder numbers (AGENTS.md §10).
+3. (M) Presentation content, deck-agnostic: outline following the six parts, architecture
+   diagram, demo script with screenshots, metrics table + key finding, limitations and future
+   work. Escalate deck format/date to the owner before rendering.
+4. (S) Final sweep: README accuracy, `docs/05-scrum.md` story statuses, backlog
+   traceability, `AGENTS.md` §3/§5, decisions log; full regression run (all tests + builds)
+   and one scripted end-to-end reviewer walkthrough.
+
+**Automated done checks**
+
+- `bash tools/metrics.sh` produces complete reports; the experiment runner output files exist
+  with scenario/method counts (60 scenarios × 3 methods).
+- `docs/06-metrics.md` contains only measured values with command references.
+- `./mvnw test` and `npm run build` green.
+
+**Review.** *To be filled at sprint close.*
+
+**Retrospective.** *To be filled at sprint close.*

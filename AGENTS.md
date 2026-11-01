@@ -40,7 +40,7 @@ An agent's job is to help produce **all** of these, coherently, not only the cod
 | Optimization model | ✅ Directed road-network input-order baseline, NN + directed-cost 2-opt; 60 real-location scenarios fixed; NYC traffic overlay only |
 | Repository scaffold | ✅ `backend/`, `frontend/`, `docs/`, `tools/`, `README.md` |
 | Toolchain | ✅ JDK 21 + Maven 3.9 + CKJM installed locally by `tools/setup-toolchain.sh` |
-| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog complete, sprints/reviews/retrospectives not started; Part 6 not started |
+| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog + sprint plan complete, sprint execution not started; Part 6 not started |
 | UML diagrams (Part 3) | ✅ Use case, operational class, optimization sequence, tour-lifecycle activity, and OCL complete; all Mermaid sources rendered successfully |
 | Prototype (Part 4) | ❌ Framework scaffold only: Spring Boot API and React SPA are initialised and run, but no domain feature is implemented |
 | Metrics + research answer (Part 6) | ❌ Not started (`tools/metrics.sh` is ready) |
@@ -55,8 +55,7 @@ artifact exists in the repo.
 
 These are unresolved and **must not be invented** by an agent:
 
-- **Presentation date and format.** No fixed deadline; the presentation date and deck
-  format (PowerPoint vs. HTML) are not chosen.
+- **Presentation date.** Not fixed (format decided: HTML deck, D-041).
 
 All implementation-blocking decisions are resolved; see `docs/decisions.md`. Do not reopen
 them without the project owner's agreement.
@@ -103,9 +102,9 @@ Map every artifact to a part of the assignment. Keep this list honest.
 ### Part 5 — Scrum → `docs/05-scrum.md`
 - [x] Product Backlog as user stories ("As a …, I want …, so that …")
 - [x] Prioritized, with acceptance criteria
-- [ ] Sprint Backlog(s)
-- [ ] Sprint review notes
-- [ ] Retrospective notes (what went well / badly)
+- [x] Sprint Backlog(s) — ten sprints (S1–S10) planned for AI-agent execution, `docs/05-scrum.md` §3; none executed yet
+- [ ] Sprint review notes (pending sprint execution)
+- [ ] Retrospective notes (what went well / badly) (pending sprint execution)
 
 ### Part 6 — Metrology → `docs/06-metrics.md`
 > Tooling is in place (`bash tools/metrics.sh`); the measurements are not started.
