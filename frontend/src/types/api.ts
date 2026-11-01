@@ -344,6 +344,19 @@ export interface Tour {
   readyToComplete: boolean
 }
 
+/** web.dto.CollectedQuantityRequest */
+export interface CollectedQuantityRequest {
+  categoryId: string
+  actualQuantityKg: number
+}
+
+/** web.dto.StopOutcomeRequest */
+export interface StopOutcomeRequest {
+  status: Exclude<TourStopStatus, 'PENDING'>
+  quantities?: CollectedQuantityRequest[]
+  incidentReason?: string
+}
+
 /** web.dto.TourSummaryResponse */
 export interface TourSummary {
   id: string

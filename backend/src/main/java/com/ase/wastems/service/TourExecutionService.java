@@ -3,14 +3,25 @@ package com.ase.wastems.service;
 import com.ase.wastems.domain.Agent;
 import com.ase.wastems.domain.AppUser;
 import com.ase.wastems.domain.Tour;
+import com.ase.wastems.domain.StopDemand;
 import com.ase.wastems.domain.TourIssue;
 import com.ase.wastems.domain.TourStatus;
+import com.ase.wastems.domain.TourStop;
+import com.ase.wastems.domain.TourStopStatus;
+import com.ase.wastems.domain.WasteCategory;
 import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.AppUserRepository;
 import com.ase.wastems.repository.TourRepository;
+import com.ase.wastems.repository.WasteCategoryRepository;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,13 +42,15 @@ public class TourExecutionService {
     private final TourRepository tours;
     private final AppUserRepository users;
     private final AgentRepository agents;
+    private final WasteCategoryRepository categories;
     private final TourService tourService;
 
     public TourExecutionService(TourRepository tours, AppUserRepository users, AgentRepository agents,
-            TourService tourService) {
+            WasteCategoryRepository categories, TourService tourService) {
         this.tours = tours;
         this.users = users;
         this.agents = agents;
+        this.categories = categories;
         this.tourService = tourService;
     }
 
@@ -90,6 +103,62 @@ public class TourExecutionService {
         tour.start(now(), username);
         tour.touch();
         return TourService.initialized(tour);
+    }
+
+    /** PENDING to COLLECTED / NOT_COLLECTED by a crew member on an IN_PROGRESS tour (US-28). */
+    @Transactional
+    public Tour recordOutcome(UUID tourId, UUID stopId, String username, StopOutcomeCommand cmd) {
+        Tour tour = lockedVisible(tourId, username);
+        TourStop stop = tour.getStops().stream()
+                .filter(s -> stopId.equals(s.getId()))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Tour stop not found: " + stopId));
+        if (tour.getStatus() != TourStatus.IN_PROGRESS) {
+            throw new ConflictException(
+                    "Outcomes can be recorded only on an IN_PROGRESS tour; this tour is " + tour.getStatus() + ".");
+        }
+        if (stop.getStatus() != TourStopStatus.PENDING) {
+            throw new ConflictException("Stop " + stop.getVisitOrder() + " already has the outcome "
+                    + stop.getStatus() + "; corrections are made by a planner.");
+        }
+        AppUser recorder = caller(username);
+        Instant now = now();
+        if (cmd.status() == TourStopStatus.COLLECTED) {
+            stop.recordCollected(resolveQuantities(stop, cmd), cmd.incidentReason(), recorder, now);
+        } else {
+            stop.recordNotCollected(cmd.incidentReason(), recorder, now);
+        }
+        tour.touch();
+        tours.flush();
+        return TourService.initialized(tour);
+    }
+
+    private Map<WasteCategory, BigDecimal> resolveQuantities(TourStop stop, StopOutcomeCommand cmd) {
+        Set<UUID> planned = new HashSet<>();
+        for (StopDemand d : stop.getStopDemands()) {
+            planned.add(d.getCategory().getId());
+        }
+        Map<WasteCategory, BigDecimal> resolved = new LinkedHashMap<>();
+        Set<UUID> seen = new HashSet<>();
+        List<WasteCategory> found = new ArrayList<>();
+        for (StopOutcomeCommand.QuantityInput q : cmd.quantities()) {
+            WasteCategory c = categories.findById(q.categoryId()).orElseThrow(
+                    () -> new NotFoundException("Waste category not found: " + q.categoryId()));
+            found.add(c);
+        }
+        for (WasteCategory c : found) {
+            if (!seen.add(c.getId())) {
+                throw new BusinessRuleException("Each waste category may appear only once.");
+            }
+        }
+        for (int i = 0; i < found.size(); i++) {
+            WasteCategory c = found.get(i);
+            if (!c.isActive() && !planned.contains(c.getId())) {
+                throw new BusinessRuleException("Waste category " + c.getName() + " is inactive.");
+            }
+            resolved.put(c, cmd.quantities().get(i).quantityKg());
+        }
+        return resolved;
     }
 
     private Tour lockedVisible(UUID tourId, String username) {
