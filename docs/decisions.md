@@ -640,3 +640,62 @@ artifacts, metrics, and presentation remain consistent.
 - **Rationale:** Conventions fixed during S4 so the S5 evaluation freezes a tour draft by its
   revision, S6 confirms it with the same structural validation, and S7/S8 add execution and
   cancellation on the same entities.
+
+## D-046 — S5 implementation conventions
+
+- **Date:** 2026-11-01
+- **Decision:**
+  - **Snapshot.** The MN01 road extract is committed as
+    `backend/src/main/resources/routing/mn01-roads.osm` (4 148 737 bytes, SHA-256
+    `e1f2fabaa937...341d6a01`) with its Overpass query `mn01-roads.overpassql`; `tools/fetch-road-snapshot.sh`
+    refreshes it. A refresh produces new bytes and a new version: the file and
+    `wastems.routing.expected-sha256` are replaced together and retained runs keep their version ID.
+  - **Version ID.** `roadGraphVersion` = `wastems.routing.version-prefix` + the first 12 hex of the
+    SHA-256 of the classpath extract = `osm-mn01-e1f2fabaa937`.
+  - **GraphHopper.** `graphhopper-core` 11.1 embedded behind `routing/` only; profile `car` with the
+    bundled `car.json` custom model, `TurnCostsConfig.car()`, contraction hierarchies, OSM turn
+    restrictions. `jackson-dataformat-xml` is excluded so Spring MVC registers no XML converter.
+  - **Cache and start-up.** The graph cache lives in `wastems.routing.cache-dir` (default
+    `routing-cache`, git-ignored) in `<versionId>-gh11.1/`; initialization is lazy and thread-safe
+    (failures are not cached) plus a `dev` warm-up that only logs a warning (NFR-10). The router
+    refuses a missing file, a checksum mismatch or a failed import with `RoutingUnavailableException`.
+  - **Snapping and legs.** Every node must snap to a drivable road within 100 m before any leg is
+    routed (`POINT_NOT_ROUTABLE`); one GraphHopper request per ordered pair (`NO_ROAD_PATH` on
+    error); distance and base time are rounded to 3 decimals before optimization so the retained
+    matrix reproduces every indicator. GraphHopper's paths minimize its car weighting while the
+    optimizer minimizes the sum of the directed leg distances (documented in `docs/geospatial-data.md` §4).
+  - **Independence rule.** `optimization/` imports only `java.*` and `com.ase.wastems.optimization.*`,
+    enforced by `OptimizationIndependenceTest`; `routing/` may import `optimization/`, never the reverse.
+  - **Methods.** `INPUT_ORDER`; capacity-aware `NEAREST_NEIGHBOR` (strict `<`, ties to the lowest input
+    index, capacity filter with 1e-9 tolerance); `NN_PLUS_2_OPT` with best-improvement 2-opt on the exact
+    directed delta (reversed internal legs re-costed from prefix sums, epsilon 1e-6 m, first best move
+    wins). One trip from and back to the depot, no reload; capacity and coverage validated identically.
+  - **Duration and timing.** `durationS` = sum of directed base travel times + n x
+    `wastems.optimization.service-time-seconds` (600 s, D-015); the 40 km/h speed of D-015 is superseded
+    by GraphHopper base time (D-021). Execution time is `System.nanoTime()` around each method's
+    construction/improvement (NN + 2-opt includes its NN), not routing.
+  - **Scenario freezing.** `TourService.loadDraftAndBuildScenario`: DRAFT only (409); structural issues
+    give 422 and retain nothing; it freezes tour id and revision, depot, each stop's point id, source
+    ids, name, coordinates and planned demand total, vehicle capacity and source snapshot IDs
+    (`<dataset>:unknown` when no snapshot row exists, `USER_ENTERED` when a depot or point has no
+    source dataset). It never writes the tour.
+  - **Retention.** `EvaluationRun` (+ `EvaluationStop`, `MethodResult` element collections) without a
+    foreign key to `tour`; status `COMPLETED` or `ROUTING_FAILED`.
+  - **API and statuses.** `POST /api/tours/{id}/evaluations` (201 + `Location`; `ROUTING_FAILED` is also
+    201), `GET /api/tours/{id}/evaluations`, `GET /api/evaluations/{runId}`, `GET .../matrix`; 422 not
+    ready, 409 not a draft, 404 unknown, 400 malformed id, **503** when the road snapshot is unusable
+    (addition to D-042). `/api/evaluations` replaces the planned `/api/optimization` of D-018.
+- **Rationale:** One fixed road version and one fixed frozen scenario make the three methods
+  comparable and every retained indicator recomputable (NFR-05, NFR-07, NFR-09); failures are retained
+  or explained instead of silently altering the operational draft.
+- **Deviations from the S5 plan:**
+  - The trailer name is `Claude Sonnet 5.5` as given in the executor instructions.
+  - The plan's `EvaluationServiceTest` item 1 says matrix `nodeCount` 4 for a fixture with four stops
+    and a depot; the matrix has 5 nodes and the test asserts 5 (the API test with three stops asserts 4).
+  - Done-check script corrections (three assertions that were wrong in the script, not in the code; the
+    original is kept next to it as `s5-done-check.orig.sh`): the anonymous POST now carries a CSRF token
+    (without one Spring's CSRF filter answers 403 before authentication); the frozen depot check accepts
+    the real imported name `MN01G Garage, 353 Spring St` (prefix `MN01G` and source identifier `MN01G`);
+    the second backend's warm-up warning is polled for up to 40 s instead of grepped once (it is logged
+    after the login check). First run: `FAILS=3`; second run with these corrections: 116 checks, `FAILS=0`.
+  - No GraphHopper API deviated from the plan; the code compiled against 11.1 as specified.

@@ -11,7 +11,7 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
 completed artifacts from planned work.
 
-> **Current state: Sprint S4 delivered.** Session authentication with CSRF protection, the
+> **Current state: Sprint S5 delivered.** Session authentication with CSRF protection, the
 > ADMIN / PLANNER / AGENT roles, user administration, waste categories, collection points with
 > demand entries on a Leaflet/OpenStreetMap map (S2), and (S3) vehicles and operational agents
 > with availability, the ADMIN-only agent to AGENT-account link, and the idempotent import of
@@ -20,8 +20,12 @@ completed artifacts from planned work.
 > (backend API and React UI). **Tour drafts (S4):** planning date + depot, map/list stop
 > selection in an explicit input order, vehicle + driver + up to two collectors, live capacity
 > and structural validation. The map shows the input order as straight dashed lines, not a road
-> route (routing arrives in S5). Routing, optimization and tour execution are not implemented yet. The real
-> MN01 source extracts are under `backend/src/main/resources/data/`.
+> route. **Directed routing and three-method evaluation (S5):** embedded GraphHopper 11.1 on the
+> versioned OSM snapshot `osm-mn01-e1f2fabaa937`; `POST /api/tours/{id}/evaluations` runs input
+> order, nearest neighbor and NN + 2-opt on the frozen draft and retains the run (orders, road
+> legs, distance, duration, execution time, checks, snapshot IDs). No evaluation UI yet (S6).
+> Tour execution is not implemented yet. The real MN01 source extracts are under
+> `backend/src/main/resources/data/`.
 
 The real-city sources, included snapshots, map interactions, routing rules, and attribution
 are documented in [`docs/geospatial-data.md`](docs/geospatial-data.md). Traffic is a timestamped
@@ -63,8 +67,10 @@ project-ase/
 │   └── src/
 │       ├── main/java/com/ase/wastems/
 │       │   ├── domain/ repository/ service/ web/ security/ config/
+│       │   ├── optimization/  # framework-free algorithm core (input order, NN, directed 2-opt)
+│       │   ├── routing/       # embedded GraphHopper on the OSM snapshot
 │       │   └── WasteMsApplication.java
-│       ├── main/resources/    # application.yml + real NYC snapshots in data/
+│       ├── main/resources/    # application.yml + real NYC snapshots in data/ + OSM road snapshot in routing/
 │       └── test/              # JUnit 5 tests
 ├── frontend/                  # React single-page application (Vite, Tailwind, shadcn/ui)
 │   ├── package.json
@@ -88,7 +94,7 @@ project-ase/
 │   ├── 03-uml/                # Part 3 — UML models (Mermaid)
 │   ├── 05-scrum.md            # Part 5 — Scrum artifacts
 │   └── 06-metrics.md          # Part 6 — software metrology
-├── tools/                     # toolchain installer and metric scripts
+├── tools/                     # toolchain installer, metric scripts, fetch-road-snapshot.sh
 └── presentation/              # final deck
 ```
 
@@ -144,6 +150,10 @@ count and checksum). An ADMIN can re-run it from the Data import page or with
 To start without seeding, use any non-`dev` profile, e.g.
 `./mvnw spring-boot:run -Dspring-boot.run.profiles=prod`. To reset the database, stop the
 application and delete `backend/data/`.
+
+ The first evaluation (or the `dev` warm-up at start) imports the road graph into
+`backend/routing-cache/` (about 2 s, about 8 MB, git-ignored; delete it to rebuild);
+`--wastems.routing.cache-dir=<dir>` moves it.
 
  The H2 database file is created on first start in
 `backend/data/`; the H2 console is available at <http://localhost:8080/h2-console> (JDBC URL
@@ -211,6 +221,19 @@ curl -s -b $J -X PUT "${H[@]}" \
      -d "{\"vehicleId\":\"$VEHICLE_ID\",\"driverId\":\"$AGENT_ID\",\"collectorIds\":[]}" $B/api/tours/$TOUR_ID/assignment
 ```
 
+Three-method evaluation of a ready draft (PLANNER/ADMIN):
+
+```bash
+curl -s -i -b $J -X POST "${H[@]}" $B/api/tours/$TOUR_ID/evaluations   # 201, Location: /api/evaluations/<runId>
+curl -s -b $J $B/api/evaluations/$RUN_ID                                 # three method results with orders, legs, indicators
+curl -s -b $J $B/api/evaluations/$RUN_ID/matrix                          # retained directed distance/time matrix
+curl -s -b $J $B/api/tours/$TOUR_ID/evaluations                          # runs of the tour, newest first
+```
+
+A draft that is not ready answers 422 (e.g. `OVER_CAPACITY`, `NO_VEHICLE`); an unroutable point or
+missing directed leg answers 201 with a retained run of status `ROUTING_FAILED`; a missing or
+corrupt road snapshot answers 503. The draft is never modified.
+
 Over-capacity is reported (`capacity.overCapacity`, issue `OVER_CAPACITY`), not rejected, in a
 draft. There is no `DELETE /api/tours/{id}`.
 
@@ -222,7 +245,8 @@ receives 403. Linking agents to accounts (`/api/agents/{id}/user-account`) and t
 
 Base-map tiles come from OpenStreetMap and are shown with the required
 "© OpenStreetMap contributors" attribution. Depot and basket locations come from NYC Open Data
-(DSNY); see [`docs/geospatial-data.md`](docs/geospatial-data.md).
+(DSNY); see [`docs/geospatial-data.md`](docs/geospatial-data.md). Road routing uses an
+OpenStreetMap extract (© OpenStreetMap contributors, ODbL).
 
 ## 5. Tests and metrics
 

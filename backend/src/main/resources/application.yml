@@ -31,6 +31,7 @@ spring:
 logging:
   level:
     com.ase.wastems: INFO
+    com.graphhopper: WARN
 
 wastems:
   # NYC bounding box; coordinates outside it (e.g. longitude/latitude swapped) are rejected (422).
@@ -39,3 +40,13 @@ wastems:
     max-longitude: -73.65
     min-latitude: 40.45
     max-latitude: 40.95
+  # Versioned OSM road snapshot and embedded GraphHopper (D-021, D-037, docs/geospatial-data.md §3.1).
+  routing:
+    osm-location: classpath:routing/mn01-roads.osm
+    expected-sha256: e1f2fabaa937117f3a4c25582fb1ac4026fbb6fe8f3b9882f705e88a341d6a01
+    version-prefix: osm-mn01-
+    cache-dir: routing-cache          # relative to the working directory (backend/); git-ignored
+    max-snap-distance-meters: 100
+  # Three-method evaluation (D-008, D-015): service time per stop.
+  optimization:
+    service-time-seconds: 600

@@ -2,6 +2,7 @@ package com.ase.wastems.web;
 
 import com.ase.wastems.service.BusinessRuleException;
 import com.ase.wastems.service.ConflictException;
+import com.ase.wastems.routing.RoutingUnavailableException;
 import com.ase.wastems.service.NotFoundException;
 import com.ase.wastems.web.dto.ApiError;
 import com.ase.wastems.web.dto.FieldErrorDetail;
@@ -68,5 +69,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> integrity(DataIntegrityViolationException ex) {
         return body(HttpStatus.CONFLICT, "The request conflicts with existing data.");
+    }
+
+    @ExceptionHandler(RoutingUnavailableException.class)
+    public ResponseEntity<ApiError> routingUnavailable(RoutingUnavailableException ex) {
+        return body(
+                HttpStatus.SERVICE_UNAVAILABLE, "Road routing is unavailable: " + ex.getMessage());
     }
 }

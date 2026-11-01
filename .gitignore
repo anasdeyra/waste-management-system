@@ -14,6 +14,7 @@ yarn-error.log*
 
 # Local database and runtime data
 backend/data/
+backend/routing-cache/
 *.mv.db
 *.trace.db
 
