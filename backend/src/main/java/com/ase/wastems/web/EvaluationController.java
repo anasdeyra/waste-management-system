@@ -7,6 +7,7 @@ import com.ase.wastems.domain.ScenarioKind;
 import com.ase.wastems.repository.RunListRow;
 import com.ase.wastems.repository.RunMethodRow;
 import com.ase.wastems.service.EvaluationExplorerService;
+import com.ase.wastems.service.EvaluationExportService;
 import com.ase.wastems.service.RunFilter;
 import com.ase.wastems.web.dto.EvaluationAggregateResponse;
 import com.ase.wastems.web.dto.EvaluationBatchDetailResponse;
@@ -28,8 +29,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,9 +52,11 @@ public class EvaluationController {
     private final EvaluationService evaluations;
     private final ObjectMapper objectMapper;
     private final EvaluationExplorerService explorer;
+    private final EvaluationExportService exports;
 
     public EvaluationController(TourService tours, EvaluationService evaluations, ObjectMapper objectMapper,
-            EvaluationExplorerService explorer) {
+            EvaluationExplorerService explorer, EvaluationExportService exports) {
+        this.exports = exports;
         this.tours = tours;
         this.evaluations = evaluations;
         this.objectMapper = objectMapper;
@@ -106,6 +111,29 @@ public class EvaluationController {
         return new EvaluationBatchDetailResponse(EvaluationBatchResponse.from(explorer.batch(id)),
                 explorer.aggregates(id).stream().map(EvaluationAggregateResponse::from).toList(),
                 explorer.scenarioKeys(id));
+    }
+
+    private static final MediaType CSV = MediaType.parseMediaType("text/csv;charset=UTF-8");
+
+    @GetMapping("/api/evaluations/export")
+    public ResponseEntity<String> exportResults(
+            @RequestParam(required = false) ScenarioKind kind,
+            @RequestParam(required = false) UUID batchId,
+            @RequestParam(required = false) UUID runId) {
+        String suffix = runId != null
+                ? "run-" + runId
+                : batchId != null ? "batch-" + batchId : kind != null ? kind.name().toLowerCase(Locale.ROOT) : "all";
+        return csv(exports.resultsCsv(kind, batchId, runId), "evaluation-results-" + suffix + ".csv");
+    }
+
+    @GetMapping("/api/evaluations/batches/{id}/scenarios.csv")
+    public ResponseEntity<String> exportScenarios(@PathVariable UUID id) {
+        return csv(exports.scenariosCsv(id), "evaluation-scenarios-" + id + ".csv");
+    }
+
+    private static ResponseEntity<String> csv(String body, String filename) {
+        return ResponseEntity.ok().contentType(CSV)
+                .header("Content-Disposition", "attachment; filename=\"" + filename + "\"").body(body);
     }
 
     @GetMapping("/api/evaluations/{runId}")

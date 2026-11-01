@@ -39,6 +39,7 @@ class ExperimentRoutingFailureTest {
     @Autowired SourceSnapshotRepository snapshots;
     @Autowired Mn01ImportService mn01Import;
     @Autowired JdbcTemplate jdbc;
+    @Autowired EvaluationExportService exports;
 
     @BeforeEach
     void setUp() {
@@ -82,5 +83,29 @@ class ExperimentRoutingFailureTest {
         assertThat(jdbc.queryForObject(
                         "select outcome from audit_event where action = 'EVALUATION_EXPERIMENT_RUN'", String.class))
                 .isEqualTo("FAILURE");
+    }
+
+    @Test
+    @Transactional
+    void failedRunsAreExportedWithEmptyIndicators() {
+        doThrow(new RoadLegUnavailableException(Reason.NO_ROAD_PATH, 1, 2, "test: no road path"))
+                .when(matrices).buildMatrix(argThat(n -> n != null && n.size() == 4));
+        EvaluationBatch b = experiments.run(
+                ExperimentSpec.of(List.of(DemandProfile.UNIFORM_LOW), List.of(1L), List.of(3, 5), null, null), "admin1");
+        var rows = SimpleCsv.parse(exports.resultsCsv(null, b.getId(), null));
+        assertThat(rows).hasSize(6);
+        var failed = rows.stream().filter(r -> r.get("scenario_key").equals("mn01-UNIFORM_LOW-s1-n3")).toList();
+        assertThat(failed).hasSize(3);
+        for (var r : failed) {
+            assertThat(r.get("run_status")).isEqualTo("ROUTING_FAILED");
+            assertThat(r.get("failure_code")).isEqualTo("NO_ROAD_PATH");
+            assertThat(r.get("feasible")).isEqualTo("false");
+            assertThat(r.get("infeasibility_reason")).isNotEmpty();
+            assertThat(r.get("distance_m")).isEmpty();
+            assertThat(r.get("duration_s")).isEmpty();
+            assertThat(r.get("distance_change_pct")).isEmpty();
+        }
+        var ok = rows.stream().filter(r -> r.get("scenario_key").equals("mn01-UNIFORM_LOW-s1-n5")).toList();
+        assertThat(ok).allMatch(r -> !r.get("distance_m").isEmpty() && !r.get("duration_s").isEmpty());
     }
 }
