@@ -2,6 +2,9 @@ package com.ase.wastems.service;
 
 import com.ase.wastems.domain.Agent;
 import com.ase.wastems.domain.AppUser;
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEntityType;
+import com.ase.wastems.domain.CollectedQuantity;
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.StopDemand;
 import com.ase.wastems.domain.TourIssue;
@@ -44,9 +47,12 @@ public class TourExecutionService {
     private final AgentRepository agents;
     private final WasteCategoryRepository categories;
     private final TourService tourService;
+    private final AuditService audit;
 
     public TourExecutionService(TourRepository tours, AppUserRepository users, AgentRepository agents,
-            WasteCategoryRepository categories, TourService tourService) {
+            WasteCategoryRepository categories, TourService tourService,
+            AuditService audit) {
+        this.audit = audit;
         this.tours = tours;
         this.users = users;
         this.agents = agents;
@@ -102,6 +108,11 @@ public class TourExecutionService {
         }
         tour.start(now(), username);
         tour.touch();
+        audit.record(
+                AuditAction.TOUR_STARTED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "IN_PROGRESS, started by " + username);
         return TourService.initialized(tour);
     }
 
@@ -130,7 +141,29 @@ public class TourExecutionService {
         }
         tour.touch();
         tours.flush();
+        String prefix = "stop " + stop.getVisitOrder() + " " + stop.getCollectionPoint().getName() + ": ";
+        audit.record(
+                AuditAction.STOP_OUTCOME_RECORDED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                (cmd.status() == TourStopStatus.COLLECTED
+                                ? prefix + "COLLECTED " + describeQuantities(stop)
+                                : prefix
+                                        + "NOT_COLLECTED ("
+                                        + AuditService.brief(stop.getIncidentReason())
+                                        + ")")
+                        + " by "
+                        + username);
         return TourService.initialized(tour);
+    }
+
+    /** Actual quantities as {@code Name 10.00 kg, ...}, sorted by category name. */
+    static String describeQuantities(TourStop stop) {
+        return stop.getActualQuantities().stream()
+                .sorted(Comparator.comparing(
+                        (CollectedQuantity q) -> q.getCategory().getName(), String.CASE_INSENSITIVE_ORDER))
+                .map(q -> q.getCategory().getName() + " " + q.getActualQuantityKg().toPlainString() + " kg")
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     private Map<WasteCategory, BigDecimal> resolveQuantities(TourStop stop, StopOutcomeCommand cmd) {
@@ -175,6 +208,19 @@ public class TourExecutionService {
         }
         tour.complete(now(), username);
         tour.touch();
+        long collected =
+                tour.getStops().stream().filter(x -> x.getStatus() == TourStopStatus.COLLECTED).count();
+        audit.record(
+                AuditAction.TOUR_COMPLETED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "COMPLETED by "
+                        + username
+                        + "; "
+                        + collected
+                        + " collected, "
+                        + (tour.getStops().size() - collected)
+                        + " not collected");
         return TourService.initialized(tour);
     }
 

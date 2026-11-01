@@ -1,6 +1,8 @@
 package com.ase.wastems.service;
 
 import com.ase.wastems.domain.Agent;
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEntityType;
 import com.ase.wastems.domain.AppRole;
 import com.ase.wastems.domain.AppUser;
 import com.ase.wastems.domain.DataOrigin;
@@ -22,7 +24,10 @@ public class AgentService {
     private final AgentRepository agents;
     private final AppUserRepository users;
 
-    public AgentService(AgentRepository agents, AppUserRepository users) {
+    private final AuditService audit;
+
+    public AgentService(AgentRepository agents, AppUserRepository users, AuditService audit) {
+        this.audit = audit;
         this.agents = agents;
         this.users = users;
     }
@@ -41,13 +46,18 @@ public class AgentService {
 
     @Transactional
     public Agent create(String displayName) {
-        return agents.save(new Agent(displayName.trim(), DataOrigin.USER_ENTERED));
+        Agent saved = agents.save(new Agent(displayName.trim(), DataOrigin.USER_ENTERED));
+        audit.record(
+                AuditAction.AGENT_CREATED, AuditEntityType.AGENT, saved.getId(), saved.getDisplayName());
+        return saved;
     }
 
     @Transactional
     public Agent update(UUID id, String displayName) {
         Agent a = get(id);
         a.setDisplayName(displayName.trim());
+        audit.record(
+                AuditAction.AGENT_UPDATED, AuditEntityType.AGENT, a.getId(), a.getDisplayName());
         return a;
     }
 
@@ -55,6 +65,7 @@ public class AgentService {
     public Agent setStatus(UUID id, ResourceStatus status) {
         Agent a = get(id);
         a.setStatus(status);
+        audit.record(AuditAction.AGENT_STATUS_CHANGED, AuditEntityType.AGENT, a.getId(), status.name());
         return a;
     }
 
@@ -93,6 +104,11 @@ public class AgentService {
         }
         agent.linkUserAccount(user);
         agents.flush();
+        audit.record(
+                AuditAction.AGENT_ACCOUNT_LINKED,
+                AuditEntityType.AGENT,
+                agent.getId(),
+                "linked to account " + user.getUsername());
         return agent;
     }
 
@@ -100,7 +116,15 @@ public class AgentService {
     @Transactional
     public Agent unlinkUserAccount(UUID agentId) {
         Agent agent = get(agentId);
+        AppUser previous = agent.getUserAccount();
         agent.unlinkUserAccount();
+        if (previous != null) {
+            audit.record(
+                    AuditAction.AGENT_ACCOUNT_UNLINKED,
+                    AuditEntityType.AGENT,
+                    agent.getId(),
+                    "unlinked from account " + previous.getUsername());
+        }
         return agent;
     }
 

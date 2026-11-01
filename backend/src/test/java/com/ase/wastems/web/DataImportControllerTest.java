@@ -9,11 +9,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.ase.wastems.domain.AppRole;
 import com.ase.wastems.domain.AppUser;
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEvent;
+import com.ase.wastems.repository.AuditEventRepository;
 import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.AppUserRepository;
 import com.ase.wastems.repository.CollectionPointRepository;
 import com.ase.wastems.repository.DepotRepository;
 import com.ase.wastems.repository.SourceSnapshotRepository;
+import java.util.List;
+import org.springframework.jdbc.core.JdbcTemplate;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +43,8 @@ class DataImportControllerTest {
     @Autowired private CollectionPointRepository points;
     @Autowired private DepotRepository depots;
     @Autowired private SourceSnapshotRepository snapshots;
+    @Autowired private AuditEventRepository auditEvents;
+    @Autowired private JdbcTemplate jdbc;
 
     @BeforeEach
     void setUp() {
@@ -79,6 +88,20 @@ class DataImportControllerTest {
         mvc.perform(get("/api/admin/import/report").with(asAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trigger").value("MANUAL"));
+    }
+
+    @Test
+    void importIsAudited() throws Exception {
+        jdbc.update("delete from audit_event");
+        mvc.perform(post("/api/admin/import").with(asAdmin()).with(csrf())).andExpect(status().isOk());
+        List<AuditEvent> imported =
+                auditEvents.findAll().stream().filter(e -> e.getAction() == AuditAction.DATA_IMPORTED).toList();
+        assertEquals(1, imported.size());
+        AuditEvent e = imported.get(0);
+        assertEquals("admin1", e.getActor());
+        assertEquals(com.ase.wastems.domain.AuditEntityType.DATA_IMPORT, e.getEntityType());
+        assertTrue(e.getEntityId().startsWith("8znf-7b2c:449:"), e.getEntityId());
+        assertTrue(e.getDetails().startsWith("MANUAL: baskets created"), e.getDetails());
     }
 
     @Test

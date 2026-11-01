@@ -1,5 +1,7 @@
 package com.ase.wastems.service;
 
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEntityType;
 import com.ase.wastems.domain.WasteCategory;
 import com.ase.wastems.repository.WasteCategoryRepository;
 import java.util.List;
@@ -13,7 +15,10 @@ public class WasteCategoryService {
 
     private final WasteCategoryRepository categories;
 
-    public WasteCategoryService(WasteCategoryRepository categories) {
+    private final AuditService audit;
+
+    public WasteCategoryService(WasteCategoryRepository categories, AuditService audit) {
+        this.audit = audit;
         this.categories = categories;
     }
 
@@ -52,7 +57,10 @@ public class WasteCategoryService {
         if (categories.existsByNameIgnoreCase(n)) {
             throw new ConflictException("Waste category already exists: " + n);
         }
-        return categories.save(new WasteCategory(n, normalizeDescription(description)));
+        WasteCategory saved = categories.save(new WasteCategory(n, normalizeDescription(description)));
+        audit.record(
+                AuditAction.CATEGORY_CREATED, AuditEntityType.WASTE_CATEGORY, saved.getId(), "name " + n);
+        return saved;
     }
 
     @Transactional
@@ -64,6 +72,8 @@ public class WasteCategoryService {
         }
         c.setName(n);
         c.setDescription(normalizeDescription(description));
+        audit.record(
+                AuditAction.CATEGORY_UPDATED, AuditEntityType.WASTE_CATEGORY, c.getId(), "name " + n);
         return c;
     }
 
@@ -71,6 +81,11 @@ public class WasteCategoryService {
     public WasteCategory setActive(UUID id, boolean active) {
         WasteCategory c = get(id);
         c.setActive(active);
+        audit.record(
+                AuditAction.CATEGORY_STATUS_CHANGED,
+                AuditEntityType.WASTE_CATEGORY,
+                c.getId(),
+                active ? "activated" : "deactivated");
         return c;
     }
 

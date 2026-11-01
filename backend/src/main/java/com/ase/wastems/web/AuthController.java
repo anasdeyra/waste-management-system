@@ -3,6 +3,7 @@ package com.ase.wastems.web;
 import com.ase.wastems.domain.AppUser;
 import com.ase.wastems.repository.AppUserRepository;
 import com.ase.wastems.service.AgentService;
+import com.ase.wastems.service.AuditService;
 import com.ase.wastems.web.dto.CsrfTokenResponse;
 import com.ase.wastems.web.dto.CurrentUserResponse;
 import com.ase.wastems.web.dto.LoginRequest;
@@ -11,8 +12,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.util.Locale;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
@@ -35,12 +39,15 @@ public class AuthController {
     private final SecurityContextRepository securityContextRepository;
     private final AppUserRepository users;
     private final AgentService agents;
+    private final AuditService audit;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             SecurityContextRepository securityContextRepository,
             AppUserRepository users,
-            AgentService agents) {
+            AgentService agents,
+            AuditService audit) {
+        this.audit = audit;
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.users = users;
@@ -58,10 +65,23 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response) {
         String username = req.username().trim().toLowerCase(Locale.ROOT);
-        Authentication auth =
-                authenticationManager.authenticate(
-                        UsernamePasswordAuthenticationToken.unauthenticated(
-                                username, req.password()));
+        Authentication auth;
+        try {
+            auth =
+                    authenticationManager.authenticate(
+                            UsernamePasswordAuthenticationToken.unauthenticated(
+                                    username, req.password()));
+        } catch (AuthenticationException e) {
+            audit.recordSignIn(
+                    username,
+                    false,
+                    e instanceof DisabledException
+                            ? "account deactivated"
+                            : e instanceof BadCredentialsException
+                                    ? "invalid credentials"
+                                    : "authentication failed");
+            throw e;
+        }
         if (request.getSession(false) != null) {
             request.changeSessionId();
         }
@@ -69,7 +89,9 @@ public class AuthController {
         ctx.setAuthentication(auth);
         SecurityContextHolder.setContext(ctx);
         securityContextRepository.saveContext(ctx, request, response);
-        return currentUser(users.findByUsername(username).orElseThrow());
+        AppUser user = users.findByUsername(username).orElseThrow();
+        audit.recordSignIn(username, true, "role " + user.getRole());
+        return currentUser(user);
     }
 
     @GetMapping("/me")

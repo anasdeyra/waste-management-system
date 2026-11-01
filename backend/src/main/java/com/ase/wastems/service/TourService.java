@@ -1,6 +1,8 @@
 package com.ase.wastems.service;
 
 import com.ase.wastems.domain.Agent;
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEntityType;
 import com.ase.wastems.domain.CollectionPoint;
 import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.Depot;
@@ -31,6 +33,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,6 +59,7 @@ public class TourService {
     private final AgentRepository agents;
     private final SourceSnapshotRepository sourceSnapshots;
     private final EvaluationRunRepository runs;
+    private final AuditService audit;
 
     public TourService(
             TourRepository tours,
@@ -64,7 +68,9 @@ public class TourService {
             VehicleRepository vehicles,
             AgentRepository agents,
             SourceSnapshotRepository sourceSnapshots,
-            EvaluationRunRepository runs) {
+            EvaluationRunRepository runs,
+            AuditService audit) {
+        this.audit = audit;
         this.tours = tours;
         this.depots = depots;
         this.points = points;
@@ -170,7 +176,13 @@ public class TourService {
     public Tour create(LocalDate planningDate, UUID depotId, DataOrigin origin) {
         requireNotPast(planningDate);
         Depot depot = findDepot(depotId);
-        return initialized(tours.save(new Tour(planningDate, depot, origin)));
+        Tour saved = tours.save(new Tour(planningDate, depot, origin));
+        audit.record(
+                AuditAction.TOUR_CREATED,
+                AuditEntityType.TOUR,
+                saved.getId(),
+                "planning date " + planningDate + ", depot " + depot.getName() + ", origin " + origin);
+        return initialized(saved);
     }
 
     @Transactional
@@ -184,6 +196,11 @@ public class TourService {
         tour.setPlanningDate(planningDate);
         tour.setDepot(depot);
         tour.touch();
+        audit.record(
+                AuditAction.TOUR_UPDATED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "planning date " + planningDate + ", depot " + depot.getName());
         return initialized(tour);
     }
 
@@ -214,6 +231,11 @@ public class TourService {
         TourStop stop = tour.addStop(point);
         tour.touch();
         tours.flush();
+        audit.record(
+                AuditAction.TOUR_STOP_ADDED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "stop " + stop.getVisitOrder() + " " + point.getName() + " (point " + pointId + ")");
         initialized(tour);
         return stop;
     }
@@ -225,8 +247,14 @@ public class TourService {
         TourStop stop =
                 tour.findStop(stopId)
                         .orElseThrow(() -> new NotFoundException("Tour stop not found: " + stopId));
+        CollectionPoint removed = stop.getCollectionPoint();
         tour.removeStop(stop);
         tour.touch();
+        audit.record(
+                AuditAction.TOUR_STOP_REMOVED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                removed.getName() + " (point " + removed.getId() + ")");
         return initialized(tour);
     }
 
@@ -244,6 +272,11 @@ public class TourService {
         }
         tour.reorderStops(stopIds);
         tour.touch();
+        audit.record(
+                AuditAction.TOUR_STOPS_REORDERED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                stopIds.size() + " stops reordered");
         return initialized(tour);
     }
 
@@ -295,6 +328,20 @@ public class TourService {
         }
         tour.assign(vehicle, driver, collectors);
         tour.touch();
+        audit.record(
+                AuditAction.TOUR_ASSIGNED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "vehicle "
+                        + (vehicle == null ? "none" : vehicle.getRegistration())
+                        + ", driver "
+                        + (driver == null ? "none" : driver.getDisplayName())
+                        + ", collectors "
+                        + (collectors.isEmpty()
+                                ? "none"
+                                : collectors.stream()
+                                        .map(Agent::getDisplayName)
+                                        .collect(Collectors.joining(", "))));
         return initialized(tour);
     }
 
@@ -365,6 +412,15 @@ public class TourService {
         attach(tour, run, proposal);
         tour.touch();
         run.recordDecision(ProposalDecision.ACCEPTED, username, Instant.now().truncatedTo(ChronoUnit.MILLIS));
+        audit.record(
+                AuditAction.PROPOSAL_ACCEPTED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "run "
+                        + run.getId()
+                        + ", NN_PLUS_2_OPT "
+                        + String.format(Locale.ROOT, "%.1f", proposal.getDistanceM())
+                        + " m");
         return initialized(tour);
     }
 
@@ -377,6 +433,15 @@ public class TourService {
         attach(tour, run, inputOrder);
         tour.touch();
         run.recordDecision(ProposalDecision.REJECTED, username, Instant.now().truncatedTo(ChronoUnit.MILLIS));
+        audit.record(
+                AuditAction.PROPOSAL_REJECTED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "run "
+                        + run.getId()
+                        + ", input order kept, "
+                        + String.format(Locale.ROOT, "%.1f", inputOrder.getDistanceM())
+                        + " m");
         return initialized(tour);
     }
 
@@ -448,6 +513,11 @@ public class TourService {
         }
         tour.confirm();
         tour.touch();
+        audit.record(
+                AuditAction.TOUR_CONFIRMED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "PLANNED with " + tour.getStops().size() + " stops");
         return initialized(tour);
     }
 

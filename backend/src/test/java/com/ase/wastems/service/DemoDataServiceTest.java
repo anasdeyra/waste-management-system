@@ -12,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.ase.wastems.domain.Agent;
 import com.ase.wastems.domain.AppRole;
 import com.ase.wastems.domain.AppUser;
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEvent;
 import com.ase.wastems.domain.CollectionPoint;
 import com.ase.wastems.domain.CollectionPointStatus;
 import com.ase.wastems.domain.DataOrigin;
@@ -27,6 +29,7 @@ import com.ase.wastems.domain.Vehicle;
 import com.ase.wastems.domain.WasteCategory;
 import com.ase.wastems.optimization.PlanningMethod;
 import com.ase.wastems.repository.AgentRepository;
+import com.ase.wastems.repository.AuditEventRepository;
 import com.ase.wastems.repository.AppUserRepository;
 import com.ase.wastems.repository.CollectionPointRepository;
 import com.ase.wastems.repository.DemoRecordRepository;
@@ -47,6 +50,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
@@ -76,6 +80,8 @@ class DemoDataServiceTest {
     @Autowired private SourceSnapshotRepository sourceSnapshots;
     @Autowired private PasswordEncoder encoder;
     @Autowired private MockMvc mvc;
+    @Autowired private AuditEventRepository auditEvents;
+    @Autowired private JdbcTemplate jdbc;
 
     @BeforeEach
     void setUp() {
@@ -90,6 +96,7 @@ class DemoDataServiceTest {
     }
 
     private void wipe() {
+        jdbc.update("delete from audit_event");
         demoRecords.deleteAll();
         evaluationRuns.deleteAll();
         tours.deleteAll();
@@ -114,6 +121,26 @@ class DemoDataServiceTest {
 
     private static String bd(BigDecimal v) {
         return v.setScale(2).toPlainString();
+    }
+
+    @Test
+    void loadIsAuditedWithoutPasswords() {
+        jdbc.update("delete from audit_event");
+        demo.load(DemoTrigger.MANUAL);
+        List<AuditEvent> all = auditEvents.findAll();
+        List<AuditEvent> loaded = all.stream().filter(e -> e.getAction() == AuditAction.DEMO_LOADED).toList();
+        assertThat(loaded).hasSize(1);
+        assertThat(loaded.get(0).getActor()).isEqualTo("system");
+        assertThat(loaded.get(0).getDetails()).startsWith("MANUAL:").contains("tours 4");
+        for (AuditAction a : List.of(AuditAction.TOUR_CONFIRMED, AuditAction.TOUR_COMPLETED)) {
+            List<AuditEvent> steps = all.stream().filter(e -> e.getAction() == a).toList();
+            assertThat(steps).isNotEmpty();
+            assertThat(steps).allMatch(e -> e.getActor().equals("system"));
+        }
+        for (AuditEvent e : all) {
+            String text = e.getActor() + " " + e.getDetails();
+            assertThat(text).doesNotContain("agent123", "collector123", "agent2123", "$2a$");
+        }
     }
 
     @Test

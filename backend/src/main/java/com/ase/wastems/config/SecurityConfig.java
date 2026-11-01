@@ -1,6 +1,7 @@
 package com.ase.wastems.config;
 
 import com.ase.wastems.repository.AppUserRepository;
+import com.ase.wastems.service.AuditService;
 import com.ase.wastems.security.ActiveAccountFilter;
 import com.ase.wastems.security.JsonAccessDeniedHandler;
 import com.ase.wastems.security.JsonAuthenticationEntryPoint;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -73,7 +75,8 @@ public class SecurityConfig {
             HttpSecurity http,
             AppUserRepository users,
             ObjectMapper om,
-            SecurityContextRepository repo)
+            SecurityContextRepository repo,
+            AuditService audit)
             throws Exception {
         CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepo.setCookiePath("/");
@@ -89,6 +92,14 @@ public class SecurityConfig {
                 .logout(
                         l ->
                                 l.logoutUrl("/api/auth/logout")
+                                        .addLogoutHandler(
+                                                (request, response, authentication) -> {
+                                                    if (authentication != null
+                                                            && !(authentication
+                                                                    instanceof AnonymousAuthenticationToken)) {
+                                                        audit.recordSignOut(authentication.getName());
+                                                    }
+                                                })
                                         .logoutSuccessHandler(
                                                 new HttpStatusReturningLogoutSuccessHandler(
                                                         HttpStatus.NO_CONTENT))
