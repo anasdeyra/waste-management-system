@@ -3,10 +3,13 @@ package com.ase.wastems.service;
 import com.ase.wastems.domain.Agent;
 import com.ase.wastems.domain.AppUser;
 import com.ase.wastems.domain.Tour;
+import com.ase.wastems.domain.TourIssue;
 import com.ase.wastems.domain.TourStatus;
 import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.AppUserRepository;
 import com.ase.wastems.repository.TourRepository;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -28,11 +31,14 @@ public class TourExecutionService {
     private final TourRepository tours;
     private final AppUserRepository users;
     private final AgentRepository agents;
+    private final TourService tourService;
 
-    public TourExecutionService(TourRepository tours, AppUserRepository users, AgentRepository agents) {
+    public TourExecutionService(TourRepository tours, AppUserRepository users, AgentRepository agents,
+            TourService tourService) {
         this.tours = tours;
         this.users = users;
         this.agents = agents;
+        this.tourService = tourService;
     }
 
     private static int rank(TourStatus s) {
@@ -67,6 +73,34 @@ public class TourExecutionService {
         Tour tour = tours.findById(tourId)
                 .orElseThrow(() -> new NotFoundException("Tour not found: " + tourId));
         return TourService.initialized(visibleTour(tour, username));
+    }
+
+    /** PLANNED to IN_PROGRESS by a crew member after revalidation (US-27). */
+    @Transactional
+    public Tour start(UUID tourId, String username) {
+        Tour tour = lockedVisible(tourId, username);
+        if (tour.getStatus() != TourStatus.PLANNED) {
+            throw new ConflictException(
+                    "Only a PLANNED tour can be started; this tour is " + tour.getStatus() + ".");
+        }
+        List<TourIssue> issues = tourService.startIssues(tour);
+        if (!issues.isEmpty()) {
+            throw new TourNotStartableException(issues);
+        }
+        tour.start(now(), username);
+        tour.touch();
+        return TourService.initialized(tour);
+    }
+
+    private Tour lockedVisible(UUID tourId, String username) {
+        Tour tour = tours.findByIdForUpdate(tourId)
+                .orElseThrow(() -> new NotFoundException("Tour not found: " + tourId));
+        visibleTour(tour, username);
+        return TourService.initialized(tour);
+    }
+
+    private static Instant now() {
+        return Instant.now().truncatedTo(ChronoUnit.MILLIS);
     }
 
     /** The caller's account, which must exist. */

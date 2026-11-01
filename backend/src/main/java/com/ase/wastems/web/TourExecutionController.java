@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,5 +47,10 @@ public class TourExecutionController {
     @GetMapping("/mine/{id}")
     public TourResponse mineOne(@PathVariable UUID id, Authentication auth) {
         return respond(execution.getAssigned(id, auth.getName()));
+    }
+
+    @PostMapping("/{id}/start")
+    public TourResponse start(@PathVariable UUID id, Authentication auth) {
+        return respond(execution.start(id, auth.getName()));
     }
 }

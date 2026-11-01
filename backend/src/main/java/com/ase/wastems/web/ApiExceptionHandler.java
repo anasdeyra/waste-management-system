@@ -6,7 +6,7 @@ import com.ase.wastems.service.ForbiddenException;
 import com.ase.wastems.service.InvalidRequestException;
 import com.ase.wastems.routing.RoutingUnavailableException;
 import com.ase.wastems.service.NotFoundException;
-import com.ase.wastems.service.TourNotConfirmableException;
+import com.ase.wastems.service.TourIssuesException;
 import com.ase.wastems.web.dto.ApiError;
 import com.ase.wastems.web.dto.FieldErrorDetail;
 import com.ase.wastems.web.dto.TourIssueResponse;
@@ -34,8 +34,8 @@ public class ApiExceptionHandler {
         return body(HttpStatus.UNAUTHORIZED, "Invalid username or password.");
     }
 
-    @ExceptionHandler(TourNotConfirmableException.class)
-    public ResponseEntity<ApiError> notConfirmable(TourNotConfirmableException ex) {
+    @ExceptionHandler(TourIssuesException.class)
+    public ResponseEntity<ApiError> issues(TourIssuesException ex) {
         HttpStatus s = HttpStatus.UNPROCESSABLE_ENTITY;
         return ResponseEntity.status(s).body(new ApiError(s.value(), s.getReasonPhrase(), ex.getMessage(), null,
                 ex.getIssues().stream().map(TourIssueResponse::from).toList()));
