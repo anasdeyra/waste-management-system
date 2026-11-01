@@ -10,6 +10,8 @@ classes. The optimization sequence is documented separately in `03-sequence-opti
 A `TourStop` contains **planned demand snapshots**, so later edits to a collection point's current
 `DemandEntry` records do not rewrite confirmed tours or history. `roadLegsGeoJson` is the accepted
 operational tour's road-following leg collection, not a straight line between stop markers.
+`Tour.revision` counts structural draft changes so that an evaluation run can prove it
+used the tour's current inputs (S5/S6).
 
 ## 2. Diagram
 
@@ -81,6 +83,7 @@ classDiagram
         +DataOrigin origin
         +String roadLegsGeoJson
         +String roadGraphVersion
+        +Long revision
         +confirm()
         +start()
         +complete()
