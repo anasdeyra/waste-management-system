@@ -184,6 +184,17 @@ gives a header-only file) returns `text/csv;charset=UTF-8` as an attachment name
   `feasible=false`, its reason, the two checks and the execution time, and empty distance,
   duration and change columns.
 
+**Example** (two real rows of a CLI export of `mn01-UNIFORM_LOW-s1-n10`, abridged to the columns
+used for the comparison; the full file has all 37 columns):
+
+```
+method,feasible,distance_m,travel_time_s,duration_s,input_order_distance_m,distance_change_pct,duration_change_pct,visit_order
+INPUT_ORDER,true,10449.646,1275.024,7275.024,10449.646,0.0000,0.0000,1 2 3 4 5 6 7 8 9 10
+NN_PLUS_2_OPT,true,5655.436,722.688,6722.688,10449.646,-45.8792,-7.5922,9 1 4 10 5 8 3 7 6 2
+```
+
+Check: `(5655.436 - 10449.646) / 10449.646 x 100 = -45.879`, and `6722.688 = 722.688 + 10 x 600`.
+
 ## 5. Scenario export (round trip)
 
 `GET /api/evaluations/batches/{id}/scenarios.csv` returns the batch's scenarios **in the import
@@ -194,3 +205,34 @@ Only runs of repetition 1 are written; a stop gives one row per category of its 
 coordinates are written with `Double.toString` and kilograms with two decimals. Importing the file
 unchanged re-evaluates the same scenarios and gives the same matrices, visit orders, distances and
 durations.
+
+## 6. Commands
+
+**Headless experiment (used by S10 for Part 6).**
+
+```
+bash tools/run-experiment.sh metrics/experiment                       # the fixed 60 scenarios, one repetition
+bash tools/run-experiment.sh metrics/experiment-3x --wastems.experiment.repetitions=3
+bash tools/run-experiment.sh $TMPDIR/try --wastems.experiment.profiles=UNIFORM_LOW \
+    --wastems.experiment.seeds=1 --wastems.experiment.sizes=10,25     # a small subset
+```
+
+`tools/run-experiment.sh` rebuilds the jar (`./mvnw -DskipTests package`, skip with
+`WASTEMS_SKIP_BUILD=1`), starts it with the `experiment` profile on a random free port (never
+8080) with its own H2 database and road-graph cache under the output directory, imports MN01,
+runs the batch, writes the files and exits. The output directory must be new or empty and
+receives `results.csv` (section 4), `scenarios.csv` (section 5), `batch.json` (the batch, its
+parameters, snapshot ids, road graph version, environment, aggregates and scenario keys),
+`run-info.txt` (commit, number of tracked changes, start and end time, Java, OS, CPUs, arguments,
+exit code), `run.log`, `db/` and `routing-cache/`. Options: `--wastems.experiment.profiles`,
+`.seeds`, `.sizes`, `.repetitions`, `.label`. Exit codes: 0 completed, 1 error, 2 aborted (routing
+unavailable), 64 output directory not empty.
+
+**Expected runtime.** About 1 to 2 minutes per canonical repetition on the development machine
+(a spike measured one three-method evaluation of 100 real baskets at 2.9 s), plus about 10 s for
+the JVM start and road graph import; a one-scenario smoke run (`UNIFORM_LOW`, seed 1, 10 points)
+took 9 s end to end. The actual values of a run are in `run-info.txt` and `run.log`.
+
+**HTTP equivalents.** `POST /api/admin/experiments` (ADMIN, synchronous, at most 180 runs; an
+absent body means the fixed 60 scenarios), `GET /api/evaluations/export`,
+`GET /api/evaluations/batches/{id}/scenarios.csv`, `POST /api/evaluations/imports`.
