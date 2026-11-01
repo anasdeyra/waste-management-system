@@ -8,7 +8,7 @@ export function TourIssues({ tour }: { tour: Tour }) {
       <Alert>
         <AlertTitle>Ready</AlertTitle>
         <AlertDescription>
-          Draft is structurally complete. Optimization and confirmation arrive in later sprints.
+          Draft is structurally complete. Evaluate the routes, then accept the proposal or keep the input order, and confirm the tour.
         </AlertDescription>
       </Alert>
     )

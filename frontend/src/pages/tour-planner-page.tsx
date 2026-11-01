@@ -7,6 +7,7 @@ import type { LonLat } from '@/components/maps/geo'
 import { MapFocus } from '@/components/maps/map-focus'
 import { INPUT_ORDER_LABEL, TourStopsLayer } from '@/components/maps/tour-stops-layer'
 import { CapacityIndicator } from '@/components/tours/capacity-indicator'
+import { EvaluationPanel } from '@/components/tours/evaluation-panel'
 import { TourAssignmentPanel } from '@/components/tours/tour-assignment-panel'
 import { TourCandidateList } from '@/components/tours/tour-candidate-list'
 import { TourHeaderForm } from '@/components/tours/tour-header-form'
@@ -102,8 +103,9 @@ export default function TourPlannerPage() {
             <MapFocus target={focusTarget} />
           </BaseMap>
           <p className="text-xs text-muted-foreground">
-            Numbers show the input order. Dashed lines connect stops in input order; they are
-            straight lines, not a route. Road routes arrive with routing (S5). Layer: {INPUT_ORDER_LABEL}.
+            Numbers show the current stop order. Dashed lines connect the stops in that order; they
+            are straight lines, not a route ({INPUT_ORDER_LABEL}). Compare the road routes in Route
+            evaluation below.
           </p>
           <p className="text-xs text-muted-foreground">
             Basket and depot locations: NYC Open Data (DSNY). Demand values marked Synthetic are
@@ -135,6 +137,14 @@ export default function TourPlannerPage() {
           </Card>
         </div>
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Route evaluation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EvaluationPanel tour={t} />
+        </CardContent>
+      </Card>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
