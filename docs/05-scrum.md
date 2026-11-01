@@ -1041,17 +1041,27 @@ collection points with demand, and the `dev` map sample exist.
   to link, and `/api/users` and `/api/auth/me` expose the link.
 - **Import semantics (US-33 groundwork).** All 449 basket rows are imported with their source
   ownership label (D-019, `docs/geospatial-data.md` §3). Only rows whose type starts with
-  `DSNY ` (238 in the snapshot) are *optimization-eligible*; the eligible-for-planning query and a
-  new `optimizationEligible` response flag exclude non-DSNY imported points, so they never
-  silently become DSNY service obligations. The natural key is source dataset + source
-  identifier (`8znf-7b2c` + basket id, `xw3j-2yxf` + `MN01G`). The import is
-  *insert-if-absent*: existing rows, including the five S2 `dev` baskets and any planner edits
-  (name, coordinates, status, demand), are kept unchanged. Every newly imported point receives
-  exactly one deterministic `SYNTHETIC` demand entry in the `Mixed litter` category, so the
-  `HasCurrentDemand` rule holds and real locations stay distinguishable from synthetic demand.
-- Snapshot identity = source dataset + row count + SHA-256 of the included file, persisted per
-  dataset so that S5 scenarios can cite it. Demo vehicles, agents, users, richer demands and
-  tours are **deferred to S7** (complete US-33 demonstration), because tours do not exist yet.
+  `DSNY ` (238 in the snapshot) are DSNY service obligations. A point is *optimization-eligible*
+  when it is `ACTIVE` and has no source ownership label (user-entered) or a `DSNY ` label; the
+  eligible-for-planning query, a new `optimizationEligible` response flag and an `eligible`
+  list filter apply this rule, so non-DSNY imported points never silently become DSNY service
+  obligations. The natural key is source dataset + source identifier (`8znf-7b2c` + basket id,
+  `xw3j-2yxf` + `MN01G`). The import **upserts** on that key: an absent row is inserted; for a
+  present row only the source-owned, non-editable label (`sourceOwnershipType`) is refreshed,
+  and the planner-editable fields (name, coordinates, status, demand) of the five S2 `dev`
+  baskets or of any edited point are kept. Every newly inserted point receives exactly one
+  `SYNTHETIC` demand entry in the `Mixed litter` category, with a quantity of 10–30 kg derived
+  deterministically from the basket id, so the `HasCurrentDemand` rule holds and real locations
+  stay distinguishable from synthetic demand. Rows with a missing id, type or unparsable or
+  out-of-area coordinates are skipped and reported, not guessed.
+- Snapshot identity = source dataset + row count + the first 12 hex digits of the SHA-256 of
+  the included file (for example `8znf-7b2c:449:a0737237e370`), persisted per dataset with the
+  full checksum in a `SourceSnapshot` provenance record (outside the operational class
+  diagram, D-033) so that S5 scenarios can cite it. Demo vehicles, agents, users, richer
+  demands and tours are **deferred to S7** (complete US-33 demonstration), because tours do not
+  exist yet.
+- Frontend routes: `/vehicles` and `/agents` (`PLANNER`/`ADMIN`), `/admin/data-import`
+  (`ADMIN`).
 
 **Task backlog**
 
@@ -1069,9 +1079,10 @@ collection points with demand, and the `dev` map sample exist.
    runs at `dev` startup after the map seed and on demand through `POST /api/admin/import`; the
    last report and the persisted snapshot identities are returned by
    `GET /api/admin/import/report` (`ADMIN` only). **Tests:** the SHA-256 values match
-   `docs/geospatial-data.md`; a first import yields 449 points, 238 of them optimization-eligible,
-   1 depot; a second import creates nothing; the five `dev` baskets are absorbed with their
-   demand and status intact; non-DSNY labels are preserved and not eligible.
+   `docs/geospatial-data.md`; a first import into an empty database yields 449 points, 238 of
+   them optimization-eligible, 1 depot; a second import creates nothing; after the `dev` sample
+   the import creates 444 points and finds 5, whose demand and status stay intact (237 eligible,
+   because one sample basket is inactive); non-DSNY labels are preserved and not eligible.
 4. (M) Frontend: Vehicles and Agents pages (tables, create/edit dialogs, availability switches,
    `ADMIN` link dialog), the agent link on the Users page, an `ADMIN` Data import page (report +
    re-run), and the eligibility flag/filter on the collection-points page; contract sync in
