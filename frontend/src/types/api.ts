@@ -706,3 +706,48 @@ export interface AuditEventPage {
   totalElements: number
   totalPages: number
 }
+
+/** service.DemandProfile */
+export type DemandProfile = 'UNIFORM_LOW' | 'UNIFORM_HIGH' | 'HOTSPOT'
+
+/** domain.BatchStatus */
+export type BatchStatus = 'RUNNING' | 'COMPLETED' | 'ABORTED'
+
+/** web.dto.ExperimentRequest */
+export interface ExperimentRequest {
+  profiles?: DemandProfile[]
+  seeds?: number[]
+  sizes?: number[]
+  repetitions?: number
+  label?: string
+}
+
+/** web.dto.EvaluationBatchResponse */
+export interface EvaluationBatch {
+  id: string
+  kind: ScenarioKind
+  label: string
+  status: BatchStatus
+  canonical: boolean
+  parameters?: string
+  demandProfiles: string[]
+  seeds: number[]
+  sizes: number[]
+  repetitions?: number
+  vehicleCapacityKg?: number
+  sourceSnapshotIds: string[]
+  roadGraphVersion?: string
+  routingEngine?: string
+  environment?: string
+  fileName?: string
+  fileSha256?: string
+  fileRowCount?: number
+  scenarioCount: number
+  runCount: number
+  completedRunCount: number
+  failedRunCount: number
+  createdAt: string
+  createdBy: string
+  finishedAt?: string
+  failureMessage?: string
+}

@@ -50,6 +50,9 @@ wastems:
   # Three-method evaluation (D-008, D-015): service time per stop.
   optimization:
     service-time-seconds: 600
+  # Seeded MN01 evaluation experiment (D-016, D-022, D-050); fixed vehicle capacity in kg.
+  experiment:
+    vehicle-capacity-kg: 10000
   # Synthetic demonstration operations on the real MN01 data (US-33); enabled in dev only.
   demo:
     enabled: false
