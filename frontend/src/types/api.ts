@@ -552,3 +552,31 @@ export interface EvaluationMatrix {
   distanceM: number[][]
   travelTimeS: number[][]
 }
+
+/** web.dto.DemoLoadReportResponse.DemoCountResponse */
+export interface DemoCount {
+  created: number
+  existing: number
+}
+
+/** web.dto.DemoLoadReportResponse.DemoTourStateResponse */
+export interface DemoTourState {
+  key: string
+  tourId: string
+  targetStatus: TourStatus
+  status: TourStatus
+}
+
+/** web.dto.DemoLoadReportResponse (US-33) */
+export interface DemoLoadReport {
+  trigger: 'STARTUP' | 'MANUAL'
+  loadedAt: string
+  categories: DemoCount
+  demandEntries: DemoCount
+  vehicles: DemoCount
+  accounts: DemoCount
+  agents: DemoCount
+  tours: DemoCount
+  tourStates: DemoTourState[]
+  warnings: string[]
+}

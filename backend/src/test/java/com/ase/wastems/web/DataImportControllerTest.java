@@ -92,4 +92,11 @@ class DataImportControllerTest {
         mvc.perform(get("/api/admin/import/report")).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/admin/import").with(asAdmin())).andExpect(status().isForbidden());
     }
+
+    @Test
+    void demoLoadDisabledOutsideDev() throws Exception {
+        mvc.perform(post("/api/admin/demo").with(asAdmin()).with(csrf()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Demo loading is disabled (wastems.demo.enabled=false)."));
+    }
 }
