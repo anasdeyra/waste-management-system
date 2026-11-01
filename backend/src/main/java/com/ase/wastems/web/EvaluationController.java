@@ -1,7 +1,20 @@
 package com.ase.wastems.web;
 
 import com.ase.wastems.domain.EvaluationRun;
+import com.ase.wastems.domain.EvaluationStatus;
 import com.ase.wastems.domain.EvaluationStop;
+import com.ase.wastems.domain.ScenarioKind;
+import com.ase.wastems.repository.RunListRow;
+import com.ase.wastems.repository.RunMethodRow;
+import com.ase.wastems.service.EvaluationExplorerService;
+import com.ase.wastems.service.RunFilter;
+import com.ase.wastems.web.dto.EvaluationAggregateResponse;
+import com.ase.wastems.web.dto.EvaluationBatchDetailResponse;
+import com.ase.wastems.web.dto.EvaluationBatchResponse;
+import com.ase.wastems.web.dto.EvaluationRunListItemResponse;
+import com.ase.wastems.web.dto.EvaluationRunPageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.RequestParam;
 import com.ase.wastems.service.EvaluationService;
 import com.ase.wastems.service.FrozenScenario;
 import com.ase.wastems.service.NotFoundException;
@@ -15,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -34,11 +48,14 @@ public class EvaluationController {
     private final TourService tours;
     private final EvaluationService evaluations;
     private final ObjectMapper objectMapper;
+    private final EvaluationExplorerService explorer;
 
-    public EvaluationController(TourService tours, EvaluationService evaluations, ObjectMapper objectMapper) {
+    public EvaluationController(TourService tours, EvaluationService evaluations, ObjectMapper objectMapper,
+            EvaluationExplorerService explorer) {
         this.tours = tours;
         this.evaluations = evaluations;
         this.objectMapper = objectMapper;
+        this.explorer = explorer;
     }
 
     @PostMapping("/api/tours/{id}/evaluations")
@@ -53,6 +70,42 @@ public class EvaluationController {
     public List<EvaluationRunSummaryResponse> listForTour(@PathVariable UUID id) {
         tours.get(id);
         return evaluations.listForTour(id).stream().map(EvaluationRunSummaryResponse::from).toList();
+    }
+
+    @GetMapping("/api/evaluations")
+    public EvaluationRunPageResponse search(
+            @RequestParam(required = false) ScenarioKind kind,
+            @RequestParam(required = false) UUID batchId,
+            @RequestParam(required = false) String profile,
+            @RequestParam(required = false) Integer pointCount,
+            @RequestParam(required = false) Long seed,
+            @RequestParam(required = false) EvaluationStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        Page<RunListRow> p = explorer.searchRuns(
+                new RunFilter(kind, batchId, blankToNull(profile), pointCount, seed, status), page, size);
+        Map<UUID, List<RunMethodRow>> rows = explorer.methodRows(p.getContent().stream().map(RunListRow::id).toList());
+        List<EvaluationRunListItemResponse> items = p.getContent().stream()
+                .map(r -> EvaluationRunListItemResponse.from(r, rows.getOrDefault(r.id(), List.of())))
+                .toList();
+        return new EvaluationRunPageResponse(items, p.getNumber(), p.getSize(), p.getTotalElements(),
+                p.getTotalPages());
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
+    }
+
+    @GetMapping("/api/evaluations/batches")
+    public List<EvaluationBatchResponse> batches() {
+        return explorer.batches().stream().map(EvaluationBatchResponse::from).toList();
+    }
+
+    @GetMapping("/api/evaluations/batches/{id}")
+    public EvaluationBatchDetailResponse batch(@PathVariable UUID id) {
+        return new EvaluationBatchDetailResponse(EvaluationBatchResponse.from(explorer.batch(id)),
+                explorer.aggregates(id).stream().map(EvaluationAggregateResponse::from).toList(),
+                explorer.scenarioKeys(id));
     }
 
     @GetMapping("/api/evaluations/{runId}")

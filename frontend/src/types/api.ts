@@ -520,6 +520,7 @@ export interface EvaluationStop {
   longitude: number
   latitude: number
   demandKg: number
+  demandBreakdown?: string
 }
 
 /** web.dto.MethodResultResponse */
@@ -536,6 +537,8 @@ export interface MethodResult {
   coverageOk: boolean
   capacityOk: boolean
   algorithmConfiguration: string
+  distanceChangePct?: number
+  durationChangePct?: number
   legs?: RoadLegCollection
 }
 
@@ -545,6 +548,11 @@ export interface EvaluationRun {
   scenarioKind: ScenarioKind
   tourId?: string
   tourRevision?: number
+  batchId?: string
+  scenarioKey?: string
+  demandProfile?: string
+  seed?: number
+  repetition?: number
   status: EvaluationStatus
   failureCode?: string
   failureMessage?: string
@@ -750,4 +758,73 @@ export interface EvaluationBatch {
   createdBy: string
   finishedAt?: string
   failureMessage?: string
+}
+
+/** web.dto.EvaluationMethodBriefResponse */
+export interface EvaluationMethodBrief {
+  method: PlanningMethod
+  feasible: boolean
+  distanceM?: number
+  durationS?: number
+  executionTimeMs: number
+  coverageOk: boolean
+  capacityOk: boolean
+  distanceChangePct?: number
+  durationChangePct?: number
+}
+
+/** web.dto.EvaluationRunListItemResponse */
+export interface EvaluationRunListItem {
+  id: string
+  scenarioKind: ScenarioKind
+  batchId?: string
+  scenarioKey?: string
+  demandProfile?: string
+  seed?: number
+  repetition?: number
+  tourId?: string
+  pointCount: number
+  status: EvaluationStatus
+  failureCode?: string
+  createdAt: string
+  createdBy: string
+  roadGraphVersion: string
+  totalDemandKg: number
+  vehicleCapacityKg: number
+  results: EvaluationMethodBrief[]
+}
+
+/** web.dto.EvaluationRunPageResponse */
+export interface EvaluationRunPage {
+  items: EvaluationRunListItem[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+/** web.dto.EvaluationAggregateResponse */
+export interface EvaluationAggregate {
+  group: 'ALL' | 'SIZE' | 'PROFILE'
+  value: string
+  method: PlanningMethod
+  runs: number
+  comparableRuns: number
+  excludedRuns: number
+  meanDistanceM?: number
+  meanDurationS?: number
+  meanDistanceChangePct?: number
+  minDistanceChangePct?: number
+  maxDistanceChangePct?: number
+  meanDurationChangePct?: number
+  minDurationChangePct?: number
+  maxDurationChangePct?: number
+  meanExecutionTimeMs?: number
+}
+
+/** web.dto.EvaluationBatchDetailResponse */
+export interface EvaluationBatchDetail {
+  batch: EvaluationBatch
+  aggregates: EvaluationAggregate[]
+  scenarioKeys: string[]
 }
