@@ -40,9 +40,9 @@ An agent's job is to help produce **all** of these, coherently, not only the cod
 | Optimization model | ✅ Directed road-network input-order baseline, NN + directed-cost 2-opt; 60 real-location scenarios fixed; NYC traffic overlay only |
 | Repository scaffold | ✅ `backend/`, `frontend/`, `docs/`, `tools/`, `README.md` |
 | Toolchain | ✅ JDK 21 + Maven 3.9 + CKJM installed locally by `tools/setup-toolchain.sh` |
-| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog + sprint plan complete, sprint execution not started; Part 6 not started |
+| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog + sprint plan complete, S1 executed (review + retrospective written), S2–S10 planned; Part 6 not started |
 | UML diagrams (Part 3) | ✅ Use case, operational class, optimization sequence, tour-lifecycle activity, and OCL complete; all Mermaid sources rendered successfully |
-| Prototype (Part 4) | ❌ Framework scaffold only: Spring Boot API and React SPA are initialised and run, but no domain feature is implemented |
+| Prototype (Part 4) | 🟡 S1 done: session auth + CSRF, roles, user admin, waste categories (backend + UI); other domain features not started |
 | Metrics + research answer (Part 6) | ❌ Not started (`tools/metrics.sh` is ready) |
 | Presentation | ❌ Not started |
 
@@ -88,11 +88,11 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [x] OCL constraints where relevant
 
 ### Part 4 — Prototype → `backend/` + `frontend/`
-> Agreed scope: **Extended** (see `docs/decisions.md` D-007). Framework scaffold only.
+> Agreed scope: **Extended** (see `docs/decisions.md` D-007). S1 delivered authentication, roles, users and waste categories.
 - [x] Frameworks initialised and runnable locally (backend on 8080, frontend on 5173, Vite proxies `/api`)
 - [x] README with setup + run instructions
-- [ ] Authentication
-- [ ] Collection points, vehicles, agents, tours, waste categories (CRUD)
+- [x] Authentication
+- [ ] Collection points, vehicles, agents, tours, waste categories (CRUD) (waste categories + users done in S1; points, vehicles, agents, tours pending)
 - [ ] Intelligent tour optimization on directed NYC road-network costs and impact measurement
 - [ ] Interactive maps for point editing/selection, tour display/comparison, and execution
 - [ ] Versioned OSM/GraphHopper routing and timestamped NYC DOT traffic overlay
@@ -103,8 +103,8 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [x] Product Backlog as user stories ("As a …, I want …, so that …")
 - [x] Prioritized, with acceptance criteria
 - [x] Sprint Backlog(s) — ten sprints (S1–S10) planned for AI-agent execution, `docs/05-scrum.md` §3; none executed yet
-- [ ] Sprint review notes (pending sprint execution)
-- [ ] Retrospective notes (what went well / badly) (pending sprint execution)
+- [ ] Sprint review notes (S1 written; S2–S10 pending)
+- [ ] Retrospective notes (what went well / badly) (S1 written; S2–S10 pending)
 
 ### Part 6 — Metrology → `docs/06-metrics.md`
 > Tooling is in place (`bash tools/metrics.sh`); the measurements are not started.
@@ -138,7 +138,8 @@ project-ase/
 │   ├── pom.xml
 │   └── src/
 │       ├── main/java/com/ase/wastems/
-│       │   ├── config/        # Spring configuration (security, CORS)
+│       │   ├── config/        # Spring configuration (security, dev seed)
+│       │   ├── domain/ repository/ service/ web/ security/
 │       │   └── WasteMsApplication.java
 │       ├── main/resources/   # application.yml + real NYC source snapshots in data/
 │       └── test/             # JUnit 5 tests
@@ -148,8 +149,9 @@ project-ase/
 │   ├── components.json       # shadcn/ui configuration
 │   └── src/
 │       ├── components/ui/    # shadcn/ui components (vendored, not own code)
-│       ├── lib/              # cn() helper
-│       ├── App.tsx           # placeholder page
+│       ├── pages/ components/shared/ hooks/ types/
+│       ├── lib/              # cn(), API client, auth helpers
+│       ├── App.tsx           # routes
 │       └── main.tsx          # providers: Query, Router
 ├── docs/
 │   ├── decisions.md          # decision log

@@ -1,35 +1,44 @@
-import { Boxes } from 'lucide-react'
+import { Route, Routes } from 'react-router-dom'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AppShell } from '@/components/shared/app-shell'
+import { RequireAuth, RequireRole } from '@/components/shared/require-auth'
+import CategoriesPage from '@/pages/waste-categories-page'
+import HomePage from '@/pages/home-page'
+import LoginPage from '@/pages/login-page'
+import NotFoundPage from '@/pages/not-found-page'
+import UsersAdminPage from '@/pages/users-admin-page'
 
-/**
- * Placeholder of the WasteMS single-page application.
- *
- * <p>The application shell, the routing and the pages of the five functional areas are
- * built in the feature sprints described in `docs/05-scrum.md`.
- */
+/** Application routes. Role gates here are UX only; the backend enforces access. */
 export default function App() {
   return (
-    <main className="flex min-h-svh items-center justify-center bg-muted/30 p-6">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Boxes className="size-5" />
-          </div>
-          <CardTitle>WasteMS</CardTitle>
-          <CardDescription>
-            Intelligent Waste Management System — React + Tailwind CSS + shadcn/ui, talking to the
-            Spring Boot API on port 8080.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <Button disabled>Action</Button>
-          <p className="text-sm text-muted-foreground">
-            Framework scaffold only. The domain features are implemented in the upcoming sprints.
-          </p>
-        </CardContent>
-      </Card>
-    </main>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        element={
+          <RequireAuth>
+            <AppShell />
+          </RequireAuth>
+        }
+      >
+        <Route index element={<HomePage />} />
+        <Route
+          path="waste-categories"
+          element={
+            <RequireRole role="PLANNER">
+              <CategoriesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/users"
+          element={
+            <RequireRole role="ADMIN">
+              <UsersAdminPage />
+            </RequireRole>
+          }
+        />
+      </Route>
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
   )
 }
