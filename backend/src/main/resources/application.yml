@@ -1,7 +1,14 @@
 server:
   port: 8080
+  servlet:
+    session:
+      cookie:
+        same-site: lax
+        http-only: true
 
 spring:
+  profiles:
+    default: dev        # dev seed accounts; tests override with @ActiveProfiles("test")
   application:
     name: wastems-backend
   datasource:
