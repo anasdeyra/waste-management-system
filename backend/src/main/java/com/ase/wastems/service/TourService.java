@@ -4,6 +4,13 @@ import com.ase.wastems.domain.Agent;
 import com.ase.wastems.domain.CollectionPoint;
 import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.Depot;
+import com.ase.wastems.domain.EvaluationRun;
+import com.ase.wastems.domain.EvaluationStatus;
+import com.ase.wastems.domain.EvaluationStop;
+import com.ase.wastems.domain.MethodResult;
+import com.ase.wastems.domain.ProposalDecision;
+import com.ase.wastems.optimization.PlanningMethod;
+import com.ase.wastems.repository.EvaluationRunRepository;
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.SourceSnapshot;
 import com.ase.wastems.domain.TourIssue;
@@ -17,10 +24,15 @@ import com.ase.wastems.repository.SourceSnapshotRepository;
 import com.ase.wastems.repository.TourRepository;
 import com.ase.wastems.repository.VehicleRepository;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.TreeSet;
 import java.util.Set;
 import java.util.UUID;
@@ -42,6 +54,7 @@ public class TourService {
     private final VehicleRepository vehicles;
     private final AgentRepository agents;
     private final SourceSnapshotRepository sourceSnapshots;
+    private final EvaluationRunRepository runs;
 
     public TourService(
             TourRepository tours,
@@ -49,13 +62,15 @@ public class TourService {
             CollectionPointRepository points,
             VehicleRepository vehicles,
             AgentRepository agents,
-            SourceSnapshotRepository sourceSnapshots) {
+            SourceSnapshotRepository sourceSnapshots,
+            EvaluationRunRepository runs) {
         this.tours = tours;
         this.depots = depots;
         this.points = points;
         this.vehicles = vehicles;
         this.agents = agents;
         this.sourceSnapshots = sourceSnapshots;
+        this.runs = runs;
     }
 
     private static Tour initialized(Tour t) {
@@ -273,6 +288,88 @@ public class TourService {
         }
         tour.assign(vehicle, driver, collectors);
         tour.touch();
+        return initialized(tour);
+    }
+
+    private Tour findForUpdate(UUID id) {
+        return tours.findByIdForUpdate(id).orElseThrow(() -> new NotFoundException("Tour not found: " + id));
+    }
+
+    private EvaluationRun findRunOfTour(Tour tour, UUID runId) {
+        EvaluationRun run = runs.findById(runId)
+                .orElseThrow(() -> new NotFoundException("Evaluation run not found: " + runId));
+        if (!tour.getId().equals(run.getTourId())) {
+            throw new BusinessRuleException("Evaluation run " + runId + " belongs to another tour.");
+        }
+        run.getStops().size();
+        run.getResults().size();
+        return run;
+    }
+
+    /** Rule steps 5-9 of the design summary (D-047); returns the result of the method to apply. */
+    private MethodResult decidableResult(Tour tour, EvaluationRun run, PlanningMethod method) {
+        if (!tour.isDraft()) {
+            throw new ConflictException("Only a DRAFT tour can accept or reject a proposal; this tour is "
+                    + tour.getStatus() + ".");
+        }
+        if (run.getStatus() == EvaluationStatus.ROUTING_FAILED) {
+            throw new BusinessRuleException("Evaluation run " + run.getId() + " failed routing ("
+                    + run.getFailureCode() + ") and has no proposal.");
+        }
+        if (run.getDecision() == ProposalDecision.ACCEPTED) {
+            throw new ConflictException("The proposal of evaluation run " + run.getId() + " was already accepted.");
+        }
+        List<UUID> runPoints = run.getStops().stream().map(EvaluationStop::getCollectionPointId).toList();
+        List<UUID> tourPoints = tour.getStops().stream().map(s -> s.getCollectionPoint().getId()).toList();
+        if (run.getTourRevision() == null
+                || run.getTourRevision().longValue() != tour.getRevision()
+                || !runPoints.equals(tourPoints)) {
+            throw new ConflictException("The draft changed since this evaluation (run revision "
+                    + run.getTourRevision() + ", draft revision " + tour.getRevision()
+                    + "); evaluate the tour again.");
+        }
+        MethodResult r = run.getResults().stream().filter(m -> m.getMethod() == method).findFirst().orElse(null);
+        if (r == null || !r.isFeasible() || r.getLegsGeoJson() == null) {
+            throw new BusinessRuleException("The " + method + " result of evaluation run " + run.getId()
+                    + " is infeasible"
+                    + (r != null && r.getInfeasibilityReason() != null ? ": " + r.getInfeasibilityReason() : "")
+                    + ".");
+        }
+        return r;
+    }
+
+    private static void attach(Tour tour, EvaluationRun run, MethodResult r) {
+        tour.attachRoute(run.getId(), r.getMethod(), run.getRoadGraphVersion(), r.getLegsGeoJson(),
+                r.getDistanceM(), r.getDurationS());
+    }
+
+    /** Applies the NN + 2-opt order and road route of a fresh run to the draft (US-24). */
+    @Transactional
+    public Tour acceptOptimizedProposal(UUID tourId, UUID runId, String username) {
+        Tour tour = findForUpdate(tourId);
+        EvaluationRun run = findRunOfTour(tour, runId);
+        MethodResult proposal = decidableResult(tour, run, PlanningMethod.NN_PLUS_2_OPT);
+        Map<UUID, UUID> stopIdByPoint = new HashMap<>();
+        tour.getStops().forEach(s -> stopIdByPoint.put(s.getCollectionPoint().getId(), s.getId()));
+        List<UUID> newOrder = proposal.visitOrderList().stream()
+                .map(i -> stopIdByPoint.get(run.getStops().get(i - 1).getCollectionPointId()))
+                .toList();
+        tour.reorderStops(newOrder);
+        attach(tour, run, proposal);
+        tour.touch();
+        run.recordDecision(ProposalDecision.ACCEPTED, username, Instant.now().truncatedTo(ChronoUnit.MILLIS));
+        return initialized(tour);
+    }
+
+    /** Keeps the current order and attaches the run's input-order road route (US-24 reject). */
+    @Transactional
+    public Tour rejectProposal(UUID tourId, UUID runId, String username) {
+        Tour tour = findForUpdate(tourId);
+        EvaluationRun run = findRunOfTour(tour, runId);
+        MethodResult inputOrder = decidableResult(tour, run, PlanningMethod.INPUT_ORDER);
+        attach(tour, run, inputOrder);
+        tour.touch();
+        run.recordDecision(ProposalDecision.REJECTED, username, Instant.now().truncatedTo(ChronoUnit.MILLIS));
         return initialized(tour);
     }
 

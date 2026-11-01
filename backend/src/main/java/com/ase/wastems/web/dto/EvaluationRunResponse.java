@@ -2,6 +2,7 @@ package com.ase.wastems.web.dto;
 
 import com.ase.wastems.domain.EvaluationRun;
 import com.ase.wastems.domain.EvaluationStatus;
+import com.ase.wastems.domain.ProposalDecision;
 import com.ase.wastems.domain.ScenarioKind;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -28,7 +29,10 @@ public record EvaluationRunResponse(
         int pointCount,
         BigDecimal totalDemandKg,
         List<EvaluationStopResponse> stops,
-        List<MethodResultResponse> results) {
+        List<MethodResultResponse> results,
+        ProposalDecision decision,
+        String decidedBy,
+        Instant decidedAt) {
 
     public static EvaluationRunResponse from(EvaluationRun r) {
         return new EvaluationRunResponse(r.getId(), r.getScenarioKind(), r.getTourId(), r.getTourRevision(),
@@ -38,6 +42,7 @@ public record EvaluationRunResponse(
                         r.getDepotSourceIdentifier()),
                 r.getVehicleCapacityKg(), r.getServiceTimeSeconds(), r.getPointCount(), r.getTotalDemandKg(),
                 r.getStops().stream().map(EvaluationStopResponse::from).toList(),
-                r.getResults().stream().map(m -> MethodResultResponse.from(m, r.getStops())).toList());
+                r.getResults().stream().map(m -> MethodResultResponse.from(m, r.getStops())).toList(),
+                r.getDecision(), r.getDecidedBy(), r.getDecidedAt());
     }
 }

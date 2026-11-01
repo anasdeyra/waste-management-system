@@ -5,6 +5,7 @@ import com.ase.wastems.domain.TourStatus;
 import com.ase.wastems.domain.TourStop;
 import com.ase.wastems.service.TourService;
 import com.ase.wastems.web.dto.AddTourStopRequest;
+import com.ase.wastems.web.dto.ProposalDecisionRequest;
 import com.ase.wastems.web.dto.ReorderTourStopsRequest;
 import com.ase.wastems.web.dto.TourAssignmentRequest;
 import com.ase.wastems.web.dto.TourRequest;
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,7 +32,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Tour draft API; PLANNER and ADMIN only (SecurityConfig). There is no tour delete: drafts are
  * abandoned through cancellation (S8). Stop removal answers 200 with the tour because the
- * remaining stops are renumbered.
+ * remaining stops are renumbered. The review endpoints accept an evaluated proposal or keep the
+ * input order (S6, US-24).
  */
 @RestController
 @RequestMapping("/api/tours")
@@ -91,5 +94,17 @@ public class TourController {
     public TourResponse reorderStops(
             @PathVariable UUID id, @Valid @RequestBody ReorderTourStopsRequest req) {
         return TourResponse.from(service.reorderStops(id, req.stopIds()));
+    }
+
+    @PostMapping("/{id}/proposal-acceptances")
+    public TourResponse acceptProposal(
+            @PathVariable UUID id, @Valid @RequestBody ProposalDecisionRequest req, Authentication auth) {
+        return TourResponse.from(service.acceptOptimizedProposal(id, req.evaluationRunId(), auth.getName()));
+    }
+
+    @PostMapping("/{id}/proposal-rejections")
+    public TourResponse rejectProposal(
+            @PathVariable UUID id, @Valid @RequestBody ProposalDecisionRequest req, Authentication auth) {
+        return TourResponse.from(service.rejectProposal(id, req.evaluationRunId(), auth.getName()));
     }
 }

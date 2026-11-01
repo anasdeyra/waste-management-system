@@ -256,6 +256,9 @@ export type TourIssueCode =
   | 'INACTIVE_STOP'
   | 'INELIGIBLE_STOP'
   | 'OVER_CAPACITY'
+  | 'PLANNING_DATE_PAST'
+  | 'ROUTE_MISSING'
+  | 'ROUTE_OUTDATED'
 
 /** web.dto.StopDemandResponse */
 export interface StopDemand {
@@ -314,6 +317,7 @@ export interface Tour {
   capacity: TourCapacity
   structurallyValid: boolean
   validationIssues: TourIssue[]
+  route?: TourRoute
 }
 
 /** web.dto.TourSummaryResponse */
@@ -335,6 +339,7 @@ export interface TourSummary {
   structurallyValid: boolean
   issueCount: number
   updatedAt: string
+  routeMethod?: PlanningMethod
 }
 
 /** web.dto.TourRequest */
@@ -360,7 +365,7 @@ export interface TourAssignmentRequest {
   collectorIds: string[]
 }
 
-// --- Evaluation runs (S5; the review UI arrives in S6) ---------------------------------
+// --- Evaluation runs (S5; review UI S6) ---------------------------------
 
 /** optimization.PlanningMethod */
 export type PlanningMethod = 'INPUT_ORDER' | 'NEAREST_NEIGHBOR' | 'NN_PLUS_2_OPT'
@@ -391,6 +396,24 @@ export interface RoadLegFeature {
 export interface RoadLegCollection {
   type: 'FeatureCollection'
   features: RoadLegFeature[]
+}
+
+/** domain.ProposalDecision */
+export type ProposalDecision = 'ACCEPTED' | 'REJECTED'
+
+/** web.dto.ProposalDecisionRequest */
+export interface ProposalDecisionRequest {
+  evaluationRunId: string
+}
+
+/** web.dto.TourRouteResponse: the road route attached to a tour */
+export interface TourRoute {
+  evaluationRunId: string
+  method: PlanningMethod
+  roadGraphVersion: string
+  distanceM: number
+  durationS: number
+  legs: RoadLegCollection
 }
 
 /** web.dto.EvaluationDepotResponse */
@@ -451,6 +474,9 @@ export interface EvaluationRun {
   totalDemandKg: number
   stops: EvaluationStop[]
   results: MethodResult[]
+  decision?: ProposalDecision
+  decidedBy?: string
+  decidedAt?: string
 }
 
 /** web.dto.MethodSummaryResponse */
@@ -473,6 +499,9 @@ export interface EvaluationRunSummary {
   roadGraphVersion: string
   pointCount: number
   results: MethodSummary[]
+  decision?: ProposalDecision
+  decidedBy?: string
+  decidedAt?: string
 }
 
 /** web.dto.EvaluationMatrixResponse */

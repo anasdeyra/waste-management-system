@@ -25,7 +25,8 @@ public record TourResponse(
         List<TourStopResponse> stops,
         TourCapacityResponse capacity,
         boolean structurallyValid,
-        List<TourIssueResponse> validationIssues) {
+        List<TourIssueResponse> validationIssues,
+        TourRouteResponse route) {
 
     public static TourResponse from(Tour t) {
         List<TourIssue> issues = t.structuralIssues();
@@ -44,6 +45,7 @@ public record TourResponse(
                 t.getStops().stream().map(TourStopResponse::from).toList(),
                 TourCapacityResponse.from(t),
                 issues.isEmpty(),
-                issues.stream().map(TourIssueResponse::from).toList());
+                issues.stream().map(TourIssueResponse::from).toList(),
+                TourRouteResponse.from(t));
     }
 }

@@ -2,6 +2,7 @@ package com.ase.wastems.web.dto;
 
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.TourStatus;
+import com.ase.wastems.optimization.PlanningMethod;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,7 +26,8 @@ public record TourSummaryResponse(
         boolean overCapacity,
         boolean structurallyValid,
         int issueCount,
-        Instant updatedAt) {
+        Instant updatedAt,
+        PlanningMethod routeMethod) {
 
     public static TourSummaryResponse from(Tour t) {
         int issues = t.structuralIssues().size();
@@ -46,6 +48,7 @@ public record TourSummaryResponse(
                 t.isOverCapacity(),
                 issues == 0,
                 issues,
-                t.getUpdatedAt());
+                t.getUpdatedAt(),
+                t.getRouteMethod());
     }
 }
