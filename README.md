@@ -11,12 +11,14 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
 completed artifacts from planned work.
 
-> **Current state: Sprint S2 delivered.** Session authentication with CSRF protection, the
-> ADMIN / PLANNER / AGENT roles, user administration, waste categories, and (S2) collection
-> points with demand entries on a Leaflet/OpenStreetMap map are implemented (backend API and
-> React UI). The `dev` profile seeds the real MN01G depot and a five-basket DSNY sample; the
-> full MN01 import arrives in S3. Fleet, tours and optimization are not implemented yet. Real
-> MN01 source extracts are already included under `backend/src/main/resources/data/`.
+> **Current state: Sprint S3 delivered.** Session authentication with CSRF protection, the
+> ADMIN / PLANNER / AGENT roles, user administration, waste categories, collection points with
+> demand entries on a Leaflet/OpenStreetMap map (S2), and (S3) vehicles and operational agents
+> with availability, the ADMIN-only agent to AGENT-account link, and the idempotent import of
+> the included MN01 snapshots (449 baskets, of which 238 `DSNY ` types are
+> optimization-eligible, plus the MN01G depot) with snapshot identifiers are implemented
+> (backend API and React UI). Tours, routing and optimization are not implemented yet. The real
+> MN01 source extracts are under `backend/src/main/resources/data/`.
 
 The real-city sources, included snapshots, map interactions, routing rules, and attribution
 are documented in [`docs/geospatial-data.md`](docs/geospatial-data.md). Traffic is a timestamped
@@ -126,8 +128,14 @@ The API listens on <http://localhost:8080>. It starts with the `dev` Spring prof
 These are **development credentials only: change or remove them for any shared deployment.**
 The `dev` profile also seeds a small map sample, idempotently: two demo waste categories
 (`Mixed litter`, `Recyclables`), the real MN01G depot, and five real DSNY baskets from the
-included snapshots (four active, one inactive) with **synthetic** demand. The full 449-basket
-import is S3 and will upsert these rows by source key.
+included snapshots (four active, one inactive) with **synthetic** demand.
+
+At `dev` start-up, after the accounts and the map sample, the MN01 import runs. It upserts on
+source dataset + id, so the five sample baskets are not duplicated and local edits are kept
+(only the source ownership label is refreshed). It gives each new point one synthetic
+`Mixed litter` demand of 10 to 30 kg, and it records the snapshot identifiers (dataset, row
+count and checksum). An ADMIN can re-run it from the Data import page or with
+`POST /api/admin/import`. Only `DSNY ` basket types (238 of 449) are optimization-eligible.
 
 To start without seeding, use any non-`dev` profile, e.g.
 `./mvnw spring-boot:run -Dspring-boot.run.profiles=prod`. To reset the database, stop the
@@ -176,10 +184,16 @@ curl -s -c $J -b $J -H "X-XSRF-TOKEN: $X" -H 'Content-Type: application/json' \
      -d '{"username":"admin","password":"admin123"}' $B/api/auth/login   # sets JSESSIONID
 curl -s -b $J $B/api/auth/me                              # {"id":...,"username":"admin","role":"ADMIN"}
 curl -s -b $J $B/api/collection-points?status=ACTIVE      # collection points with demand entries
+curl -s -b $J $B/api/vehicles?status=AVAILABLE            # available vehicles (PLANNER/ADMIN)
+curl -s -b $J $B/api/admin/import/report                  # last MN01 import report (ADMIN)
+# link an operational agent to an AGENT account (ADMIN); $AGENT_ID and $USER_ID are UUIDs
+curl -s -b $J -X PUT -H "X-XSRF-TOKEN: $X" -H 'Content-Type: application/json' \
+     -d "{\"userId\":\"$USER_ID\"}" $B/api/agents/$AGENT_ID/user-account
 ```
 
-Collection points and depots (`/api/collection-points`, `/api/depots`) are available to
-PLANNER and ADMIN only; AGENT receives 403.
+Collection points, depots, vehicles and agents are available to PLANNER and ADMIN only; AGENT
+receives 403. Linking agents to accounts (`/api/agents/{id}/user-account`) and the data import
+(`/api/admin/**`) are ADMIN only.
 
 ### 4.5 Map attribution
 
@@ -204,7 +218,7 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
 | 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
 | 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
-| 4 — Prototype | `backend/`, `frontend/` | S1–S2: authentication, roles, users, waste categories, collection points and demand on the map |
+| 4 — Prototype | `backend/`, `frontend/` | S1–S3: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import |
 | 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S2 executed, S3–S10 planned |
 | 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
 | Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; point map implemented; routing to do |
