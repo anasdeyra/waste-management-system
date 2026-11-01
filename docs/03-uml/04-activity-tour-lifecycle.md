@@ -6,8 +6,9 @@ This activity covers UC08–UC19: draft preparation, three-method evaluation, pl
 confirmation, assigned-crew execution, completion, and cancellation. It implements the lifecycle
 chosen in D-025 and the terminal stop outcomes in D-031.
 
-The main path shows an accepted optimized proposal. Rejecting the proposal does not block the
-planner from confirming an otherwise valid draft with its current input order.
+The main path shows an accepted optimized proposal. Keeping the input order (rejecting
+the proposal) attaches the input-order road route of the same run, so an otherwise valid
+draft can still be confirmed in its current order.
 
 ## 2. Diagram
 
@@ -26,10 +27,10 @@ flowchart TD
     ROUTABLE -- Yes --> COMPARE[Display road-following candidates, orders, indicators and constraint checks]
 
     COMPARE --> FEASIBLE{Feasible NN + 2-opt proposal available?}
-    FEASIBLE -- No --> KEEP
+    FEASIBLE -- No --> FIX
     FEASIBLE -- Yes --> ACCEPT{Planner accepts proposal?}
     ACCEPT -- Yes --> APPLY[Apply selected proposal order and road-leg reference to DRAFT]
-    ACCEPT -- No --> KEEP[Keep current DRAFT order; retain evaluation]
+    ACCEPT -- No --> KEEP[Keep current DRAFT order; attach input-order road route; retain evaluation]
     APPLY --> CONFIRM{All confirmation validations pass?}
     KEEP --> CONFIRM
     CONFIRM -- No --> FIX
@@ -59,7 +60,8 @@ flowchart TD
 
 | Transition or state | Rule |
 |---|---|
-| `DRAFT → PLANNED` | Revalidate stops/order, active points, road route, one available vehicle, one available driver, zero to two distinct available collectors, and total mixed-category demand within capacity. |
+| `DRAFT → PLANNED` | Revalidate stops/order, active and eligible points, one available vehicle, one available driver, zero to two distinct available collectors, total mixed-category demand within capacity, a planning date not in the past, and a road route from a retained run of the current draft whose stop and depot coordinates are unchanged (`ROUTE_MISSING`, `ROUTE_OUTDATED`). Any failure returns the blocking issues and the tour stays `DRAFT`. |
+| `DRAFT` route reference | Set only by accepting the NN + 2-opt proposal or keeping the input order of a completed, current run. Cleared by any change of stops, order or depot; a stale run (other revision) is refused. A failed or infeasible run cannot provide a route, so the planner corrects the draft and evaluates again. |
 | `PLANNED → IN_PROGRESS` | Only an assigned crew member may start the tour; resource availability is checked again. “No, wait” leaves it `PLANNED` and does not silently change resources. |
 | `PENDING → COLLECTED` | The assigned driver or either collector records non-negative actual quantities by waste category, actor, and UTC time. |
 | `PENDING → NOT_COLLECTED` | The assigned driver or either collector records a non-blank incident/reason, actor, and UTC time. |
