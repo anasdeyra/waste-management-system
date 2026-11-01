@@ -4,3 +4,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+wastems:
+  routing:
+    cache-dir: target/routing-cache-test
