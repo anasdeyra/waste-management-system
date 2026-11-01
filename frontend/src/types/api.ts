@@ -75,6 +75,7 @@ export interface ApiError {
   error: string
   message: string
   fieldErrors?: FieldErrorDetail[]
+  issues?: TourIssue[]
 }
 
 /** domain.CollectionPointStatus */
@@ -300,7 +301,7 @@ export interface TourIssue {
   message: string
 }
 
-/** web.dto.TourResponse (vehicle and driver are omitted when unassigned) */
+/** web.dto.TourResponse (vehicle, driver and route are omitted when absent) */
 export interface Tour {
   id: string
   planningDate: string
@@ -318,6 +319,8 @@ export interface Tour {
   structurallyValid: boolean
   validationIssues: TourIssue[]
   route?: TourRoute
+  confirmationIssues: TourIssue[]
+  readyToConfirm: boolean
 }
 
 /** web.dto.TourSummaryResponse */

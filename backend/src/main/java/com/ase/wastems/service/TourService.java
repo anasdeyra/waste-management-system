@@ -14,6 +14,7 @@ import com.ase.wastems.repository.EvaluationRunRepository;
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.SourceSnapshot;
 import com.ase.wastems.domain.TourIssue;
+import com.ase.wastems.domain.TourIssueCode;
 import com.ase.wastems.domain.TourStatus;
 import com.ase.wastems.domain.TourStop;
 import com.ase.wastems.domain.Vehicle;
@@ -370,6 +371,67 @@ public class TourService {
         attach(tour, run, inputOrder);
         tour.touch();
         run.recordDecision(ProposalDecision.REJECTED, username, Instant.now().truncatedTo(ChronoUnit.MILLIS));
+        return initialized(tour);
+    }
+
+    /**
+     * Every confirmation issue of a DRAFT: the domain issues (structural, date, missing route)
+     * plus ROUTE_OUTDATED when the route's run is gone or a stop or the depot has moved since that
+     * run froze its coordinates. Empty for a non-draft.
+     */
+    @Transactional(readOnly = true)
+    public List<TourIssue> confirmationIssues(Tour tour) {
+        List<TourIssue> issues = new ArrayList<>(tour.confirmationIssues(LocalDate.now()));
+        if (tour.isDraft() && tour.hasRoute()) {
+            routeOutdated(tour).ifPresent(issues::add);
+        }
+        return issues;
+    }
+
+    private Optional<TourIssue> routeOutdated(Tour tour) {
+        Optional<EvaluationRun> found = runs.findById(tour.getRouteEvaluationRunId());
+        if (found.isEmpty()) {
+            return Optional.of(new TourIssue(TourIssueCode.ROUTE_OUTDATED,
+                    "The evaluation run of the road route is no longer available; evaluate the tour again."));
+        }
+        EvaluationRun run = found.get();
+        if (moved(run.getDepotLongitude(), run.getDepotLatitude(), tour.getDepot().getLongitude(),
+                tour.getDepot().getLatitude())) {
+            return Optional.of(new TourIssue(TourIssueCode.ROUTE_OUTDATED,
+                    "The depot has moved since the road route was computed; evaluate the tour again."));
+        }
+        Map<UUID, EvaluationStop> frozen = new HashMap<>();
+        run.getStops().forEach(s -> frozen.put(s.getCollectionPointId(), s));
+        for (TourStop s : tour.getStops()) {
+            CollectionPoint p = s.getCollectionPoint();
+            EvaluationStop f = frozen.get(p.getId());
+            if (f == null || moved(f.getLongitude(), f.getLatitude(), p.getLongitude(), p.getLatitude())) {
+                return Optional.of(new TourIssue(TourIssueCode.ROUTE_OUTDATED,
+                        "Stop " + s.getVisitOrder() + " (" + p.getName()
+                                + ") has moved since the road route was computed; evaluate the tour again."));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static boolean moved(double lon1, double lat1, double lon2, double lat2) {
+        return Math.abs(lon1 - lon2) > 1e-9 || Math.abs(lat1 - lat2) > 1e-9;
+    }
+
+    /** DRAFT -> PLANNED after full revalidation (US-25, D-025); 422 lists every blocking issue. */
+    @Transactional
+    public Tour confirm(UUID tourId) {
+        Tour tour = findForUpdate(tourId);
+        initialized(tour);
+        if (!tour.isDraft()) {
+            throw new ConflictException("Only a DRAFT tour can be confirmed; this tour is " + tour.getStatus() + ".");
+        }
+        List<TourIssue> issues = confirmationIssues(tour);
+        if (!issues.isEmpty()) {
+            throw new TourNotConfirmableException(issues);
+        }
+        tour.confirm();
+        tour.touch();
         return initialized(tour);
     }
 
