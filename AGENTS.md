@@ -34,19 +34,19 @@ An agent's job is to help produce **all** of these, coherently, not only the cod
 |---|---|
 | Assignment transcribed | ✅ `project-assignment.md` |
 | Subject / domain chosen | ✅ Map-centric intelligent waste management; New York City / Lower Manhattan MN01 case study with real DSNY coordinates |
-| Tech stack chosen | ✅ Java 21 + Spring Boot 3 (REST API) + React 19 + Vite + TypeScript + Tailwind v4 + shadcn/ui + H2 (file) + Maven; Leaflet/React Leaflet + local GraphHopper selected but not installed |
+| Tech stack chosen | ✅ Java 21 + Spring Boot 3 (REST API) + React 19 + Vite + TypeScript + Tailwind v4 + shadcn/ui + H2 (file) + Maven; Leaflet/React Leaflet installed (S2); local GraphHopper selected but not installed |
 | Project mode | ✅ Individual |
 | Prototype scope | ✅ Extended; multiple single-vehicle tours per day |
 | Optimization model | ✅ Directed road-network input-order baseline, NN + directed-cost 2-opt; 60 real-location scenarios fixed; NYC traffic overlay only |
 | Repository scaffold | ✅ `backend/`, `frontend/`, `docs/`, `tools/`, `README.md` |
 | Toolchain | ✅ JDK 21 + Maven 3.9 + CKJM installed locally by `tools/setup-toolchain.sh` |
-| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog + sprint plan complete, S1 executed (review + retrospective written), S2–S10 planned; Part 6 not started |
+| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog + sprint plan complete, S1–S2 executed (reviews + retrospectives written), S3–S10 planned; Part 6 not started |
 | UML diagrams (Part 3) | ✅ Use case, operational class, optimization sequence, tour-lifecycle activity, and OCL complete; all Mermaid sources rendered successfully |
-| Prototype (Part 4) | 🟡 S1 done: session auth + CSRF, roles, user admin, waste categories (backend + UI); other domain features not started |
+| Prototype (Part 4) | 🟡 S1–S2 implemented: auth/roles/users/categories, collection points + demand on a Leaflet map (MN01G depot + 5-basket dev sample); fleet, tours, optimization, full MN01 import pending |
 | Metrics + research answer (Part 6) | ❌ Not started (`tools/metrics.sh` is ready) |
 | Presentation | ❌ Not started |
 
-**Last updated:** 2026-11-01
+**Last updated:** 2026-11-01 (S2 closed)
 
 Update this table whenever the state changes. Do not claim something is done unless the
 artifact exists in the repo.
@@ -88,13 +88,13 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [x] OCL constraints where relevant
 
 ### Part 4 — Prototype → `backend/` + `frontend/`
-> Agreed scope: **Extended** (see `docs/decisions.md` D-007). S1 delivered authentication, roles, users and waste categories.
+> Agreed scope: **Extended** (see `docs/decisions.md` D-007). S1 delivered authentication, roles, users and waste categories; S2 added collection points and demand on a Leaflet map.
 - [x] Frameworks initialised and runnable locally (backend on 8080, frontend on 5173, Vite proxies `/api`)
 - [x] README with setup + run instructions
 - [x] Authentication
-- [ ] Collection points, vehicles, agents, tours, waste categories (CRUD) (waste categories + users done in S1; points, vehicles, agents, tours pending)
+- [ ] Collection points, vehicles, agents, tours, waste categories (CRUD) (waste categories + users done in S1; collection points + demand done in S2; vehicles, agents, tours pending)
 - [ ] Intelligent tour optimization on directed NYC road-network costs and impact measurement
-- [ ] Interactive maps for point editing/selection, tour display/comparison, and execution
+- [ ] Interactive maps for point editing/selection, tour display/comparison, and execution (point display/editing done in S2; tour maps pending)
 - [ ] Versioned OSM/GraphHopper routing and timestamped NYC DOT traffic overlay
 - [ ] Dashboards, CSV import/export, audit log
 - [ ] Import the included real MN01 basket/depot snapshots and add demo operations so a reviewer can try them immediately
@@ -103,8 +103,8 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [x] Product Backlog as user stories ("As a …, I want …, so that …")
 - [x] Prioritized, with acceptance criteria
 - [x] Sprint Backlog(s) — ten sprints (S1–S10) planned for AI-agent execution, `docs/05-scrum.md` §3; none executed yet
-- [ ] Sprint review notes (S1 written; S2–S10 pending)
-- [ ] Retrospective notes (what went well / badly) (S1 written; S2–S10 pending)
+- [ ] Sprint review notes (S1–S2 recorded; S3–S10 pending)
+- [ ] Retrospective notes (what went well / badly) (S1–S2 recorded; S3–S10 pending)
 
 ### Part 6 — Metrology → `docs/06-metrics.md`
 > Tooling is in place (`bash tools/metrics.sh`); the measurements are not started.
@@ -138,7 +138,7 @@ project-ase/
 │   ├── pom.xml
 │   └── src/
 │       ├── main/java/com/ase/wastems/
-│       │   ├── config/        # Spring configuration (security, dev seed)
+│       │   ├── config/        # Spring configuration (security, service area, dev seeds)
 │       │   ├── domain/ repository/ service/ web/ security/
 │       │   └── WasteMsApplication.java
 │       ├── main/resources/   # application.yml + real NYC source snapshots in data/
@@ -150,6 +150,8 @@ project-ase/
 │   └── src/
 │       ├── components/ui/    # shadcn/ui components (vendored, not own code)
 │       ├── pages/ components/shared/ hooks/ types/
+│       ├── components/maps/  # Leaflet base map and layers
+│       ├── components/collection-points/  # list, details, form, demand editor
 │       ├── lib/              # cn(), API client, auth helpers
 │       ├── App.tsx           # routes
 │       └── main.tsx          # providers: Query, Router

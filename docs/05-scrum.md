@@ -69,7 +69,7 @@ operational and administrative data remain protected.**
 - Authorization is enforced by the backend, not merely by hiding frontend controls.
 
 **Traceability:** FR-02, FR-12, FR-27, FR-30; NFR-01.
-**Status:** Partially done in S1 (admin/category enforcement and role hierarchy); planning and tour scoping verified in S2–S7.
+**Status:** Partially done in S1 (admin/category enforcement and role hierarchy); planning and tour scoping verified in S2–S7. S2: collection points and depots are PLANNER/ADMIN only, AGENT 403.
 
 #### US-04 — Create a user account — P0
 
@@ -150,6 +150,7 @@ it can be considered during tour planning.**
   available, while synthetic demand is identified as synthetic.
 
 **Traceability:** FR-04, FR-05, FR-06; NFR-02, NFR-12.
+**Status:** Done in S2 (import-specific provenance via the S3 importer).
 
 #### US-09 — Inspect and filter collection points — P0
 
@@ -166,6 +167,7 @@ so that I can find and understand collection demand geographically.**
   remains available without using the map.
 
 **Traceability:** FR-04, FR-05, FR-06, FR-22; NFR-03, NFR-12.
+**Status:** Done in S2 (map interaction verified by build only, D-040).
 
 #### US-10 — Edit point details and coordinates — P1
 
@@ -181,6 +183,7 @@ click so that planning uses accurate locations.**
   scenarios without rewriting retained evaluation snapshots.
 
 **Traceability:** FR-04, FR-05, FR-23; NFR-02, NFR-03, NFR-09.
+**Status:** Done in S2 except snapshot immutability, verified in S4/S5.
 
 #### US-11 — Manage point demand entries — P0
 
@@ -197,6 +200,7 @@ point so that the optimizer uses current collection requirements.**
 - Editing current demand does not alter the frozen inputs of a retained evaluation run.
 
 **Traceability:** FR-06, FR-08, FR-15; NFR-02, NFR-07, NFR-09.
+**Status:** Done in S2 except snapshot immutability, verified in S4/S5.
 
 #### US-12 — Deactivate a collection point — P1
 
@@ -211,6 +215,7 @@ without losing its history.**
   from active points.
 
 **Traceability:** FR-04, FR-14, FR-22; NFR-02.
+**Status:** Partially done in S2 (deactivation, filter, eligible query); exclusion from new tours/scenarios enforced in S4/S5.
 
 ### 1.4 Epic E03 — Vehicles, agents, and access links
 
@@ -669,7 +674,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1 executed; S2–S10 planned.** Review and retrospective slots of S2–S10 stay empty until each sprint actually closes. |
+| Status | **S1–S2 executed; S3–S10 planned.** Review and retrospective slots of S3–S10 stay empty until each sprint actually closes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -714,7 +719,7 @@ Differences from a human-team sprint backlog, and why:
 | Sprint | Theme | Story selection | Status |
 |---|---|---|---|
 | S1 | Secure foundation: identities, roles, waste categories | US-01…US-07 | Done (frontend verified by build and proxy checks only, no browser walkthrough) |
-| S2 | Collection points and demand on the real map | US-08…US-12 | Not started |
+| S2 | Collection points and demand on the real map | US-08…US-12 | Done (frontend verified by build, bundle and proxy checks only, no browser walkthrough) |
 | S3 | Fleet, crew, and MN01 import groundwork | US-13…US-17 (+ US-33 groundwork) | Not started |
 | S4 | Tour drafts: stops, order, crew, capacity | US-18…US-20 | Not started |
 | S5 | Directed routing and the three-method optimizer | US-21, US-22 | Not started |
@@ -731,9 +736,9 @@ Notes on the selection:
   "active category" validation. All other epics' small P1 lifecycle stories (US-10, US-12,
   US-16) stay inside their epic's sprint.
 - **US-33 is split across S3 and S7.** The MN01 baskets/depot import with provenance and
-  snapshot identity must exist before map work, but a *complete* demonstration load (including
-  tours in several lifecycle states) requires the whole lifecycle, so the story is closed in
-  S7.
+  snapshot identity must exist before tour planning (S4), but a *complete* demonstration load
+  (including tours in several lifecycle states) requires the whole lifecycle, so the story is
+  closed in S7. S2 shows only a five-basket `dev` sample keyed like the S3 import.
 - **S5 and S6 split the optimizer** (engine vs. its review UI) so the algorithm core — an
   isolated, heavily testable module per AGENTS.md §7 — is verified before any UI depends on it.
 - **S10 has no backlog stories** because it executes Part 6 (metrics + the fixed 60-scenario
@@ -868,44 +873,149 @@ accounts are documented development credentials.
 
 ### 3.5 Sprint S2 — Collection points and demand on the real map
 
-**Sprint goal.** A `PLANNER` sees the 449 MN01 basket locations as provable places (source
-provenance), manages points and demand entries through synchronized list/map UI, and invalid
-coordinates or demands are rejected by the backend.
+**Sprint goal.** A `PLANNER` manages collection points and their demand entries through a
+synchronized list, form and Leaflet map of Lower Manhattan, sees the real MN01G depot and real
+DSNY basket locations with their source provenance, and the backend rejects invalid coordinates,
+demands and role violations.
 
-**Entrance criteria.** S1 done; import of MN01 locations may load via a temporary admin
-routine or test fixture — the permanent importer is S3's groundwork, so S2 tests may seed
-fixture data directly.
+**Entrance criteria.** S1 done (green baseline, categories with activation). The permanent MN01
+importer (all 449 baskets, snapshot identity) remains S3 groundwork (D-035). S2 therefore shows
+only a small `dev`-profile sample: the MN01G depot and five DSNY baskets copied verbatim from the
+included snapshots, keyed by source dataset + source identifier so that the S3 importer upserts
+them instead of duplicating them. Tests seed their own fixtures.
+
+**Scope notes.**
+
+- Names follow the class diagram: `Depot`, `CollectionPoint`, `DemandEntry`,
+  `CollectionPointStatus {ACTIVE, INACTIVE}`, `DataOrigin {IMPORTED_REAL, SYNTHETIC,
+  USER_ENTERED}`; fields `sourceDataset`, `sourceIdentifier`, `sourceOwnershipType`,
+  `quantityKg`.
+- Every point keeps at least one demand entry (OCL `HasCurrentDemand`), with at most one entry
+  per waste category. The S3 importer must therefore give each imported point a synthetic
+  demand entry.
+- Collection-point and depot endpoints are `PLANNER`-only (and so `ADMIN`); `AGENT` receives
+  403 (US-03). Depots are read-only in S2.
+- The US-10/US-11 criterion "edits do not alter retained tours/evaluation runs" cannot be tested
+  before snapshot entities exist; it is verified in S4 (`StopDemand`) and S5 (evaluation runs).
+  US-12 "inactive point cannot join a new tour/scenario" is prepared by an eligible-points query
+  here and enforced in S4/S5.
+- Frontend files use kebab-case (AGENTS.md §7): `src/components/maps/base-map.tsx` (`BaseMap`),
+  `points-map-layer.tsx` (`PointsMapLayer`), `src/pages/collection-points-page.tsx`
+  (`CollectionPointsPage`).
 
 **Task backlog**
 
-1. (M) Domain + persistence: `Depot`, `CollectionPoint` (WGS84 `longitude`/`latitude`,
-   active, name, sourceDataset/sourceId/sourceType/`real`vs`synthetic` provenance),
-   `DemandEntry` (category FK, positive kg) — D-019, D-024.
-2. (M) API `/api/collection-points` + `/api/depots`: create, inspect/filter
-   (status, category), edit details/coordinates, demand-entry add/edit/remove, deactivate
-   (US-08…US-12), keeping ≥1 active demand for active points. **Tests:** coordinate order and
-   range validation; positive-kg rule; inactive category rejected on new demand; editing does
-   not touch frozen evaluation snapshots (void check until S5); inactive points excluded from
-   "eligible" queries.
-3. (M) Map foundation per `docs/geospatial-data.md` §5: Leaflet + React Leaflet dependencies
-   with visible OSM attribution; `src/components/maps/BaseMap.tsx`, `PointsMapLayer` with
-   depot/active/inactive styling, popup inspection, map-click → coordinate capture for the
-   point form. **Check:** browser walkthrough in the review; build green.
-4. (M) Frontend pages `src/pages/CollectionPointsPage` (list+filters+details) with map/list
-   synchronization and non-map fallback for every essential action (US-09 AC). Contract sync
-   in `src/types/api.ts`.
-5. (S) Final test/build pass and AGENTS/README status updates.
+1. (M) Domain + persistence: enums, `Depot`, `CollectionPoint` (WGS84 `longitude`/`latitude`,
+   status, origin, source fields, cascaded demands), `DemandEntry` (category FK, positive
+   `quantityKg`, origin) and repositories — D-019, D-024. **Tests:** cascade round-trip; unique
+   source key; unique category per point; status/category search.
+2. (M) API `/api/collection-points` (list with `status`/`categoryId` filters, get, create with
+   ≥1 demand, edit details/coordinates, status change, demand add/edit/remove) and read-only
+   `/api/depots`. **Tests:** role matrix incl. `AGENT` 403; longitude/latitude range (400) and
+   NYC service-area check that catches swapped coordinates (422); positive kg; inactive category
+   rejected (422); duplicate category (409); last demand cannot be removed (422); inactive points
+   excluded from the eligible-points query.
+3. (S) `dev` seed: two demo categories, the MN01G depot and five DSNY sample baskets (real
+   locations, synthetic demand), idempotent. **Test:** seeding twice gives identical counts.
+4. (M) Map foundation per `docs/geospatial-data.md` §5: Leaflet + React Leaflet with visible
+   "© OpenStreetMap contributors" attribution (D-039); `BaseMap`, `PointsMapLayer` with
+   depot/active/inactive styling and layer control, popup inspection, map-click coordinate
+   capture.
+5. (M) `CollectionPointsPage`: filters, list, details, point form (numeric fields or map click,
+   confirmed by Save), demand editor, selection synchronized between list and map, every action
+   available without the map (US-09, NFR-03). Contract sync in `src/types/api.ts`.
+6. (S) README and status updates; review and retrospective.
 
-**Automated done checks**
+**Automated done checks** (D-040: no frontend test framework)
 
-- `./mvnw test` green incl. validation and filter rules above.
-- `npm run build` green.
-- Browser: filters change visible markers; selecting in list focuses map and vice versa;
-  attribution visible.
+- `./mvnw test` green including the rules above.
+- `npm run build` green; the built bundle contains the OSM attribution string.
+- Scripted HTTP checks against a backend on a spare port with a scratch database: seed visible,
+  filters, validation status codes, role matrix, idempotent restart; same calls through a Vite
+  dev server proxying to it.
+- Not machine-checked: the visual list↔map synchronisation. It is listed for a reviewer
+  walkthrough and is not claimed as verified.
 
-**Review.** *To be filled at sprint close.*
+**Review.** 2026-11-01.
 
-**Retrospective.** *To be filled at sprint close.*
+- `cd backend && ./mvnw test`: `Tests run: 70, Failures: 0, Errors: 0, Skipped: 0` (46 from S1
+  plus 24 new: collection-point repository, service, controller role/validation matrix, depot
+  controller, dev map seed).
+- `cd frontend && npm run build`: exit 0 (strict TypeScript, Vite; only the >500 kB chunk
+  warning, now 793 kB with Leaflet). `npm run lint`: no findings in own code (three fast-refresh
+  warnings in vendored `components/ui`).
+- Scripted HTTP done-check (`s2-done-check.sh`, 51 checks, 0 failures) against a backend built
+  from the branch on spare port 8081 with a scratch H2 file, and a second Vite on 5174 proxying
+  to it. The owner's servers on 8080/5173 and `backend/data/` were not used or touched; the
+  script ran unmodified.
+
+| Check | Observed |
+|---|---|
+| Logins `planner`, `admin`, `agent` | 200, 200, 200 |
+| Depots as `PLANNER`; content | 200; 1 depot, `MN01G`, `IMPORTED_REAL` |
+| Collection points seeded | 200; 5 points, all `IMPORTED_REAL` from `8znf-7b2c`, all demand `SYNTHETIC` |
+| Status filter `ACTIVE` / `INACTIVE` | 4 / 1 |
+| Category filter `Recyclables` | 2 |
+| `?status=FOO` | 400 |
+| `AGENT` list / depots / create | 403 / 403 / 403 |
+| Anonymous list | 401 |
+| `ADMIN` list | 200 |
+| Create valid point | 201, origin `USER_ENTERED` |
+| Latitude 95 / longitude -200 | 400 / 400 |
+| Swapped longitude/latitude | 422 |
+| Quantity 0 / empty demands | 400 / 400 |
+| Same category twice | 409 |
+| Create category, deactivate it, use it in a new point | 201, 200, 422 |
+| Edit name and coordinates | 200; GET returns `-74.006`, `40.716` |
+| Edit with latitude 95 | 400 (previous values kept) |
+| Add demand / duplicate category | 201 / 409 |
+| Edit demand / remove demand / remove last demand | 200 / 204 / 422 |
+| Deactivate point; in `ACTIVE` list / in `INACTIVE` list | 200; absent / present |
+| Unknown id / malformed id | 404 / 400 |
+| Restart on the same database: depots / points / demo categories | 1 / 6 (5 seed + 1 test) / 2 (no duplicates) |
+| `npm run build`; OSM attribution and `leaflet-container` CSS in bundle | exit 0; both found |
+| Same calls through the Vite proxy (login, list, `AGENT` 403) | 200, 200, 403; `/collection-points` serves the SPA root element |
+| Dev passwords in the backend log | 0 matches |
+
+Acceptance criteria: US-08 is met (create with demand, source fields, provenance, coordinate and
+demand validation). US-09 is met on the API side (list, filters, provenance fields); the list,
+map and layer-control UI is built but not browser-verified. US-10 is met (edit name and
+coordinates, validation, inactive points editable). US-11 is met (add, edit, remove, duplicate
+and last-entry rules, inactive category kept on edit). US-12 is partly met: deactivation,
+status filter and the eligible-points query (`findEligibleForPlanning`, unit-tested) exist.
+
+Deferred: US-10/US-11 "edits do not alter retained tours/evaluation runs" (snapshot entities,
+S4/S5); US-12 exclusion of inactive points from new tours/scenarios (S4/S5); the full 449-basket
+MN01 import (S3); US-03 agent tour scoping (S7).
+
+Known gaps: the list-map synchronisation, map-click coordinate capture and visibility of the
+attribution control were verified only by the strict build, bundle inspection and proxy checks,
+not in a browser (D-040). Reviewer walkthrough: sign in as `planner`, open Collection points,
+set the status filter to Inactive (one point appears), click a list row (the map flies to it),
+click a marker (the list row highlights), then New point, Pick location on map, click the map
+and Save.
+
+**Retrospective.**
+
+- *Went well.* The planned layering (domain, repository with fetch-joined reads, service
+  rules, thin controller) worked as written: `open-in-view: false` caused no lazy-loading error
+  because every read goes through `findWithDemandsById` or `search`. The null-tolerant JPQL
+  filter query worked on H2 without splitting. The done-check script passed on its first
+  run, and the S1 lessons held (verb-prefixed test helpers, scratch ports and database, no
+  foreign process touched).
+- *Went badly.* (1) `addDemand` first used `saveAndFlush` on the managed point; Spring Data
+  merged a copy of the new demand, so the returned entity had no id (`$.id` missing in the
+  201 body). It was found by the controller test and fixed with a plain `flush()`. (2) The new
+  `DepotControllerTest` first failed with 401 for every role because the per-request active-
+  account filter requires the user row to exist; the fixtures now save the users. (3)
+  `WasteCategoryServiceTest` also deletes categories, so it needed the same
+  `points.deleteAll()` ordering as the controller test; the plan named only the controller
+  test. (4) Two lint warnings in own code (a helper exported from a component file, and
+  `watch`) were fixed after the first build.
+- *Process changes for S3.* Run `./mvnw test` after adding each controller test class, not
+  only at task end; when a plan names one test class for FK-cleanup ordering, grep for every
+  `deleteAll()` on the parent table before starting; run `npm run lint` together with
+  `npm run build` after each frontend task.
 
 ### 3.6 Sprint S3 — Fleet, crew, and MN01 import groundwork
 
@@ -929,8 +1039,10 @@ snapshots with recorded snapshot identity — ready to feed later sprints.
    `backend/src/main/resources/data/nyc-mn01-baskets.csv` and `nyc-mn01-depot.csv` (per
    `docs/geospatial-data.md` §3): parse into `Depot`/`CollectionPoint`, preserve source IDs
    and DSNY/other ownership labels (real provenance), compute a row count + checksum snapshot
-   identifier, upsert idempotently (natural key = source dataset + source ID). Demo vehicles,
-   agents, users, demands, and tours are **deferred to S7** because tours do not exist yet.
+   identifier, upsert idempotently (natural key = source dataset + source ID, which also
+   absorbs the five S2 `dev` sample baskets). Every point needs ≥1 demand entry (S2 rule), so
+   each imported point gets one deterministic `SYNTHETIC` demand entry. Demo vehicles, agents,
+   users, richer demands, and tours are **deferred to S7** because tours do not exist yet.
    **Tests:** re-run import produces no duplicates and a stable report; snapshot identifier
    retrievable via `GET /api/admin/import/report`.
 4. (M) Frontend: fleet and agents pages (tables, forms, availability toggles, link dialog);

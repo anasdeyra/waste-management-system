@@ -489,3 +489,41 @@ artifacts, metrics, and presentation remain consistent.
   `X-XSRF-TOKEN` instead of `CsrfToken.getHeaderName()` (MockMvc test infrastructure could swap
   the repository); the real cookie flow is tested in its own `@DirtiesContext` class.
 - **Rationale:** Conventional choices made during S1 so later sprints reuse them.
+
+## D-043 — S2 implementation conventions
+
+- **Date:** 2026-11-01
+- **Decision:**
+  - Service area: collection-point coordinates must lie in an NYC bounding box (longitude
+    -74.30…-73.65, latitude 40.45…40.95, inclusive, configurable as `wastems.service-area`).
+    Values outside it return 422 with a hint that longitude and latitude may be swapped; values
+    outside the WGS84 ranges (longitude ±180, latitude ±90) stay 400 bean-validation errors.
+  - Every collection point keeps at least one demand entry (OCL `HasCurrentDemand`; removing the
+    last entry is 422) and has at most one entry per waste category (409). Only a newly assigned
+    category must be active; an existing entry may keep an inactive category when its quantity is
+    edited.
+  - `/api/collection-points` and `/api/depots` are PLANNER/ADMIN only; AGENT receives 403 and
+    anonymous 401. Depots are read-only; the MN01G depot is seeded in `dev`.
+  - Status change is `PATCH /api/collection-points/{id}/status` with `{"status":"ACTIVE|INACTIVE"}`
+    (an enum mirroring the class diagram, unlike the boolean `active` of users and categories).
+  - The `dev` map seed (`DevMapDataSeeder`: 2 demo categories, the MN01G depot and 5 DSNY baskets
+    keyed by `8znf-7b2c` + basket id, real locations with synthetic demand, one inactive) is
+    idempotent and will be absorbed by the S3 importer by upserting on the source key.
+  - Imported point names use the format `STREET1 & STREET2` (`streetname1 & streetname2`).
+  - `vite.config.ts` accepts `API_PROXY_TARGET` (default `http://localhost:8080`) so a second
+    frontend can proxy to a scratch backend without touching the owner's servers.
+  - Leaflet is drawn with `CircleMarker`s only (no default marker images); the lat/lng order flip
+    happens only in `components/maps/geo.ts` (`toLatLng`).
+- **Deviations from the S2 plan:**
+  - `CollectionPointService.addDemand` calls `flush()` instead of `saveAndFlush(point)`: on a
+    managed point `save` merges a copy of the new demand, so the returned entity had no id.
+  - `WasteCategoryServiceTest` also gained `points.deleteAll()` before `deleteAll()` of
+    categories (the plan named only the controller test); the new `DepotControllerTest` saves its
+    users because the active-account filter requires them to exist.
+  - `isValidKg` lives in `src/lib/validation.ts` and the form uses `useWatch` instead of `watch`,
+    to keep own code free of lint warnings. The shadcn `Tooltip` was not used for the disabled
+    "remove last entry" hint (no provider mounted); a `title` attribute is used instead.
+  - The plan's trailer name `Claude Opus 5.5` was replaced by the one given in the executor
+    instructions, `Claude Sonnet 5.5`.
+- **Rationale:** Conventional choices made during S2 so later sprints (importer, tour drafts,
+  evaluation scenarios) reuse them.

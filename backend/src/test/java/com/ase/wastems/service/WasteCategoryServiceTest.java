@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ase.wastems.domain.WasteCategory;
+import com.ase.wastems.repository.CollectionPointRepository;
 import com.ase.wastems.repository.WasteCategoryRepository;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,9 +21,11 @@ class WasteCategoryServiceTest {
 
     @Autowired private WasteCategoryService service;
     @Autowired private WasteCategoryRepository repository;
+    @Autowired private CollectionPointRepository points;
 
     @BeforeEach
     void setUp() {
+        points.deleteAll();
         repository.deleteAll();
     }
 

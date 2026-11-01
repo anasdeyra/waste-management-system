@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.ase.wastems.domain.AppRole;
 import com.ase.wastems.domain.AppUser;
 import com.ase.wastems.repository.AppUserRepository;
+import com.ase.wastems.repository.CollectionPointRepository;
 import com.ase.wastems.repository.WasteCategoryRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
@@ -37,11 +38,13 @@ class WasteCategoryControllerTest {
     @Autowired private MockMvc mvc;
     @Autowired private AppUserRepository users;
     @Autowired private WasteCategoryRepository categories;
+    @Autowired private CollectionPointRepository points;
     @Autowired private ObjectMapper mapper;
 
     @BeforeEach
     void setUp() {
         users.deleteAll();
+        points.deleteAll();
         categories.deleteAll();
         users.save(new AppUser("admin1", "x", AppRole.ADMIN));
         users.save(new AppUser("planner1", "x", AppRole.PLANNER));

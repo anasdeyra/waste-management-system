@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 
 import { AppShell } from '@/components/shared/app-shell'
 import { RequireAuth, RequireRole } from '@/components/shared/require-auth'
+import CollectionPointsPage from '@/pages/collection-points-page'
 import CategoriesPage from '@/pages/waste-categories-page'
 import HomePage from '@/pages/home-page'
 import LoginPage from '@/pages/login-page'
@@ -21,6 +22,14 @@ export default function App() {
         }
       >
         <Route index element={<HomePage />} />
+        <Route
+          path="collection-points"
+          element={
+            <RequireRole role="PLANNER">
+              <CollectionPointsPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="waste-categories"
           element={
