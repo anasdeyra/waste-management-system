@@ -48,6 +48,14 @@ public class CollectedQuantity {
         this.actualQuantityKg = actualQuantityKg;
     }
 
+    /** In-place correction of the kilograms (US-31); keeps the row and its unique key. */
+    void setActualQuantityKg(BigDecimal kg) {
+        if (kg == null || kg.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("A collected quantity must be zero or positive.");
+        }
+        this.actualQuantityKg = kg;
+    }
+
     public UUID getId() {
         return id;
     }

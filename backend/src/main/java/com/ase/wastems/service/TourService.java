@@ -10,6 +10,7 @@ import com.ase.wastems.domain.EvaluationRun;
 import com.ase.wastems.domain.EvaluationStatus;
 import com.ase.wastems.domain.EvaluationStop;
 import com.ase.wastems.domain.MethodResult;
+import com.ase.wastems.domain.OutcomeCorrection;
 import com.ase.wastems.domain.ProposalDecision;
 import com.ase.wastems.optimization.PlanningMethod;
 import com.ase.wastems.repository.EvaluationRunRepository;
@@ -85,6 +86,10 @@ public class TourService {
         for (TourStop s : t.getStops()) {
             s.getStopDemands().size();
             s.getActualQuantities().size();
+            for (OutcomeCorrection c : s.getCorrections()) {
+                c.getPreviousQuantities().size();
+                c.getNewQuantities().size();
+            }
         }
         return t;
     }
