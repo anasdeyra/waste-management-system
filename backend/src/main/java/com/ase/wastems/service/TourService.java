@@ -1,19 +1,23 @@
 package com.ase.wastems.service;
 
+import com.ase.wastems.domain.Agent;
 import com.ase.wastems.domain.CollectionPoint;
 import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.Depot;
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.TourStatus;
 import com.ase.wastems.domain.TourStop;
+import com.ase.wastems.domain.Vehicle;
 import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.CollectionPointRepository;
 import com.ase.wastems.repository.DepotRepository;
 import com.ase.wastems.repository.TourRepository;
 import com.ase.wastems.repository.VehicleRepository;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -142,6 +146,61 @@ public class TourService {
         tour.reorderStops(stopIds);
         tour.touch();
         return initialized(tour);
+    }
+
+    /** Replaces vehicle, driver and collectors together; the first failing rule wins. */
+    @Transactional
+    public Tour assign(UUID tourId, UUID vehicleId, UUID driverId, List<UUID> collectorIds) {
+        Tour tour = find(tourId);
+        requireDraft(tour);
+        List<UUID> collectorIdList = collectorIds == null ? List.of() : collectorIds;
+        if (collectorIdList.size() > 2) {
+            throw new BusinessRuleException("A tour has at most two collectors.");
+        }
+        if (new HashSet<>(collectorIdList).size() != collectorIdList.size()) {
+            throw new BusinessRuleException("Collectors must be distinct.");
+        }
+        if (driverId != null && collectorIdList.contains(driverId)) {
+            throw new BusinessRuleException("The driver cannot also be a collector.");
+        }
+        Vehicle vehicle =
+                vehicleId == null
+                        ? null
+                        : vehicles
+                                .findById(vehicleId)
+                                .orElseThrow(
+                                        () -> new NotFoundException("Vehicle not found: " + vehicleId));
+        Agent driver = driverId == null ? null : findAgent(driverId);
+        List<Agent> collectors = collectorIdList.stream().map(this::findAgent).toList();
+
+        if (vehicle != null
+                && (tour.getVehicle() == null || !tour.getVehicle().getId().equals(vehicle.getId()))
+                && !vehicle.isAvailable()) {
+            throw new BusinessRuleException(
+                    "Vehicle " + vehicle.getRegistration() + " is unavailable and cannot be assigned.");
+        }
+        Set<UUID> onTour = new HashSet<>();
+        if (tour.getDriver() != null) {
+            onTour.add(tour.getDriver().getId());
+        }
+        tour.getCollectors().forEach(c -> onTour.add(c.getId()));
+        List<Agent> newCrew = new ArrayList<>(collectors);
+        if (driver != null) {
+            newCrew.add(0, driver);
+        }
+        for (Agent a : newCrew) {
+            if (!onTour.contains(a.getId()) && !a.isAvailable()) {
+                throw new BusinessRuleException(
+                        "Agent " + a.getDisplayName() + " is unavailable and cannot be assigned.");
+            }
+        }
+        tour.assign(vehicle, driver, collectors);
+        tour.touch();
+        return initialized(tour);
+    }
+
+    private Agent findAgent(UUID id) {
+        return agents.findById(id).orElseThrow(() -> new NotFoundException("Agent not found: " + id));
     }
 
     private Tour find(UUID id) {

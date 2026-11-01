@@ -76,6 +76,15 @@ class TourControllerTest {
     private CollectionPoint pBid;
     private CollectionPoint pDsny;
     private WasteCategory paper;
+    private Vehicle small;
+    private Vehicle big;
+    private Vehicle exact;
+    private Vehicle down;
+    private Agent dana;
+    private Agent eli;
+    private Agent finn;
+    private Agent gus;
+    private Agent una;
 
     @BeforeEach
     void setUp() {
@@ -106,6 +115,27 @@ class TourControllerTest {
         pDsny = point("Dsny St", CollectionPointStatus.ACTIVE, paper, "10", null, null);
         pDsny.setSource("8znf-7b2c", "99998", "DSNY Wire");
         pDsny = points.save(pDsny);
+        small = vehicle("NY-SMALL", "25.00", ResourceStatus.AVAILABLE);
+        big = vehicle("NY-BIG", "1000.00", ResourceStatus.AVAILABLE);
+        exact = vehicle("NY-EXACT", "50.00", ResourceStatus.AVAILABLE);
+        down = vehicle("NY-DOWN", "100.00", ResourceStatus.UNAVAILABLE);
+        dana = agent("Dana", ResourceStatus.AVAILABLE);
+        eli = agent("Eli", ResourceStatus.AVAILABLE);
+        finn = agent("Finn", ResourceStatus.AVAILABLE);
+        gus = agent("Gus", ResourceStatus.AVAILABLE);
+        una = agent("Una", ResourceStatus.UNAVAILABLE);
+    }
+
+    private Vehicle vehicle(String reg, String capacity, ResourceStatus st) {
+        Vehicle v = new Vehicle(reg, new BigDecimal(capacity), DataOrigin.USER_ENTERED);
+        v.setStatus(st);
+        return vehicles.save(v);
+    }
+
+    private Agent agent(String name, ResourceStatus st) {
+        Agent a = new Agent(name, DataOrigin.USER_ENTERED);
+        a.setStatus(st);
+        return agents.save(a);
     }
 
     @AfterEach
@@ -213,6 +243,42 @@ class TourControllerTest {
 
     private ResultActions performGet(String tourId) throws Exception {
         return mvc.perform(get("/api/tours/" + tourId).with(asPlanner()));
+    }
+
+    private static String quoted(UUID id) {
+        return id == null ? "null" : "\"" + id + "\"";
+    }
+
+    private ResultActions sendAssignment(
+            String tourId, Vehicle vehicle, Agent driver, Agent... collectors) throws Exception {
+        String ids =
+                java.util.Arrays.stream(collectors)
+                        .map(a -> quoted(a.getId()))
+                        .collect(java.util.stream.Collectors.joining(","));
+        return sendAssignmentJson(
+                tourId,
+                "{\"vehicleId\":"
+                        + quoted(vehicle == null ? null : vehicle.getId())
+                        + ",\"driverId\":"
+                        + quoted(driver == null ? null : driver.getId())
+                        + ",\"collectorIds\":["
+                        + ids
+                        + "]}");
+    }
+
+    private ResultActions sendAssignmentJson(String tourId, String json) throws Exception {
+        return mvc.perform(
+                put("/api/tours/" + tourId + "/assignment")
+                        .with(asPlanner())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json));
+    }
+
+    private ResultActions sendFleet(String path, String json, boolean isPatch) throws Exception {
+        var b = isPatch ? patch(path) : put(path);
+        return mvc.perform(
+                b.with(asPlanner()).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
     private static String idsJson(String... ids) {
@@ -475,6 +541,7 @@ class TourControllerTest {
         mvc.perform(delete("/api/tours/" + id + "/stops/" + stopId).with(asPlanner()).with(csrf()))
                 .andExpect(status().isConflict());
         sendHeader(id, headerJson(tomorrow(), mn01g.getId())).andExpect(status().isConflict());
+        sendAssignment(id, big, dana).andExpect(status().isConflict());
     }
 
     @Test
@@ -508,5 +575,152 @@ class TourControllerTest {
         String t = createDraft();
         mvc.perform(delete("/api/tours/" + t).with(asPlanner()).with(csrf()))
                 .andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    void validAssignmentMakesDraftStructurallyValid() throws Exception {
+        String t = createDraft();
+        doAddStop(t, pA.getId());
+        sendAssignment(t, big, dana, eli, finn)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.vehicle.id").value(big.getId().toString()))
+                .andExpect(jsonPath("$.vehicle.registration").value("NY-BIG"))
+                .andExpect(jsonPath("$.driver.id").value(dana.getId().toString()))
+                .andExpect(
+                        jsonPath("$.collectors[*].id")
+                                .value(Matchers.contains(eli.getId().toString(), finn.getId().toString())))
+                .andExpect(jsonPath("$.capacity.vehicleCapacityKg").value(1000.0))
+                .andExpect(jsonPath("$.capacity.remainingKg").value(980.0))
+                .andExpect(jsonPath("$.capacity.overCapacity").value(false))
+                .andExpect(jsonPath("$.structurallyValid").value(true))
+                .andExpect(jsonPath("$.validationIssues").isEmpty())
+                .andExpect(jsonPath("$.revision").value(2));
+        sendAssignment(t, big, dana)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.collectors").isEmpty())
+                .andExpect(jsonPath("$.structurallyValid").value(true));
+    }
+
+    @Test
+    void overCapacityIsReportedNotRejected() throws Exception {
+        String t = createDraft();
+        doAddStop(t, pA.getId());
+        doAddStop(t, pB.getId());
+        sendAssignment(t, small, dana)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.capacity.overCapacity").value(true))
+                .andExpect(jsonPath("$.capacity.remainingKg").value(-25.0))
+                .andExpect(jsonPath("$.structurallyValid").value(false))
+                .andExpect(jsonPath("$.validationIssues[-1:].code").value(Matchers.contains("OVER_CAPACITY")))
+                .andExpect(
+                        jsonPath("$.validationIssues[-1:].message")
+                                .value(Matchers.contains(Matchers.allOf(
+                                        Matchers.containsString("50"), Matchers.containsString("25")))));
+        sendAssignment(t, exact, dana)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.capacity.overCapacity").value(false))
+                .andExpect(jsonPath("$.capacity.remainingKg").value(0))
+                .andExpect(jsonPath("$.structurallyValid").value(true));
+        performAddStop(t, pC.getId())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.capacity.overCapacity").value(true));
+    }
+
+    @Test
+    void crewRuleRejections() throws Exception {
+        String t = createDraft();
+        doAddStop(t, pA.getId());
+        sendAssignment(t, null, null, eli, finn, gus).andExpect(status().isUnprocessableEntity());
+        sendAssignment(t, null, null, eli, eli).andExpect(status().isUnprocessableEntity());
+        sendAssignment(t, null, dana, dana).andExpect(status().isUnprocessableEntity());
+        sendAssignmentJson(t, "{\"vehicleId\":\"" + UUID.randomUUID() + "\"}")
+                .andExpect(status().isNotFound());
+        sendAssignmentJson(t, "{\"driverId\":\"" + UUID.randomUUID() + "\"}")
+                .andExpect(status().isNotFound());
+        sendAssignmentJson(t, "{\"collectorIds\":[\"" + UUID.randomUUID() + "\"]}")
+                .andExpect(status().isNotFound());
+        sendAssignment(t, down, null).andExpect(status().isUnprocessableEntity());
+        sendAssignment(t, null, una).andExpect(status().isUnprocessableEntity());
+        sendAssignment(t, null, null, una).andExpect(status().isUnprocessableEntity());
+        sendAssignmentJson(t, "{\"collectorIds\":[\"bad\"]}").andExpect(status().isBadRequest());
+        performGet(t)
+                .andExpect(jsonPath("$.vehicle").doesNotExist())
+                .andExpect(jsonPath("$.driver").doesNotExist())
+                .andExpect(jsonPath("$.collectors").isEmpty())
+                .andExpect(jsonPath("$.revision").value(1));
+    }
+
+    @Test
+    void clearingTheAssignment() throws Exception {
+        String t = createDraft();
+        doAddStop(t, pA.getId());
+        sendAssignment(t, big, dana, eli).andExpect(status().isOk());
+        sendAssignmentJson(t, "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.vehicle").doesNotExist())
+                .andExpect(jsonPath("$.driver").doesNotExist())
+                .andExpect(jsonPath("$.collectors").isEmpty())
+                .andExpect(
+                        jsonPath("$.validationIssues[*].code")
+                                .value(Matchers.hasItems("NO_VEHICLE", "NO_DRIVER")));
+    }
+
+    @Test
+    void historicalAssignmentsArePreserved() throws Exception {
+        String t = createDraft();
+        doAddStop(t, pA.getId());
+        sendAssignment(t, big, dana, eli).andExpect(status().isOk());
+        sendFleet("/api/vehicles/" + big.getId() + "/status", "{\"status\":\"UNAVAILABLE\"}", true)
+                .andExpect(status().isOk());
+        performGet(t)
+                .andExpect(jsonPath("$.vehicle.id").value(big.getId().toString()))
+                .andExpect(jsonPath("$.vehicle.status").value("UNAVAILABLE"))
+                .andExpect(jsonPath("$.validationIssues[*].code").value(Matchers.hasItem("VEHICLE_UNAVAILABLE")))
+                .andExpect(jsonPath("$.structurallyValid").value(false));
+        sendAssignment(t, big, dana, eli)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.validationIssues[*].code").value(Matchers.hasItem("VEHICLE_UNAVAILABLE")));
+        sendFleet(
+                        "/api/vehicles/" + big.getId(),
+                        "{\"registration\":\"NY-BIG2\",\"capacityKg\":900}",
+                        false)
+                .andExpect(status().isOk());
+        performGet(t)
+                .andExpect(jsonPath("$.vehicle.id").value(big.getId().toString()))
+                .andExpect(jsonPath("$.vehicle.registration").value("NY-BIG2"))
+                .andExpect(jsonPath("$.capacity.vehicleCapacityKg").value(900.0));
+        sendFleet("/api/agents/" + eli.getId() + "/status", "{\"status\":\"UNAVAILABLE\"}", true)
+                .andExpect(status().isOk());
+        performGet(t)
+                .andExpect(jsonPath("$.validationIssues[*].code").value(Matchers.hasItem("COLLECTOR_UNAVAILABLE")))
+                .andExpect(jsonPath("$.collectors[0].id").value(eli.getId().toString()));
+        sendFleet("/api/agents/" + dana.getId(), "{\"displayName\":\"Dana R.\"}", false)
+                .andExpect(status().isOk());
+        performGet(t)
+                .andExpect(jsonPath("$.driver.displayName").value("Dana R."))
+                .andExpect(jsonPath("$.driver.id").value(dana.getId().toString()));
+        sendFleet("/api/agents/" + dana.getId() + "/status", "{\"status\":\"UNAVAILABLE\"}", true)
+                .andExpect(status().isOk());
+        performGet(t)
+                .andExpect(jsonPath("$.validationIssues[*].code").value(Matchers.hasItem("DRIVER_UNAVAILABLE")));
+        sendAssignment(t, big, eli)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.driver.id").value(eli.getId().toString()))
+                .andExpect(jsonPath("$.collectors").isEmpty());
+        sendFleet("/api/vehicles/" + big.getId() + "/status", "{\"status\":\"AVAILABLE\"}", true)
+                .andExpect(status().isOk());
+        sendFleet("/api/agents/" + eli.getId() + "/status", "{\"status\":\"AVAILABLE\"}", true)
+                .andExpect(status().isOk());
+        sendFleet("/api/agents/" + dana.getId() + "/status", "{\"status\":\"AVAILABLE\"}", true)
+                .andExpect(status().isOk());
+        performGet(t).andExpect(jsonPath("$.structurallyValid").value(true));
+    }
+
+    @Test
+    void sameResourcesOnTwoToursOfOneDay() throws Exception {
+        String t1 = createDraft();
+        String t2 = createDraft();
+        sendAssignment(t1, big, dana, eli).andExpect(status().isOk());
+        sendAssignment(t2, big, dana, eli).andExpect(status().isOk());
     }
 }

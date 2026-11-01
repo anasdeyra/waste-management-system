@@ -6,6 +6,7 @@ import com.ase.wastems.domain.TourStop;
 import com.ase.wastems.service.TourService;
 import com.ase.wastems.web.dto.AddTourStopRequest;
 import com.ase.wastems.web.dto.ReorderTourStopsRequest;
+import com.ase.wastems.web.dto.TourAssignmentRequest;
 import com.ase.wastems.web.dto.TourRequest;
 import com.ase.wastems.web.dto.TourResponse;
 import com.ase.wastems.web.dto.TourSummaryResponse;
@@ -77,6 +78,13 @@ public class TourController {
     @DeleteMapping("/{id}/stops/{stopId}")
     public TourResponse removeStop(@PathVariable UUID id, @PathVariable UUID stopId) {
         return TourResponse.from(service.removeStop(id, stopId));
+    }
+
+    @PutMapping("/{id}/assignment")
+    public TourResponse assign(
+            @PathVariable UUID id, @Valid @RequestBody TourAssignmentRequest req) {
+        return TourResponse.from(
+                service.assign(id, req.vehicleId(), req.driverId(), req.collectorIds()));
     }
 
     @PutMapping("/{id}/stops/order")
