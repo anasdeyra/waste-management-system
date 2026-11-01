@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * Retained three-method evaluation of one frozen scenario: inputs (stops, depot, capacity,
@@ -35,6 +37,7 @@ public class EvaluationRun {
     private UUID id;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "scenario_kind", nullable = false, length = 20)
     private ScenarioKind scenarioKind;
 
@@ -43,6 +46,18 @@ public class EvaluationRun {
 
     @Column(name = "tour_revision")
     private Long tourRevision;
+
+    @Column(name = "batch_id")
+    private UUID batchId;
+
+    @Column(name = "scenario_key", length = 80)
+    private String scenarioKey;
+
+    @Column(name = "repetition")
+    private Integer repetition;
+
+    @Column(name = "point_count")
+    private Integer pointCount;
 
     @Column(name = "demand_profile", length = 40)
     private String demandProfile;
@@ -130,25 +145,55 @@ public class EvaluationRun {
         r.scenarioKind = ScenarioKind.TOUR_DRAFT;
         r.tourId = tourId;
         r.tourRevision = tourRevision;
-        r.status = EvaluationStatus.COMPLETED;
-        r.createdAt = createdAt;
-        r.createdBy = createdBy;
-        r.roadGraphVersion = roadGraphVersion;
-        r.routingEngine = routingEngine;
-        r.sourceSnapshotIds = String.join(";", sourceSnapshotIds);
-        r.depotName = depotName;
-        r.depotLongitude = depotLongitude;
-        r.depotLatitude = depotLatitude;
-        r.depotSourceIdentifier = depotSourceIdentifier;
-        r.vehicleCapacityKg = vehicleCapacityKg;
-        r.serviceTimeSeconds = serviceTimeSeconds;
-        r.stops = new ArrayList<>(stops);
+        r.initialize(createdBy, createdAt, roadGraphVersion, routingEngine, sourceSnapshotIds, depotName,
+                depotLongitude, depotLatitude, depotSourceIdentifier, vehicleCapacityKg, serviceTimeSeconds, stops);
+        return r;
+    }
+
+    /** Run of a seeded experiment scenario or a CSV-imported scenario (kind EXPERIMENT or CSV_IMPORT). */
+    public static EvaluationRun forBatchScenario(ScenarioKind kind, UUID batchId, String scenarioKey,
+            String demandProfile, Long seed, Integer repetition, String createdBy, Instant createdAt,
+            String roadGraphVersion, String routingEngine, List<String> sourceSnapshotIds, String depotName,
+            double depotLongitude, double depotLatitude, String depotSourceIdentifier,
+            BigDecimal vehicleCapacityKg, double serviceTimeSeconds, List<EvaluationStop> stops) {
+        if (kind != ScenarioKind.EXPERIMENT && kind != ScenarioKind.CSV_IMPORT) {
+            throw new IllegalArgumentException("Batch scenarios are EXPERIMENT or CSV_IMPORT, not " + kind);
+        }
+        EvaluationRun r = new EvaluationRun();
+        r.scenarioKind = kind;
+        r.batchId = batchId;
+        r.scenarioKey = scenarioKey;
+        r.demandProfile = demandProfile;
+        r.seed = seed;
+        r.repetition = repetition;
+        r.initialize(createdBy, createdAt, roadGraphVersion, routingEngine, sourceSnapshotIds, depotName,
+                depotLongitude, depotLatitude, depotSourceIdentifier, vehicleCapacityKg, serviceTimeSeconds, stops);
+        return r;
+    }
+
+    private void initialize(String createdBy, Instant createdAt, String roadGraphVersion, String routingEngine,
+            List<String> sourceSnapshotIds, String depotName, double depotLongitude, double depotLatitude,
+            String depotSourceIdentifier, BigDecimal vehicleCapacityKg, double serviceTimeSeconds,
+            List<EvaluationStop> stops) {
+        this.status = EvaluationStatus.COMPLETED;
+        this.createdAt = createdAt;
+        this.createdBy = createdBy;
+        this.roadGraphVersion = roadGraphVersion;
+        this.routingEngine = routingEngine;
+        this.sourceSnapshotIds = String.join(";", sourceSnapshotIds);
+        this.depotName = depotName;
+        this.depotLongitude = depotLongitude;
+        this.depotLatitude = depotLatitude;
+        this.depotSourceIdentifier = depotSourceIdentifier;
+        this.vehicleCapacityKg = vehicleCapacityKg;
+        this.serviceTimeSeconds = serviceTimeSeconds;
+        this.stops = new ArrayList<>(stops);
+        this.pointCount = stops.size();
         BigDecimal total = BigDecimal.ZERO;
         for (EvaluationStop s : stops) {
             total = total.add(s.getDemandKg());
         }
-        r.totalDemandKg = total;
-        return r;
+        this.totalDemandKg = total;
     }
 
     public void complete(String matrixJson, List<MethodResult> results) {
@@ -206,6 +251,18 @@ public class EvaluationRun {
 
     public UUID getTourId() {
         return tourId;
+    }
+
+    public UUID getBatchId() {
+        return batchId;
+    }
+
+    public String getScenarioKey() {
+        return scenarioKey;
+    }
+
+    public Integer getRepetition() {
+        return repetition;
     }
 
     public Long getTourRevision() {

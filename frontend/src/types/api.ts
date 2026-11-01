@@ -460,7 +460,7 @@ export type PlanningMethod = 'INPUT_ORDER' | 'NEAREST_NEIGHBOR' | 'NN_PLUS_2_OPT
 export type EvaluationStatus = 'COMPLETED' | 'ROUTING_FAILED'
 
 /** domain.ScenarioKind */
-export type ScenarioKind = 'TOUR_DRAFT'
+export type ScenarioKind = 'TOUR_DRAFT' | 'EXPERIMENT' | 'CSV_IMPORT'
 
 /** Properties of one road leg feature (node 0 is the depot) */
 export interface RoadLegProperties {
@@ -668,6 +668,8 @@ export type AuditAction =
   | 'TOUR_CANCELLED'
   | 'STOP_OUTCOME_CORRECTED'
   | 'DEMO_LOADED'
+  | 'EVALUATION_EXPERIMENT_RUN'
+  | 'EVALUATION_SCENARIOS_IMPORTED'
 
 /** domain.AuditEntityType */
 export type AuditEntityType =
@@ -679,6 +681,7 @@ export type AuditEntityType =
   | 'TOUR'
   | 'DATA_IMPORT'
   | 'DEMO_DATA'
+  | 'EVALUATION_BATCH'
 
 /** domain.AuditOutcome */
 export type AuditOutcome = 'SUCCESS' | 'FAILURE'
