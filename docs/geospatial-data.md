@@ -26,7 +26,7 @@ project does not claim that its generated tours are official DSNY routes.
 | Depot | [DSNY Garages](https://data.cityofnewyork.us/Environment/DSNY-Garages-Map-/2kdb-mfqb), source dataset `xw3j-2yxf` | Real MN01G depot coordinates and address | A garage can serve multiple districts; `name=MN01G` selects the depot, not the garage record's `districtcode`. |
 | Traffic overlay | [DOT Traffic Speeds](https://data.cityofnewyork.us/Transportation/DOT-Traffic-Speeds/i4gi-tjb9), Socrata ID `i4gi-tjb9`; [DOT feed description](https://www.nyc.gov/html/dot/html/about/datafeeds.shtml#realtime) | Timestamped traffic-link polylines and speed/travel-time attributes on the map | Sensors cover mostly major arterials and highways, not every local street. Invalid/stale records must not be presented as current conditions. |
 | Street reference | [NYC Street Centerline](https://data.cityofnewyork.us/City-Government/Centerline/inkn-q76z), Socrata ID `inkn-q76z` | Street names, geometry, traffic direction, and validation/reference display | It is a reference dataset, not by itself the prototype's complete routing engine. |
-| Routable road network and basemap | [OpenStreetMap](https://www.openstreetmap.org/) | Road-following paths, one-way/access restrictions, route geometry, and map background | OSM data and tile infrastructure are separate: data use requires ODbL attribution, and public tile usage must follow the provider's policy. |
+| Routable road network and basemap | [OpenStreetMap](https://www.openstreetmap.org/) | Versioned OSM XML road extract for GraphHopper routing (§3.1) and the basemap tiles | OSM data and tile infrastructure are separate: data use requires ODbL attribution, and public tile usage must follow the provider's policy. |
 
 ## 3. Included snapshots
 
@@ -62,6 +62,36 @@ curl -fSsL -G 'https://data.cityofnewyork.us/resource/xw3j-2yxf.csv' \
 Refreshing changes the input snapshot. Evaluation records must therefore retain source query,
 retrieval date, record count, and a checksum or equivalent snapshot identifier.
 
+### 3.1 Road-network snapshot (OSM, D-037)
+
+- File: `backend/src/main/resources/routing/mn01-roads.osm` (OSM XML 0.6, 4 148 737 bytes).
+- Retrieved **2026-11-01** from `https://overpass-api.de/api/interpreter`; Overpass `osm_base`
+  **2026-11-01T13:53:59Z**.
+- Content: 12 641 nodes, 3 201 drivable `highway` ways, 272 `type=restriction` relations.
+- Bounding box (S, W, N, E): `40.6950, -74.0250, 40.7350, -73.9850`, i.e. the bounding box of the
+  449 MN01 baskets and the MN01G depot plus about 1 km.
+- SHA-256: `e1f2fabaa937117f3a4c25582fb1ac4026fbb6fe8f3b9882f705e88a341d6a01`.
+- **Routing version ID: `osm-mn01-e1f2fabaa937`** (`osm-mn01-` plus the first 12 hex characters).
+- Query: `backend/src/main/resources/routing/mn01-roads.overpassql`
+
+```
+[out:xml][timeout:180];
+(
+  way["highway"~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service|road)$"](40.6950,-74.0250,40.7350,-73.9850);
+  relation["type"="restriction"](40.6950,-74.0250,40.7350,-73.9850);
+);
+(._;>;);
+out body;
+```
+
+- Refresh: `tools/fetch-road-snapshot.sh /tmp/new.osm`. A refresh is a **new version**: replace the
+  committed file and `wastems.routing.expected-sha256` together; retained evaluation runs keep
+  their version ID.
+- License: (c) OpenStreetMap contributors, ODbL 1.0. The extract is a database excerpt
+  redistributed under the ODbL with this attribution.
+- The GraphHopper graph cache is derived data in `backend/routing-cache/` (git-ignored, rebuilt
+  automatically in about 2 s).
+
 ## 4. Geospatial and routing rules
 
 - Coordinates are stored and exchanged as **WGS84 longitude and latitude**. GeoJSON arrays use
@@ -73,8 +103,13 @@ retrieval date, record count, and a checksum or equivalent snapshot identifier.
   route geometry or road distance.
 - Real street directions can make `distance(A,B)` different from `distance(B,A)`. The optimizer
   must use directed leg costs, including when a 2-opt move reverses a stop segment.
-- The optimizer consumes a fixed directed distance/time matrix. GraphHopper and map rendering
-  remain outside the algorithm's core sequencing logic.
+- The optimizer consumes a fixed directed distance/time matrix built by GraphHopper 11.1
+  (embedded, profile `car` with the bundled `car.json` custom model, contraction hierarchies,
+  OSM turn restrictions) on the snapshot of §3.1. Every point must snap to a drivable road
+  within 100 m; otherwise the evaluation fails explicitly. GraphHopper and map rendering remain
+  outside the algorithm's core sequencing logic.
+- The `car` profile approximates a collection truck: truck-specific restrictions (height,
+  weight, turning radius) and kerbside constraints are not modelled.
 - NYC DOT traffic is an **overlay**, not a live rerouting input. Its timestamp and limited
   coverage are visible, and experimental comparisons do not change traffic input between
   methods. A refresh retrieves a bounded current per-link snapshot rather than the full
