@@ -5,9 +5,11 @@ import { Link, useParams } from 'react-router-dom'
 import { BaseMap } from '@/components/maps/base-map'
 import type { LonLat } from '@/components/maps/geo'
 import { MapFocus } from '@/components/maps/map-focus'
+import { TourRouteLayer } from '@/components/maps/route-layers'
 import { INPUT_ORDER_LABEL, TourStopsLayer } from '@/components/maps/tour-stops-layer'
 import { CapacityIndicator } from '@/components/tours/capacity-indicator'
 import { EvaluationPanel } from '@/components/tours/evaluation-panel'
+import { TourConfirmPanel } from '@/components/tours/tour-confirm-panel'
 import { TourAssignmentPanel } from '@/components/tours/tour-assignment-panel'
 import { TourCandidateList } from '@/components/tours/tour-candidate-list'
 import { TourHeaderForm } from '@/components/tours/tour-header-form'
@@ -25,6 +27,8 @@ import {
   useTour,
 } from '@/hooks/use-tours'
 import { useVehicles } from '@/hooks/use-vehicles'
+import { METHOD_LABELS } from '@/lib/evaluation-labels'
+import { STATUS_LABELS } from '@/lib/tour-labels'
 
 /** Tour planner: map and list stop selection, input order, crew, capacity and validation. */
 export default function TourPlannerPage() {
@@ -88,6 +92,14 @@ export default function TourPlannerPage() {
         editable={editable}
       />
       <TourIssues tour={t} />
+      {!editable && (
+        <Alert>
+          <AlertTitle>Stops, order and crew are locked</AlertTitle>
+          <AlertDescription>
+            This tour is {STATUS_LABELS[t.status]}. Stops, order and crew are locked.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-2">
           <BaseMap className="h-[520px]">
@@ -100,12 +112,15 @@ export default function TourPlannerPage() {
               onRemove={doRemove}
               onSelectStop={setSelectedStopId}
             />
+            {t.route && <TourRouteLayer route={t.route} />}
             <MapFocus target={focusTarget} />
           </BaseMap>
           <p className="text-xs text-muted-foreground">
             Numbers show the current stop order. Dashed lines connect the stops in that order; they
             are straight lines, not a route ({INPUT_ORDER_LABEL}). Compare the road routes in Route
             evaluation below.
+            {t.route &&
+              ` The solid line is the attached road route (${METHOD_LABELS[t.route.method]}) on road graph ${t.route.roadGraphVersion}.`}
           </p>
           <p className="text-xs text-muted-foreground">
             Basket and depot locations: NYC Open Data (DSNY). Demand values marked Synthetic are
@@ -113,6 +128,14 @@ export default function TourPlannerPage() {
           </p>
         </div>
         <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Confirmation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TourConfirmPanel tour={t} />
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle>Capacity</CardTitle>
@@ -148,7 +171,7 @@ export default function TourPlannerPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Stops in input order ({t.stops.length})</CardTitle>
+            <CardTitle>Stops in visit order ({t.stops.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <TourStopList

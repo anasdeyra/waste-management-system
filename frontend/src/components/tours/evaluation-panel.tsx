@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { EvaluationComparison } from '@/components/tours/evaluation-comparison'
+import { ProposalActions } from '@/components/tours/proposal-actions'
 import { EvaluationRunSummary } from '@/components/tours/evaluation-run-summary'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -106,6 +107,7 @@ export function EvaluationPanel({ tour }: { tour: Tour }) {
         <>
           <EvaluationRunSummary run={run.data} tour={tour} />
           {run.data.status === 'COMPLETED' && <EvaluationComparison key={run.data.id} run={run.data} />}
+          <ProposalActions run={run.data} tour={tour} />
         </>
       )}
     </div>
