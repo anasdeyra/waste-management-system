@@ -764,3 +764,85 @@ artifacts, metrics, and presentation remain consistent.
     unmodified (no `s6-done-check.orig.sh`) and ended with `FAILS=0` on the first run.
   - The tests copy the evaluation fixture, as planned. The confirmation test builds its extra basket with the
     category found through `categories.findAll()`. No API of the plan needed correction.
+
+## D-048 — S7 implementation conventions
+
+- **Date:** 2026-11-01
+- **Decision:**
+  - **Crew and visibility.** The crew of a tour is its driver and its collectors. A caller is a crew
+    member iff its account (by username) is linked to the driver or one collector. An agent sees a tour
+    iff it is crew and the tour is not `DRAFT`. Unknown tour: 404. Existing but not visible: 403 "You are
+    not assigned to this tour."; an AGENT account without a linked agent: 403 "Your account is not linked
+    to an operational agent." and an empty `/mine` list. A deactivated account gets 401 (unchanged).
+    Execution endpoints are AGENT only in `SecurityConfig`; ADMIN inherits PLANNER, not AGENT, so
+    planners and admins get 403 (planner corrections are S8). Agents read point names and coordinates only
+    through their tours; `/api/collection-points` stays 403.
+  - **Endpoints** (`TourExecutionController`): `GET /api/tours/mine[?status=]` (in-progress first, then
+    planned, completed, cancelled; then planning date; then creation time), `GET /api/tours/mine/{id}`,
+    `POST /api/tours/{id}/start`, `POST /api/tours/{id}/stops/{stopId}/outcome`,
+    `POST /api/tours/{id}/completion`; all answer 200 with the tour. The literal `/mine` mapping wins over
+    `/{id}`.
+  - **Rule orders.** Start: 400, 404, 403, 409 (not `PLANNED`), 422 with every start issue, 200. Outcome:
+    400 (ids, body, bean and cross-field checks), 404 tour, 403, 404 stop, 409 tour not `IN_PROGRESS`, 409
+    stop not `PENDING`, 404 category, 422 duplicate category, 422 inactive category that is not planned on
+    the stop, 200. Completion: 400, 404, 403, 409 (not `IN_PROGRESS`), 422 one `STOP_PENDING` per pending
+    stop, 200.
+  - **Start issues.** The structural issues of S4, then `ROUTE_MISSING` or `ROUTE_OUTDATED` (S6
+    semantics), empty unless `PLANNED`. There is no date check: a planned tour can start on any day, so a
+    reviewer can run the demo days later; `PLANNING_DATE_PAST` stays a confirmation issue. **No recheck
+    after the start** (availability, point status and coordinates are not rechecked while `IN_PROGRESS` or
+    at completion): history must stay as executed.
+  - **Outcome body** `{status, quantities[{categoryId, actualQuantityKg}], incidentReason}`. Bean
+    validation: status required; per quantity category and a non-negative amount with at most 8 + 2 digits;
+    reason at most 500 characters. Cross-field 400s (`InvalidRequestException`, same body as bean
+    validation): `PENDING` status, collected without quantities, not collected without a reason, not
+    collected with quantities. A collected stop may carry an optional incident note; the reason is trimmed.
+    Categories need not be planned on the stop (an agent may find other waste) but must be active unless
+    planned.
+  - **Concurrency.** Start, outcome and completion read the tour with `PESSIMISTIC_WRITE`
+    (`findByIdForUpdate`).
+  - **Responses.** `TourResponse` adds `startedAt`, `startedBy`, `completedAt`, `completedBy`,
+    `startIssues`, `readyToStart`, `readyToComplete`; `TourStopResponse` adds `incidentReason`,
+    `outcomeRecordedAt`, `outcomeRecordedBy`, `actualQuantities`, `actualTotalKg`; `TourSummaryResponse`
+    adds `origin` and `terminalStopCount`. `TourIssuesException` is the common 422-with-issues exception
+    (confirm, start, completion) and `ForbiddenException` maps to 403.
+  - **Domain.** `Tour` gains started/completed time and user, `start`, `complete`, `startIssues`,
+    `completionIssues`, `isCrewMember`; `TourStop` gains `incidentReason`, `outcomeRecordedAt`,
+    `outcomeRecordedBy`, `actualQuantities`, `recordCollected`, `recordNotCollected`; new entity
+    `CollectedQuantity` (unique per stop and category); new issue code `STOP_PENDING`. All columns are
+    nullable or new tables, so `ddl-auto: update` upgrades an existing database in place (verified on a
+    database created by the S6 jar and on a copy of the owner's database file).
+  - **Demo load (US-33).** Triggered by a `dev` start-up runner (`DemoStartupLoader`, order 50, after
+    accounts, map sample, MN01 import and routing warm-up) and by `POST /api/admin/demo` (ADMIN;
+    `GET /api/admin/demo/report`, 404 before any load), gated by `wastems.demo.enabled` (false in
+    `application.yml`, true in `application-dev.yml`, `--wastems.demo.enabled=false` skips it, POST then
+    answers 409). The runner never fails start-up. `DemoRecord` (outside the D-033 class diagram) gives
+    every demo item a key: a key with a record is never created again, even if a user removed the entity;
+    without a record the item is adopted by its natural key (never modified) or created. Existing entities
+    are never modified by a later load. Each demo tour advances forward only, one guarded step at a time
+    (evaluate, accept the NN + 2-opt proposal, confirm, start, scripted outcomes, complete) and never
+    touches a tour at or beyond its target; a failing step adds a warning and stops that tour only.
+    Demo tours are dated the day of the first load; start has no date check. Everything created is
+    `SYNTHETIC` (agent names end with "(demo)", outcome reasons with "(synthetic demo outcome)",
+    categories with "(synthetic demo category)"). Demo accounts: `agent`, `collector`, `agent2`.
+  - **No audit until S8.** The audit events of start, outcomes, completion and the demo load belong to
+    US-39.
+  - **Frontend.** Pages `/my-tours` and `/my-tours/:id` (AGENT only), planner-side stop states and
+    Execution card, and a "Demonstration data" card on the Data import page. Verified by build, lint,
+    bundle strings and proxy checks only (D-040).
+- **Rationale:** Server-side crew scoping and a revalidation at start make the execution loop trustworthy
+  (US-03, US-14, US-16, US-17, US-26 to US-29), freezing the record after completion keeps history as
+  executed, and an identity-based, forward-only demo load lets a reviewer try every lifecycle state without
+  duplicates or lost progress (US-33, NFR-10, NFR-12).
+- **Deviations from the S7 plan:**
+  - The trailer name is `Claude Sonnet 5.5` as given in the executor instructions.
+  - The forward-only guard of the demo loader also lets DRAFT and IN_PROGRESS targets run their own
+    guarded step when the tour is already at its target: the plan's "never touches a tour at its target"
+    would have left the draft demo tour without its evaluation and prevented retrying the scripted
+    outcomes. A tour beyond its target is never touched.
+  - `TourExecutionService` takes `TourService` and `WasteCategoryRepository` only; the demo service
+    reaches the other repositories directly. The service constants and the second inactive-category
+    warning (once per load, for adopted and recorded categories) are small additions.
+  - The done-check ran unmodified (no `s7-done-check.orig.sh`): 191 `PASS` lines, `FAILS=0` on the first
+    run. No plan API needed correction.
+

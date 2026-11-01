@@ -69,7 +69,7 @@ operational and administrative data remain protected.**
 - Authorization is enforced by the backend, not merely by hiding frontend controls.
 
 **Traceability:** FR-02, FR-12, FR-27, FR-30; NFR-01.
-**Status:** Partially done in S1 (admin/category enforcement and role hierarchy); planning and tour scoping verified in S2–S7. S2: collection points and depots are PLANNER/ADMIN only, AGENT 403. S3: vehicles/agents PLANNER/ADMIN, links and import ADMIN only, AGENT 403. S4: tours PLANNER/ADMIN, AGENT 403.
+**Status:** Done for S1–S7 operations (admin/category, planning resources, tours; agents see only their crew's non-draft tours); audit administration in S8.
 
 #### US-04 — Create a user account — P0
 
@@ -215,7 +215,7 @@ without losing its history.**
   from active points.
 
 **Traceability:** FR-04, FR-14, FR-22; NFR-02.
-**Status:** Done in S2/S4/S5 (rejected for new tour stops, kept and flagged on existing ones, blocking evaluation).
+**Status:** Done in S2/S4/S5 (rejected for new tour stops, kept and flagged on existing ones, blocking evaluation); a planned tour with a deactivated point cannot start (S7).
 
 ### 1.4 Epic E03 — Vehicles, agents, and access links
 
@@ -247,7 +247,7 @@ use only operable resources.**
 - Changing availability does not erase or rewrite historical assignments.
 
 **Traceability:** FR-07, FR-10, FR-11; NFR-02.
-**Status:** Partially done (S3 availability; S4 rejection on new assignment and kept historical assignments; S6 recheck at confirmation); recheck at start in S7.
+**Status:** Done in S3/S4/S6/S7 (availability, rejection on new assignment, kept historical assignments, recheck at confirmation and at start).
 
 #### US-15 — Create and edit an agent — P0
 
@@ -279,7 +279,7 @@ that login access can be controlled independently of the workforce record.**
 - Unlinking an account does not delete either record or past collection results.
 
 **Traceability:** FR-01, FR-02, FR-09, FR-27; NFR-01, NFR-11.
-**Status:** Done in S3 for link rules; execution-access consequences verified in S7.
+**Status:** Done in S3/S7 (link rules; an unlinked or inactive account has no execution access).
 
 #### US-17 — Change agent availability — P0
 
@@ -293,7 +293,7 @@ people available for collection work.**
 - Changing availability does not erase historical assignments or collection results.
 
 **Traceability:** FR-09, FR-10, FR-11; NFR-02.
-**Status:** Partially done (S3 availability; S4 rejection on new assignment and kept historical assignments; S6 recheck at confirmation); recheck at start in S7.
+**Status:** Done in S3/S4/S6/S7 (availability, rejection on new assignment, kept historical assignments, recheck at confirmation and at start).
 
 ### 1.5 Epic E04 — Tour planning and intelligent optimization
 
@@ -449,6 +449,7 @@ that I know what collection work to perform.**
 - An unassigned or unlinked agent receives no access to the tour.
 
 **Traceability:** FR-02, FR-12, FR-24; NFR-01, NFR-03.
+**Status:** Done in S7 (crew-only list and detail with ordered stops, demands, road route and stop states; verified by tests and HTTP checks, UI by build/bundle, D-040).
 
 #### US-27 — Start a planned tour — P1
 
@@ -464,6 +465,7 @@ distinguish pending work from active collection.**
   until an outcome is recorded.
 
 **Traceability:** FR-10, FR-11, FR-13; NFR-02.
+**Status:** Done in S7 (crew-only start from PLANNED with availability, point and route recheck).
 
 #### US-28 — Record a stop outcome — P1
 
@@ -480,6 +482,7 @@ each stop so that actual execution is documented.**
 - An agent cannot update a stop on an unassigned tour.
 
 **Traceability:** FR-02, FR-13, FR-24; NFR-01, NFR-02, NFR-03.
+**Status:** Done in S7 (COLLECTED with quantities by category / NOT_COLLECTED with reason; actor and UTC time; crew only).
 
 #### US-29 — Complete a tour — P1
 
@@ -496,6 +499,7 @@ that the finished work becomes operational history.**
   US-31.
 
 **Traceability:** FR-11, FR-13, FR-14; NFR-02, NFR-05.
+**Status:** Done in S7 (completion requires every stop terminal; record frozen; corrections in S8).
 
 #### US-30 — Cancel a tour — P2
 
@@ -558,7 +562,7 @@ operations so that a reviewer can immediately try the real-location workflow.**
 - Repeating the documented setup does not create ambiguous duplicate demo identities.
 
 **Traceability:** FR-26; NFR-09, NFR-10, NFR-12.
-**Status:** Groundwork done in S3 (idempotent MN01 basket/depot import, provenance, snapshot identity); demonstration operations in S7.
+**Status:** Done in S3/S7 (idempotent MN01 import with provenance; idempotent synthetic demonstration load at dev start and POST /api/admin/demo).
 
 #### US-34 — Display the NYC traffic overlay — P2
 
@@ -691,7 +695,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S6 executed; S7–S10 planned.** Review and retrospective slots of S7–S10 stay empty until each sprint actually closes. |
+| Status | **S1–S7 executed; S8–S10 planned.** Review and retrospective slots of S8–S10 stay empty until each sprint actually closes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -742,7 +746,7 @@ Differences from a human-team sprint backlog, and why:
 | S4 | Tour drafts: stops, order, crew, capacity | US-18…US-20 | Done (frontend verified by build, lint, bundle and proxy checks only, no browser walkthrough) |
 | S5 | Directed routing and the three-method optimizer | US-21, US-22 | Done (no UI by plan; verified by tests, scripted HTTP checks and an independent matrix-based verifier) |
 | S6 | Optimization review, comparison, planning gate | US-23…US-25 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
-| S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Not started |
+| S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Not started |
 | S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Not started |
 | S10 | Metrics campaign and project closure | Part 6 execution + presentation content | Not started |
@@ -1831,9 +1835,87 @@ five, five and four other real DSNY baskets).
 - Not machine-checked: the visual map and forms in a browser (D-040). A reviewer walkthrough is
   written in the review.
 
-**Review.** *To be filled at sprint close.*
+**Review.** 2026-11-01.
 
-**Retrospective.** *To be filled at sprint close.*
+- `./mvnw test`: **271 tests, 0 failures, 0 errors, 0 skipped** (225 from S1-S6 plus 46 new: tour
+  domain 9, agent access 8, start 9, outcomes 8, completion 5, demo 6 + 1 import-controller test).
+  `npm run build` exits 0 (only the pre-existing >500 kB chunk warning); `npm run lint` shows the
+  three pre-existing warnings in vendored `src/components/ui/` and nothing else.
+- Done-check `s7-done-check.sh`: 191 `PASS` lines (counted with `grep -c '^PASS'`), final line
+  `FAILS=0` on the first run, no script change. Backend on 8081 with scratch H2 databases and
+  scratch routing caches, Vite on 5174. The owner's servers (8080, 5173), `backend/data/` and
+  `backend/routing-cache/` were not touched (the owner's database file keeps its earlier
+  modification time). Phase A5 ran (it did not `SKIP`): a copy of the owner's database file was
+  upgraded by the S7 jar, loaded the demo at the first start (`categories created=1, existing=2`,
+  `tours created=4`, `warnings=0`) and created nothing at the second.
+- Mermaid: the use-case, class and activity diagrams render with `@mermaid-js/mermaid-cli` 11
+  (session scratchpad, not a repo dependency): exit 0, SVG written, no "syntax error", re-run inside
+  the done-check. Each changed diagram was rendered right after its edit.
+- Demo facts observed (fresh database, `dev` start): start-up report `STARTUP`, categories 1
+  created / 2 existing, demand entries 4/0, vehicles 3/0, accounts 2/1, agents 5/0, tours 4/0, no
+  warnings, tour states `DRAFT PLANNED IN_PROGRESS COMPLETED`.
+  - Draft (8 baskets): one retained run by `demo-loader`, undecided, 11736 / 10212 / 7470 m.
+  - Planned (5 baskets): NN + 2-opt route 2386 m, 6 legs, visit order `10130144 10130005 10130062
+    10130055 10130038`, run `ACCEPTED` by `demo-loader`; `10130062` has Mixed litter 17, Recyclables
+    6, Organics 4.
+  - In progress (5 baskets, 2749 m): started by `agent`; stop 1 (`10130118`) collected, Mixed litter
+    10.00 and Organics 5.00; stop 2 not collected with the synthetic reason; three stops pending.
+  - Completed (4 baskets, 6114 m): completed by `agent2`; collected totals 24.00, 14.40, 16.00 kg;
+    the last stop not collected.
+
+| Check | Observed |
+|---|---|
+| Static / UML | no traffic or routing engine in `optimization/`; GraphHopper only in `routing/`; AGENT matchers above the PLANNER tours rule; class and activity diagrams name the new attributes and rules; demo enabled in dev only; README documents the demo; three diagrams render | all PASS (0 offending files; yes; exit 0 and no syntax error for all three) |
+| Owner-like DB upgraded from S6 (A1-A4) | S6 jar creates `DEMO-01` (user-entered 900 kg), `Owner Ann` linked to `agent`, PLANNER `agent2`, inactive basket and category, a confirmed tour; S7 jar with `--wastems.demo.enabled=false`; demo enabled; restart | `Demo load disabled`, POST 409 naming the property, report 404, owner tour readable; start-up not failed, vehicles 2/1, accounts 1/2, tours 4/0, states `DRAFT PLANNED PLANNED PLANNED`, warnings name `DEMO-01`, `'agent'`, `'agent2'`, `10130005`, `Recyclables` and exactly two "no crew member"; planned demo tour has 4 stops; owner tour, links, role and the single `DEMO-01` unchanged; 5 tours; restart `0/3 0/2 0/3 0/3 0/5 0/4`, same ids |
+| Owner DB copy (A5) | S7 jar twice on a copy of `backend/data/wastems.mv.db` | ran; demo loaded, no failure; second start `tours created=0` |
+| Fresh demo state | start-up report, planner list, vehicles, agents, accounts, draft, planned, in-progress, completed | counts and states above; four `SYNTHETIC` tours; `DEMO-01…03` synthetic, `DEMO-03` unavailable; five `(demo)` agents, Eli unavailable, Dana unlinked; facts of the list above |
+| Agent scope and denials | `agent` `/mine`, detail, draft, planner endpoints; `agent2`, `collector`, planner, admin, anonymous, no CSRF | in-progress, planned, completed and no draft; draft 403; planner endpoints 403; `agent2` sees in-progress and completed, planned denied 403 x2; `collector` sees the planned tour only; planner and admin 403 x3; anonymous 401 x2; no CSRF 403 |
+| Start gate | inactive point, unavailable vehicle, unavailable collector, moved point, start, start again | 422 `INACTIVE_STOP`, `VEHICLE_UNAVAILABLE`, `COLLECTOR_UNAVAILABLE`, `ROUTE_OUTDATED`, each leaving the tour unchanged; ready again after repair; 200 `IN_PROGRESS` by `agent` with all stops pending; second start 409 |
+| Outcomes | validation, lookups, rules, stop 1 and 2, `agent2` | ten 400 checks with the field names; unknown stop, other tour's stop, unknown category 404; duplicate and inactive unplanned category 422; stop 1 collected by `agent`, again 409; stop 2 not collected by `collector`; `agent2` 403 |
+| Completion | complete with pending stops, then resolve and complete, then frozen | 422 `STOP_PENDING` x3, tour unchanged; stop 3 with three categories (one `0`), stops 4-5; planner sees the same outcomes; 200 `COMPLETED` by `agent` with route, crew, outcomes and start kept; outcome, start, complete and three planner edits 409 |
+| Account rules | unlinked `loner`, deactivated account, unlink and relink Blair | `[]` and 403 "not linked"; 401; `collector` loses and regains the tour |
+| Idempotent restart | restart; manual `POST /api/admin/demo` | created 0 everywhere, same four ids, executed tour stays `COMPLETED`, counts unchanged, no new evaluation, no dev passwords logged; POST 200 `MANUAL` created 0; planner and agent 403 |
+| Frontend / bundle / proxy | `api.ts`, hooks, lat/lng flip, build, lint, 18 bundle strings, two outdated sentences, Vite 5174 | S7 types and endpoints present; flip only in `geo.ts`; build 0; no lint findings outside `components/ui`; all required strings present and both outdated sentences absent; agent login, `/mine`, start and outcome with CSRF through the proxy 200, admin demo report 200, SPA routes `/my-tours` and `/my-tours/{id}` serve the root element |
+
+- **US-26 met** (crew-only list and detail with ordered stops, demands, road geometry and stop
+  states; unassigned and unlinked callers denied), within D-040's limit for the map: the layers and
+  colours exist in the bundle and read the same tour the API returns, but were not viewed in a
+  browser.
+- **US-27 met** (crew only, `PLANNED` only, availability, point and route recheck, stops stay
+  `PENDING`).
+- **US-28 met** (collected quantities by category, not-collected reason, actor and UTC time, crew
+  only, `PENDING` only).
+- **US-29 met** (all stops terminal; the record is frozen afterwards; corrections are S8).
+- **US-33 met** (documented, reproducible, idempotent demo; real versus synthetic marked), within
+  D-040's limit for the UI card.
+- **Deferred items closed:** US-03 agent scoping, US-14/US-17 recheck at start, US-16 execution
+  access, and the S6 gap "a planned tour whose point is later deactivated stays `PLANNED`" (now
+  blocked at start).
+- **Deferred.** Audit events of start, outcome, completion and of the demo load (S8, US-39);
+  cancellation (S8, US-30); privileged corrections (S8, US-31); history search (S8, US-32);
+  dashboards (S9).
+- **Known gaps.**
+  - No browser walkthrough (D-040).
+  - No recheck after the start (by design, D-048).
+  - The demo dates are the day of the first load.
+  - On a database where the `agent` account is already linked elsewhere, the demo tours that need a
+    linked crew stay `PLANNED` (reported as warnings).
+- **Reviewer walkthrough.** The seven steps of README §4.6.
+
+**Retrospective.**
+
+- *Went well.* All 271 tests and all 191 done-check assertions passed on the first run, with no
+  script correction and no `fix(...)` commit. The pre-checks in the demo's transaction blocks (no
+  service call that may throw inside a `TransactionTemplate`) avoided the rollback-only trap
+  completely, and the crowded-database phase proved that start-up survives conflicting data. Each
+  diagram was rendered right after its edit, as the S6 retrospective asked.
+- *Went badly.* The UI was again verified without a browser (build, lint, bundle strings and
+  proxy checks). The first run of the demo test showed the draft tour got no evaluation, because the
+  forward-only guard skipped a tour already at its target; the guard now makes DRAFT and
+  IN_PROGRESS targets re-checkable.
+- *Process changes for S8.* Add the audit events of S7's start, outcome, completion and demo load
+  together with the S8 operations; plan a browser walkthrough only if the owner can supply one;
+  keep counting the done-check assertions from the script output.
 
 ### 3.11 Sprint S8 — Corrections, history, and auditability
 
