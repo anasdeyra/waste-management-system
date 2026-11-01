@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.ase.wastems.domain.CollectionPoint;
 import com.ase.wastems.domain.CollectionPointStatus;
 import com.ase.wastems.domain.WasteCategory;
+import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.AppUserRepository;
 import com.ase.wastems.repository.CollectionPointRepository;
 import com.ase.wastems.repository.DepotRepository;
@@ -29,6 +30,7 @@ class CollectionPointServiceTest {
     @Autowired private DepotRepository depots;
     @Autowired private WasteCategoryRepository categories;
     @Autowired private AppUserRepository users;
+    @Autowired private AgentRepository agents;
 
     private WasteCategory paper;
     private WasteCategory glass;
@@ -38,6 +40,7 @@ class CollectionPointServiceTest {
         points.deleteAll();
         depots.deleteAll();
         categories.deleteAll();
+        agents.deleteAll();
         users.deleteAll();
         paper = categories.save(new WasteCategory("Paper", null));
         glass = categories.save(new WasteCategory("Glass", null));

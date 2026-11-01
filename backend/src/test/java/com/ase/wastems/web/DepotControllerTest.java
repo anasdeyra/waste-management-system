@@ -11,6 +11,7 @@ import com.ase.wastems.domain.AppRole;
 import com.ase.wastems.domain.AppUser;
 import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.Depot;
+import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.AppUserRepository;
 import com.ase.wastems.repository.CollectionPointRepository;
 import com.ase.wastems.repository.DepotRepository;
@@ -33,6 +34,7 @@ class DepotControllerTest {
 
     @Autowired private MockMvc mvc;
     @Autowired private AppUserRepository users;
+    @Autowired private AgentRepository agents;
     @Autowired private WasteCategoryRepository categories;
     @Autowired private CollectionPointRepository points;
     @Autowired private DepotRepository depots;
@@ -44,6 +46,7 @@ class DepotControllerTest {
         points.deleteAll();
         depots.deleteAll();
         categories.deleteAll();
+        agents.deleteAll();
         users.deleteAll();
         users.save(new AppUser("p", "x", AppRole.PLANNER));
         users.save(new AppUser("a", "x", AppRole.ADMIN));

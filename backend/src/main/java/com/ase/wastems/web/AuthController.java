@@ -1,6 +1,8 @@
 package com.ase.wastems.web;
 
+import com.ase.wastems.domain.AppUser;
 import com.ase.wastems.repository.AppUserRepository;
+import com.ase.wastems.service.AgentService;
 import com.ase.wastems.web.dto.CsrfTokenResponse;
 import com.ase.wastems.web.dto.CurrentUserResponse;
 import com.ase.wastems.web.dto.LoginRequest;
@@ -32,14 +34,17 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
     private final AppUserRepository users;
+    private final AgentService agents;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             SecurityContextRepository securityContextRepository,
-            AppUserRepository users) {
+            AppUserRepository users,
+            AgentService agents) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.users = users;
+        this.agents = agents;
     }
 
     @GetMapping("/csrf")
@@ -64,11 +69,15 @@ public class AuthController {
         ctx.setAuthentication(auth);
         SecurityContextHolder.setContext(ctx);
         securityContextRepository.saveContext(ctx, request, response);
-        return CurrentUserResponse.from(users.findByUsername(username).orElseThrow());
+        return currentUser(users.findByUsername(username).orElseThrow());
     }
 
     @GetMapping("/me")
     public CurrentUserResponse me(Authentication auth) {
-        return CurrentUserResponse.from(users.findByUsername(auth.getName()).orElseThrow());
+        return currentUser(users.findByUsername(auth.getName()).orElseThrow());
+    }
+
+    private CurrentUserResponse currentUser(AppUser user) {
+        return CurrentUserResponse.from(user, agents.findByUser(user).orElse(null));
     }
 }

@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.ase.wastems.domain.AppRole;
 import com.ase.wastems.domain.AppUser;
+import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.AppUserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +41,7 @@ class UserAdminControllerTest {
 
     @Autowired private MockMvc mvc;
     @Autowired private AppUserRepository users;
+    @Autowired private AgentRepository agents;
     @Autowired private PasswordEncoder encoder;
     @Autowired private ObjectMapper mapper;
 
@@ -48,6 +50,7 @@ class UserAdminControllerTest {
 
     @BeforeEach
     void setUp() {
+        agents.deleteAll();
         users.deleteAll();
         adminId = users.save(new AppUser("admin1", encoder.encode("secret123"), AppRole.ADMIN)).getId();
         users.save(new AppUser("planner1", encoder.encode("secret123"), AppRole.PLANNER));

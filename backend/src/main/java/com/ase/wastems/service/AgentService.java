@@ -1,11 +1,16 @@
 package com.ase.wastems.service;
 
 import com.ase.wastems.domain.Agent;
+import com.ase.wastems.domain.AppRole;
+import com.ase.wastems.domain.AppUser;
 import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.ResourceStatus;
 import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.AppUserRepository;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +56,66 @@ public class AgentService {
         Agent a = get(id);
         a.setStatus(status);
         return a;
+    }
+
+    /**
+     * Links an agent to an AGENT account (D-030). Idempotent for the same pair; the rule order is
+     * 404, 422 (non-AGENT account), idempotent, 409 on either side.
+     */
+    @Transactional
+    public Agent linkUserAccount(UUID agentId, UUID userId) {
+        Agent agent = get(agentId);
+        AppUser user =
+                users.findById(userId)
+                        .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+        if (user.getRole() != AppRole.AGENT) {
+            throw new BusinessRuleException(
+                    "Only an AGENT account can be linked to an operational agent.");
+        }
+        AppUser current = agent.getUserAccount();
+        if (current != null) {
+            if (current.getId().equals(user.getId())) {
+                return agent;
+            }
+            throw new ConflictException(
+                    "Agent is already linked to account '"
+                            + current.getUsername()
+                            + "'. Unlink it first.");
+        }
+        Optional<Agent> other = agents.findByUserAccount(user);
+        if (other.isPresent()) {
+            throw new ConflictException(
+                    "Account '"
+                            + user.getUsername()
+                            + "' is already linked to agent '"
+                            + other.get().getDisplayName()
+                            + "'.");
+        }
+        agent.linkUserAccount(user);
+        agents.flush();
+        return agent;
+    }
+
+    /** Removes the link; idempotent. Neither the agent nor the account is deleted. */
+    @Transactional
+    public Agent unlinkUserAccount(UUID agentId) {
+        Agent agent = get(agentId);
+        agent.unlinkUserAccount();
+        return agent;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Agent> findByUser(AppUser user) {
+        return agents.findByUserAccount(user);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, Agent> linkedAgentsByUserId() {
+        Map<UUID, Agent> map = new HashMap<>();
+        for (Agent a : agents.findByUserAccountIsNotNull()) {
+            map.put(a.getUserAccount().getId(), a);
+        }
+        return map;
     }
 
     /** Agents that may be assigned to a new tour (US-17); S4 tour drafts use it. */

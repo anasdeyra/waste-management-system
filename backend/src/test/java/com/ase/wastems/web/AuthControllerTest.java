@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.ase.wastems.domain.AppRole;
 import com.ase.wastems.domain.AppUser;
+import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.AppUserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,10 +37,12 @@ class AuthControllerTest {
 
     @Autowired private MockMvc mvc;
     @Autowired private AppUserRepository users;
+    @Autowired private AgentRepository agents;
     @Autowired private PasswordEncoder encoder;
 
     @BeforeEach
     void setUp() {
+        agents.deleteAll();
         users.deleteAll();
         users.save(new AppUser("admin1", encoder.encode("secret123"), AppRole.ADMIN));
     }

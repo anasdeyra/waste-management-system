@@ -5,12 +5,14 @@ import com.ase.wastems.domain.ResourceStatus;
 import com.ase.wastems.service.AgentService;
 import com.ase.wastems.web.dto.AgentRequest;
 import com.ase.wastems.web.dto.AgentResponse;
+import com.ase.wastems.web.dto.LinkUserAccountRequest;
 import com.ase.wastems.web.dto.ResourceStatusRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -58,5 +60,19 @@ public class AgentController {
     public AgentResponse setStatus(
             @PathVariable UUID id, @Valid @RequestBody ResourceStatusRequest req) {
         return AgentResponse.from(service.setStatus(id, req.status()));
+    }
+
+    /** ADMIN only (SecurityConfig): links the agent to an AGENT account. */
+    @PutMapping("/{id}/user-account")
+    public AgentResponse linkUserAccount(
+            @PathVariable UUID id, @Valid @RequestBody LinkUserAccountRequest req) {
+        return AgentResponse.from(service.linkUserAccount(id, req.userId()));
+    }
+
+    /** ADMIN only (SecurityConfig): removes the link; idempotent. */
+    @DeleteMapping("/{id}/user-account")
+    public ResponseEntity<Void> unlinkUserAccount(@PathVariable UUID id) {
+        service.unlinkUserAccount(id);
+        return ResponseEntity.noContent().build();
     }
 }

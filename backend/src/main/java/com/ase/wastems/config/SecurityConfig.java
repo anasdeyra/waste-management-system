@@ -128,6 +128,8 @@ public class SecurityConfig {
                                                 "/api/depots",
                                                 "/api/depots/**")
                                         .hasRole("PLANNER")
+                                        .requestMatchers("/api/agents/*/user-account")
+                                        .hasRole("ADMIN")
                                         .requestMatchers(
                                                 "/api/vehicles",
                                                 "/api/vehicles/**",
