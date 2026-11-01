@@ -69,7 +69,7 @@ operational and administrative data remain protected.**
 - Authorization is enforced by the backend, not merely by hiding frontend controls.
 
 **Traceability:** FR-02, FR-12, FR-27, FR-30; NFR-01.
-**Status:** Partially done in S1 (admin/category enforcement and role hierarchy); planning and tour scoping verified in S2–S7. S2: collection points and depots are PLANNER/ADMIN only, AGENT 403.
+**Status:** Partially done in S1 (admin/category enforcement and role hierarchy); planning and tour scoping verified in S2–S7. S2: collection points and depots are PLANNER/ADMIN only, AGENT 403. S3: vehicles/agents PLANNER/ADMIN, links and import ADMIN only, AGENT 403.
 
 #### US-04 — Create a user account — P0
 
@@ -86,7 +86,7 @@ access the system with the appropriate permissions.**
 - Public self-registration is not available.
 
 **Traceability:** FR-01, FR-09, FR-27; NFR-01, NFR-11.
-**Status:** Done in S1 except the agent link, delivered with US-16 in S3.
+**Status:** Done (S1; agent link in S3 with US-16).
 
 #### US-05 — Activate or deactivate a user account — P1
 
@@ -232,6 +232,7 @@ fleet with explicit capacities.**
 - Invalid or non-positive capacities are rejected.
 
 **Traceability:** FR-07, FR-08; NFR-02.
+**Status:** Done in S3; identity on existing tours verified when tours exist (S4).
 
 #### US-14 — Change vehicle availability — P0
 
@@ -246,6 +247,7 @@ use only operable resources.**
 - Changing availability does not erase or rewrite historical assignments.
 
 **Traceability:** FR-07, FR-10, FR-11; NFR-02.
+**Status:** Partially done in S3 (availability, usable-vehicle query); assignment and recheck rules in S4/S6/S7.
 
 #### US-15 — Create and edit an agent — P0
 
@@ -260,6 +262,7 @@ collectors to tours.**
 - Only information needed for assignment and operational follow-up is required.
 
 **Traceability:** FR-09; NFR-02, NFR-11.
+**Status:** Done in S3; identity on existing assignments verified in S4.
 
 #### US-16 — Manage an agent's login link — P1
 
@@ -276,6 +279,7 @@ that login access can be controlled independently of the workforce record.**
 - Unlinking an account does not delete either record or past collection results.
 
 **Traceability:** FR-01, FR-02, FR-09, FR-27; NFR-01, NFR-11.
+**Status:** Done in S3 for link rules; execution-access consequences verified in S7.
 
 #### US-17 — Change agent availability — P0
 
@@ -289,6 +293,7 @@ people available for collection work.**
 - Changing availability does not erase historical assignments or collection results.
 
 **Traceability:** FR-09, FR-10, FR-11; NFR-02.
+**Status:** Partially done in S3 (availability, usable-agent query); crew rules and rechecks in S4/S6/S7.
 
 ### 1.5 Epic E04 — Tour planning and intelligent optimization
 
@@ -542,6 +547,7 @@ operations so that a reviewer can immediately try the real-location workflow.**
 - Repeating the documented setup does not create ambiguous duplicate demo identities.
 
 **Traceability:** FR-26; NFR-09, NFR-10, NFR-12.
+**Status:** Groundwork done in S3 (idempotent MN01 basket/depot import, provenance, snapshot identity); demonstration operations in S7.
 
 #### US-34 — Display the NYC traffic overlay — P2
 
@@ -674,7 +680,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S2 executed; S3–S10 planned.** Review and retrospective slots of S3–S10 stay empty until each sprint actually closes. |
+| Status | **S1–S3 executed; S4–S10 planned.** Review and retrospective slots of S4–S10 stay empty until each sprint actually closes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -720,7 +726,7 @@ Differences from a human-team sprint backlog, and why:
 |---|---|---|---|
 | S1 | Secure foundation: identities, roles, waste categories | US-01…US-07 | Done (frontend verified by build and proxy checks only, no browser walkthrough) |
 | S2 | Collection points and demand on the real map | US-08…US-12 | Done (frontend verified by build, bundle and proxy checks only, no browser walkthrough) |
-| S3 | Fleet, crew, and MN01 import groundwork | US-13…US-17 (+ US-33 groundwork) | Not started |
+| S3 | Fleet, crew, and MN01 import groundwork | US-13…US-17 (+ US-33 groundwork) | Done (frontend verified by build, lint and proxy checks only, no browser walkthrough) |
 | S4 | Tour drafts: stops, order, crew, capacity | US-18…US-20 | Not started |
 | S5 | Directed routing and the three-method optimizer | US-21, US-22 | Not started |
 | S6 | Optimization review, comparison, planning gate | US-23…US-25 | Not started |
@@ -1101,9 +1107,104 @@ collection points with demand, and the `dev` map sample exist.
   proxy.
 - Not machine-checked: the visual behaviour of the new pages (D-040).
 
-**Review.** *To be filled at sprint close.*
+**Review.** 2026-11-01.
 
-**Retrospective.** *To be filled at sprint close.*
+- `cd backend && ./mvnw test`: `Tests run: 120, Failures: 0, Errors: 0, Skipped: 0` (70 from
+  S1-S2 plus 50 new: vehicle repository 3, vehicle controller 7, agent controller 6, fleet
+  availability service 4, agent-account link controller 10, agent repository 2, CSV reader 5,
+  MN01 import service 9, import controller 2, plus one eligibility test each in the
+  collection-point controller and service).
+- `cd frontend && npm run build`: exit 0 (strict TypeScript, Vite; only the >500 kB chunk
+  warning, now 812 kB). `npm run lint`: no findings in own code (three fast-refresh warnings
+  in vendored `components/ui`).
+- Scripted HTTP done-check (`s3-done-check.sh`, 138 checks, `FAILS=0`) against a backend built
+  from the branch on spare port 8081 with a scratch H2 file, and a second Vite on 5174 proxying
+  to it. The owner's servers on 8080/5173 and `backend/data/` were not used or touched; the
+  script ran unmodified and expected values were computed from the CSV by the script.
+
+| Check | Observed |
+|---|---|
+| CSV rows / DSNY rows / basket checksum vs. documented | 449 / 238 / `a0737237e370...` (match) |
+| Logins `planner`, `admin`, `agent` | 200, 200, 200 |
+| Startup report (`ADMIN`): trigger, rows, DSNY rows | 200; `STARTUP`, 449, 238 |
+| Startup basket created / existing / skipped / updated | 444 / 5 / 0 / 0 |
+| Snapshot ids; depot created / existing / rows | `8znf-7b2c:449:a0737237e370`, `xw3j-2yxf:1:207851c2e229`; 0 / 1 / 1 |
+| Synthetic demands; category; snapshots persisted | 444; `Mixed litter`; both datasets with full SHA-256 |
+| Report/import as `PLANNER` / `AGENT` / anonymous | 403 / 403 / 401 (POST as `PLANNER`, `AGENT`: 403) |
+| `8znf-7b2c` points; ids; labels vs. CSV | 449; ids equal CSV ids; labels equal CSV `baskettype` |
+| `DSNY `-labelled points; all `IMPORTED_REAL` | 238; true |
+| Every point has demand; new points | true; one synthetic `Mixed litter` of 10-30 kg |
+| Sample `10130067` / `10130345` | 2 demands kept / stays `INACTIVE` |
+| Non-DSNY `10110163`: label, eligible | `BID-owned Compactor`, false |
+| `optimizationEligible` = ACTIVE and (no label or DSNY label) | true for every point |
+| `?eligible=true` / `?eligible=false` | 237 (all DSNY, active) / 212 |
+| Depots | 1 |
+| Planner renames a non-DSNY point and deactivates `10110239`; manual re-import | 200; `MANUAL`, created/existing/updated/skipped `0 449 0 0`, depot created 0, synthetic 0, same snapshot id |
+| After re-import: points; demands; rename; deactivation | 449; 451; kept; kept |
+| Vehicle create / normalization / case-insensitive duplicate | 201 / `NY-1001 9000 AVAILABLE USER_ENTERED` / 409 |
+| Vehicle capacity 0, -5, missing; blank registration | 400, 400, 400; 400 |
+| Vehicle `AGENT` create, list / anonymous / `ADMIN` list | 403, 403 / 401 / 200 |
+| Vehicle update keeps id, 8500; capacity 0 | 200; 400 |
+| Vehicle unavailable: in `AVAILABLE`, in `UNAVAILABLE`; `?status=FOO` | absent, present; 400 |
+| Vehicle unknown id / `DELETE` | 404 / 405 |
+| Agent create; body; second agent with the same name | 201; `AVAILABLE USER_ENTERED`, no `linkedUser`; 201 |
+| Agent blank name; `AGENT` create, list; anonymous list | 400; 403, 403; 401 |
+| Agent update keeps id; unavailable, excluded, available again | 200; 200, excluded, 200 |
+| Agent `DELETE` | 405 |
+| Link as `AGENT` / `PLANNER` / non-`AGENT` account | 403 / 403 / 422 |
+| Link missing `userId` / unknown user | 400 / 404 |
+| Link; relink same pair | 200 (`linkedUser` `agent`, active); 200 |
+| Second agent for same account / second account for linked agent | 409 / 409 |
+| Users list shows link; `/me` of `agent` | agent id and name; `agentId` present |
+| Unlink as `PLANNER`; unlink; unlink again | 403; 204; 204 |
+| After unlink: agent, account, `/me` | kept; kept and active; no `agentId` |
+| Create user with `agentId`; `PLANNER` with `agentId` (not created); linked agent again | 201 with link; 422; 409 |
+| Restart on same database: report; snapshot; synthetic | `STARTUP`, `0 449 0`; same id; 0 |
+| Restart: points, demands, rename; depots, vehicles; agents, link; demo categories | 449, 451, kept; 1, 1; 2, kept; 2 |
+| Dev passwords in the backend log | 0 matches |
+| `npm run build`; lint outside `components/ui` | exit 0; 0 findings |
+| Through the Vite proxy: logins, vehicles, agents, import report | 200, 200, 200, 200, 200 |
+| SPA routes `/vehicles`, `/agents`, `/admin/data-import` | serve the root element |
+
+Acceptance criteria: US-13 is met (identity, positive capacity, unique registration). US-14 is
+partly met (availability change and usable-vehicle query; the assignment and recheck rules are
+S4/S6/S7). US-15 is met. US-16 is met for link rules, role restriction and unlink preservation
+(execution access of linked agents is S7). US-17 is partly met, like US-14. US-04 is now fully
+met. US-33 groundwork is done (import, provenance, snapshot identity, idempotency); the demo
+operations are S7.
+
+Deferred: US-14/US-17 rejection of unavailable resources on new tours and the recheck at
+confirm/start (S4, S6, S7); historical-assignment preservation tests once tours exist (S4); the
+US-16 access rule for agents without an active linked account (S7); the US-33 demo vehicles,
+agents, users, demands and tours (S7).
+
+Known gaps: the new pages were verified by the build, lint and proxy checks only, not in a
+browser (D-040). Reviewer walkthrough: (1) as `planner`: Vehicles, New vehicle, Save, toggle
+Available; (2) as `planner`: Agents, New agent; (3) as `admin`: Agents, Link account (pick
+`agent`); (4) as `admin`: Users shows the linked agent; (5) as `admin`: Data import shows both
+snapshots, Re-run import (created 0); (6) Collection points, Planning eligibility "Not
+eligible".
+
+**Retrospective.**
+
+- *Went well.* The done-check script passed on its first run (138 of 138) and all 50 new
+  backend tests passed on their first run once the code compiled. The role-hierarchy rule
+  order in `SecurityConfig` (`/api/agents/*/user-account` before `/api/agents/**`) worked as
+  planned and the planner-403 test confirmed it. `DELETE` returned 405 without any extra
+  exception handler. The `@Order` 10/20/30 start-up sequence made the five sample baskets be
+  absorbed (444 created, 5 existing) with their two demands kept. Checksums computed over
+  classpath bytes matched the documented SHA-256 values.
+- *Went badly.* (1) A scripted edit of `CreateUserRequest.java` opened the file for writing
+  before reading it, which truncated it; the compile error pointed to it immediately and the
+  file was rewritten, costing one extra test run. (2) `watch` from react-hook-form produced
+  the same lint warning in `users-admin-page.tsx` that S2 had fixed in another form; it was
+  replaced by `useWatch` after the first lint run. (3) The first test run of each task
+  printed many expected constraint-violation `ERROR` log lines, so success must be read from
+  the Surefire summary, not from grepping for `ERROR`.
+- *Process changes for S4.* Write scripted file edits with separate read and write steps and
+  check `git diff --stat` right after them; when a form needs reactive field values, start
+  from `useWatch` instead of `watch`; read test results from the `Tests run:` summary lines
+  (`grep "Tests run:" ... | tail -1`).
 
 ### 3.7 Sprint S4 — Tour drafts: stops, order, crew, capacity
 
