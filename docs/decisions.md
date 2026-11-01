@@ -578,3 +578,65 @@ artifacts, metrics, and presentation remain consistent.
     in the executor instructions.
 - **Rationale:** Conventions fixed during S3 so tour drafts (S4), the optimizer scenarios (S5)
   and the S7 demonstration reuse the resource, link and import semantics.
+
+## D-045 — S4 implementation conventions
+
+- **Date:** 2026-11-01
+- **Decision:**
+  - Entities follow the class diagram: `Tour`, `TourStop`, `StopDemand`, with `TourStatus`
+    (`DRAFT`, `PLANNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`) and `TourStopStatus`
+    (`PENDING`, `COLLECTED`, `NOT_COLLECTED`). S4 creates only `DRAFT` tours and `PENDING`
+    stops. `cancellationReason`, `roadLegsGeoJson`, `roadGraphVersion` and the stop outcome
+    fields are added by S6-S8 together with their behaviour. `Tour.revision` was added to the
+    class diagram.
+  - Stop order is `visitOrder` 1..n, contiguous and unique, maintained by the domain (append on
+    add, renumber on remove, permutation on reorder). There is no database unique constraint on
+    `visit_order` (it would break reorders); `(tour_id, collection_point_id)` is unique.
+  - Adding a stop snapshots the point's demand entries into `StopDemand`; name, coordinates and
+    status are read live (S5 freezes coordinates in the evaluation scenario).
+  - New stops must be `optimizationEligible`: inactive 422, active non-DSNY 422, duplicate 409.
+    A stop whose point later becomes inactive or ineligible is kept and reported
+    (`INACTIVE_STOP`, `INELIGIBLE_STOP`).
+  - `PUT /api/tours/{id}/assignment` replaces vehicle, driver and collectors together. Rule
+    order: 404 tour, 409 not draft, 422 more than two / duplicate collectors / driver as
+    collector, 404 unknown vehicle or agent, 422 newly placed unavailable resource. A resource
+    already on the tour that became unavailable may stay (history) and is reported.
+  - Over-capacity (sum of all planned categories against the single vehicle capacity, equality
+    allowed) is reported, not rejected, in a draft; it is the blocking `OVER_CAPACITY` issue for
+    S6 confirmation.
+  - `Tour.structuralIssues()` returns, in this order: `NO_STOPS`, `NO_VEHICLE`, `NO_DRIVER`,
+    `VEHICLE_UNAVAILABLE`, `DRIVER_UNAVAILABLE`, `COLLECTOR_UNAVAILABLE` (per collector),
+    `INACTIVE_STOP`/`INELIGIBLE_STOP` (per stop), `OVER_CAPACITY`. `structurallyValid` means no
+    issue; S5 and S6 reuse it, S6 adds the route checks.
+  - The planning date must be today or later on create and whenever it is changed; an unchanged
+    past date may be kept on edit.
+  - `Tour.revision` (starts 0) is incremented by every successful mutating request and exposed in
+    responses, so S5 can record the draft version it evaluated and S6 can refuse a stale proposal.
+  - No cross-tour conflict check (D-012): the same vehicle or agent may serve several tours on
+    one day. No `DELETE /api/tours/{id}` (405); abandonment is the S8 cancellation.
+  - Statuses: `POST /api/tours` 201 with `Location`; `POST .../stops` 201 with the stop
+    `Location` and the whole tour as body; `DELETE .../stops/{stopId}` answers 200 with the tour
+    (not 204) because the remaining stops are renumbered and the client needs the new order.
+  - `/api/tours/**` is PLANNER/ADMIN (`AGENT` 403, anonymous 401); S7 adds `GET /api/tours/mine`
+    above this rule.
+  - The map shows the input order as straight dashed lines, labelled everywhere "Input order
+    (straight lines, not a route)"; no distance or routing call exists in S4 (S5).
+- **Deviations from the S4 plan:**
+  - None in behaviour; the done-check script ran unmodified (113 checks, `FAILS=0`), with no
+    path fixes needed.
+  - The trailer name of the plan was replaced by `Claude Sonnet 5.5` given in the executor
+    instructions.
+  - `nonDraftTourIsLocked` takes the stop id from the persisted instance returned by the first
+    `save()`; reading it after the second (merging) `save()` raised a lazy-initialization error.
+  - The tour status labels live in `frontend/src/lib/tour-labels.ts` (not in the page file)
+    because oxlint `only-export-components` flags constants exported from a page; the create
+    dialog uses `useWatch` instead of `watch`.
+  - The tour header form and the assignment panel are both remounted with
+    `key={tourId-revision}`; the planner caption also names the layer "Input order (straight
+    lines, not a route)"; permanent stop-number tooltips are styled by the CSS class
+    `tour-stop-number` in `src/index.css`.
+  - Tour mutation hooks refresh the detail with `setQueryData` and invalidate only the list
+    queries (`['tours','list']`); `useCreateTour` invalidates all tour queries.
+- **Rationale:** Conventions fixed during S4 so the S5 evaluation freezes a tour draft by its
+  revision, S6 confirms it with the same structural validation, and S7/S8 add execution and
+  cancellation on the same entities.
