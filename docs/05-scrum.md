@@ -1919,36 +1919,91 @@ five, five and four other real DSNY baskets).
 
 ### 3.11 Sprint S8 — Corrections, history, and auditability
 
-**Sprint goal.** Cancellation, audited corrections, and searchable history work; the audit
-record covers sign-ins and data changes across previously built operations.
+**Sprint goal.** Planners cancel tours with a reason, correct recorded outcomes through an audited
+operation that keeps the previous values, and search the history of completed and cancelled
+tours; one service-level audit component records every sign-in and every data change built in
+S1–S8, and administrators search that append-only log.
 
-**Entrance criteria.** S7 done.
+**Entrance criteria.** S7 done (green baseline on `main` `a5edee9`: 271 backend tests, frontend
+build, three lint warnings in vendored `components/ui`). Tours execute end to end (S7). No decision
+is pending: D-025, D-027, D-029, D-031 and D-038 fix the lifecycle, the correction authority, the
+audit scope and the session model.
+
+**Scope notes.**
+
+- **Items deferred to S8 by earlier sprints, all closed here.** Sign-in audit events (S1, FR-30);
+  audit events of user, category, collection-point/demand, vehicle, agent and account-link changes
+  (S1–S3) and of the MN01 import; audit of draft edits and evaluation runs (S4, S5), of
+  accept/reject/confirm (S6), of start, outcomes, completion and the demo load (S7); US-03 audit
+  administration; cancellation of drafts (S4), planned (S6) and in-progress tours (S7); planner
+  corrections of locked outcomes (S7).
+- **Audit (US-39, D-029).** An append-only `AuditEvent` (actor or attempted username, UTC time,
+  action, entity type and id, outcome, concise details) outside the D-033 class diagram. One
+  `AuditService` is called by the mutating services after a successful change, inside the same
+  transaction, so a refused or rolled-back request leaves no event; the actor is the signed-in
+  user, or `system` for start-up runners. The catalogue has 38 actions (D-049), from `SIGN_IN`
+  (success and failure) and `SIGN_OUT` to `STOP_OUTCOME_CORRECTED`. The MN01 import and the demo
+  load each add one summary event; start-up seeding of the dev accounts and map sample is not
+  audited. Passwords, hashes and tokens never appear in an event. The only API is
+  `GET /api/admin/audit-events` (filters: UTC time range, actor, action, entity type and id,
+  outcome; paged, newest first) and `GET /api/admin/audit-events/{id}`, ADMIN only; no endpoint or
+  repository method edits or deletes an event.
+- **Cancellation (US-30).** `POST /api/tours/{id}/cancellation` with a non-blank reason moves a
+  `DRAFT`, `PLANNED` or `IN_PROGRESS` tour to `CANCELLED` and records who, when and the previous
+  status; a completed or cancelled tour answers 409. Stops (pending ones stay `PENDING`), outcomes,
+  crew and route are kept, and every later edit or execution call answers 409. The crew keeps
+  seeing a cancelled tour that had been planned or started, never a cancelled draft.
+- **Correction (US-31, D-027).** `POST /api/tours/{id}/stops/{stopId}/corrections` (PLANNER and
+  ADMIN; agents 403) changes a recorded outcome of an `IN_PROGRESS`, `COMPLETED` or `CANCELLED` tour
+  with a required reason. The same outcome rules as S7 apply; an unchanged outcome is 422 and a
+  pending stop 409. An `OutcomeCorrection` retains the previous and new status, incident text and
+  quantities with actor and UTC time, the stop keeps its original recorder, and an audit event names
+  the correction. A stop never returns to `PENDING`.
+- **History (US-32).** `GET /api/tours/history` lists only completed and cancelled tours, filtered
+  by planning-date range, status, vehicle, agent (driver or collector) and collection point,
+  newest first; the existing tour detail is the read-only history detail (no reopen, no delete).
+- **UI (D-020, D-040).** Planner: *Cancellation* card and dialog, cancellation facts, a *Correct*
+  dialog per recorded stop, corrections listed under each stop (also for agents), a *History* page.
+  Admin: an *Audit log* page with filters and paging. Verified by build, lint, bundle strings and
+  proxy checks only.
 
 **Task backlog**
 
-1. (S) Cancellation (US-30): reason required; `DRAFT`/`PLANNED`/`IN_PROGRESS` → `CANCELLED`;
-   no re-cancel or post-completion cancel; existing outcomes retained. **Tests included.**
-2. (L) Audit foundation (US-39): `AuditEvent` domain + `AuditService`; emit on successful/
-   failed sign-ins and every create/update/status/correction operation built in S1–S7
-   (wire-up checklist over existing services); actor/attempted username, UTC, action, entity,
-   outcome, concise details; secrets never logged. **Tests:** representative events from
-   each feature area; no password/hash leakage.
-3. (M) Privileged correction operation (US-31): dedicated endpoint (not historical edit),
-   reason required, actor+UTC recorded, audit event created, `PLANNER`/`ADMIN` only.
-   **Tests:** agent gets 403; ordinary agent edits impossible; audit row references the
-   correction.
-4. (M) History search (US-32): filter completed/cancelled tours by date/status/vehicle/
-   agent/point; detail retains outcomes, quantities, incidents, cancellation reason,
-   timestamps; no reopen/hard delete. **Tests:** filters return correct subsets.
-5. (M) Admin audit review endpoint + page with filters (time range, actor, action, entity,
-   outcome); audit rows immutable to all users.
-6. (S) Frontend history + audit pages; contract sync; test/build pass.
+1. (M) Audit foundation: `AuditEvent` + enums, append-only repository with a paged filter query,
+   `AuditService` (actor rule, truncation, sign-in/out helpers). **Tests:** actor and `system`,
+   truncation, filters and paging, no delete method.
+2. (L) Audit wire-up over S1–S7: sign-in success/failure (`AuthController`), sign-out
+   (`LogoutHandler`), and every create/update/status/link/import/evaluation/accept/reject/confirm/
+   start/outcome/completion/demo operation in its service. **Tests:** representative events per
+   feature area, refused requests leave no event, no password or hash in any event, import and
+   demo summaries.
+3. (M) Domain: cancellation fields and `Tour.cancel`, crew visibility, `OutcomeCorrection` with
+   retained previous/new values, in-place quantity correction; class diagram and OCL. **Tests:**
+   cancel guards and retained record, correction history and guards, no-change detection.
+4. (S) Cancellation endpoint and response fields; crew visibility of cancelled tours. **Tests:**
+   each open state, 409 for terminal tours, 400s, roles, frozen afterwards, crew visibility, audit.
+5. (M) Correction endpoint (US-31). **Tests:** previous values retained, original recorder kept,
+   rule order (400/404/409/422), inactive-category rule, agents 403, audit row naming the
+   correction, in-progress and cancelled tours.
+6. (M) History endpoint (US-32). **Tests:** only terminal tours, each filter, order, 400s, roles,
+   retained detail, no reopen or delete.
+7. (M) Audit review endpoint (US-39). **Tests:** order and paging, every filter, 400s, ADMIN only,
+   405 for any write.
+8. (M) Frontend: cancel and correct dialogs, corrections list, cancellation facts, history page,
+   agent cancelled notice; contract sync.
+9. (S) Frontend: admin audit log page; navigation.
+10. (S) UML activity/use-case/sequence text, README; rendered diagrams; full test/build pass.
+11. (S) Close-out: review, retrospective, statuses, D-049.
 
 **Automated done checks**
 
-- `./mvnw test` green incl. audit/correction/history rules.
-- `npm run build` green.
-- Correction of one demo stop appears both in history and in the audit page.
+- `./mvnw test` green including the audit, cancellation, correction and history rules.
+- `npm run build` green; `npm run lint` clean outside `components/ui`.
+- Correction of one demo stop appears both in the history (`correctionCount`) and in the audit log
+  (`STOP_OUTCOME_CORRECTED` naming the correction id).
+- A database created by the S7 build upgrades in place (additive columns and tables) and keeps
+  working; a cancelled demo tour is not re-advanced by the demo loader after a restart.
+- No password, password hash or demo password appears in any audit event.
 
 **Review.** *To be filled at sprint close.*
 
