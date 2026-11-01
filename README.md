@@ -11,9 +11,10 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
 completed artifacts from planned work.
 
-> **Current state: framework scaffold.** Both applications are initialised, build and run.
-> No domain feature or interactive map is implemented yet — that is the work of the Scrum
-> sprints. Real MN01 source extracts are already included under
+> **Current state: Sprint S1 delivered.** Session authentication with CSRF protection, the
+> ADMIN / PLANNER / AGENT roles, user administration and waste categories are implemented
+> (backend API and React UI). Maps, collection points, fleet, tours and optimization are not
+> implemented yet. Real MN01 source extracts are already included under
 > `backend/src/main/resources/data/`.
 
 The real-city sources, included snapshots, map interactions, routing rules, and attribution
@@ -55,6 +56,7 @@ project-ase/
 │   ├── pom.xml
 │   └── src/
 │       ├── main/java/com/ase/wastems/
+│       │   ├── domain/ repository/ service/ web/ security/ config/
 │       │   └── WasteMsApplication.java
 │       ├── main/resources/    # application.yml + real NYC snapshots in data/
 │       └── test/              # JUnit 5 tests
@@ -64,8 +66,10 @@ project-ase/
 │   ├── components.json        # shadcn/ui configuration
 │   └── src/
 │       ├── components/ui/     # shadcn/ui components (vendored)
-│       ├── lib/               # cn() helper
-│       ├── App.tsx            # placeholder page
+│       ├── components/shared/ # app shell, route guards
+│       ├── pages/ hooks/ types/  # pages, auth hooks, typed API contract
+│       ├── lib/               # cn(), API client, auth helpers
+│       ├── App.tsx            # routes
 │       └── main.tsx           # providers: Query, Router
 ├── docs/
 │   ├── decisions.md           # decision log
@@ -98,7 +102,7 @@ bash tools/setup-toolchain.sh
 
 The script is idempotent: it skips anything that is already present.
 
-## 4. Running the scaffold
+## 4. Running the application
 
 ### 4.1 Backend
 
@@ -107,7 +111,21 @@ cd backend
 ./mvnw spring-boot:run          # or: mvn spring-boot:run
 ```
 
-The API listens on <http://localhost:8080>. The H2 database file is created on first start in
+The API listens on <http://localhost:8080>. It starts with the `dev` Spring profile by default
+(`spring.profiles.default: dev`), which creates three accounts on first start:
+
+| Username | Password | Role |
+|---|---|---|
+| `admin` | `admin123` | ADMIN |
+| `planner` | `planner123` | PLANNER |
+| `agent` | `agent123` | AGENT |
+
+These are **development credentials only: change or remove them for any shared deployment.**
+To start without seeding, use any non-`dev` profile, e.g.
+`./mvnw spring-boot:run -Dspring-boot.run.profiles=prod`. To reset the database, stop the
+application and delete `backend/data/`.
+
+ The H2 database file is created on first start in
 `backend/data/`; the H2 console is available at <http://localhost:8080/h2-console> (JDBC URL
 `jdbc:h2:file:./data/wastems`, user `sa`, empty password).
 
@@ -129,6 +147,21 @@ cd backend  && ./mvnw clean package        # -> backend/target/wastems-backend-0
 cd frontend && npm run build               # -> frontend/dist
 ```
 
+### 4.4 API authentication (curl)
+
+The API uses an HttpSession cookie (`JSESSIONID`) plus a CSRF token: `GET /api/auth/csrf` sets
+the cookie `XSRF-TOKEN`; send its value back as the header `X-XSRF-TOKEN` on every
+POST/PUT/PATCH request. The CSRF cookie is cleared on logout, so fetch a token again afterwards.
+
+```bash
+B=http://localhost:8080; J=/tmp/jar
+curl -s -c $J -b $J $B/api/auth/csrf                      # sets XSRF-TOKEN
+X=$(awk '$6=="XSRF-TOKEN"{print $7}' $J)
+curl -s -c $J -b $J -H "X-XSRF-TOKEN: $X" -H 'Content-Type: application/json' \
+     -d '{"username":"admin","password":"admin123"}' $B/api/auth/login   # sets JSESSIONID
+curl -s -b $J $B/api/auth/me                              # {"id":...,"username":"admin","role":"ADMIN"}
+```
+
 ## 5. Tests and metrics
 
 ```bash
@@ -146,8 +179,8 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
 | 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
 | 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
-| 4 — Prototype | `backend/`, `frontend/` | framework scaffold |
-| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; sprints/reviews/retrospectives to do |
+| 4 — Prototype | `backend/`, `frontend/` | S1: authentication, roles, users, waste categories |
+| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1 executed, S2–S10 planned |
 | 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
 | Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; maps/routing to do |
 
