@@ -38,4 +38,6 @@ public interface CollectionPointRepository extends JpaRepository<CollectionPoint
             String dataset, String identifier);
 
     boolean existsBySourceDataset(String dataset);
+
+    Optional<CollectionPoint> findBySourceDatasetAndSourceIdentifier(String dataset, String identifier);
 }

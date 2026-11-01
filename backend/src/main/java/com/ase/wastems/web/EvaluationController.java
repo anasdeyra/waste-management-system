@@ -1,5 +1,6 @@
 package com.ase.wastems.web;
 
+import com.ase.wastems.domain.EvaluationBatch;
 import com.ase.wastems.domain.EvaluationRun;
 import com.ase.wastems.domain.EvaluationStatus;
 import com.ase.wastems.domain.EvaluationStop;
@@ -9,12 +10,14 @@ import com.ase.wastems.repository.RunMethodRow;
 import com.ase.wastems.service.EvaluationExplorerService;
 import com.ase.wastems.service.EvaluationExportService;
 import com.ase.wastems.service.RunFilter;
+import com.ase.wastems.service.ScenarioCsvImportService;
 import com.ase.wastems.web.dto.EvaluationAggregateResponse;
 import com.ase.wastems.web.dto.EvaluationBatchDetailResponse;
 import com.ase.wastems.web.dto.EvaluationBatchResponse;
 import com.ase.wastems.web.dto.EvaluationRunListItemResponse;
 import com.ase.wastems.web.dto.EvaluationRunPageResponse;
 import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import com.ase.wastems.service.EvaluationService;
 import com.ase.wastems.service.FrozenScenario;
@@ -53,10 +56,13 @@ public class EvaluationController {
     private final ObjectMapper objectMapper;
     private final EvaluationExplorerService explorer;
     private final EvaluationExportService exports;
+    private final ScenarioCsvImportService csvImports;
 
     public EvaluationController(TourService tours, EvaluationService evaluations, ObjectMapper objectMapper,
-            EvaluationExplorerService explorer, EvaluationExportService exports) {
+            EvaluationExplorerService explorer, EvaluationExportService exports,
+            ScenarioCsvImportService csvImports) {
         this.exports = exports;
+        this.csvImports = csvImports;
         this.tours = tours;
         this.evaluations = evaluations;
         this.objectMapper = objectMapper;
@@ -134,6 +140,19 @@ public class EvaluationController {
     private static ResponseEntity<String> csv(String body, String filename) {
         return ResponseEntity.ok().contentType(CSV)
                 .header("Content-Disposition", "attachment; filename=\"" + filename + "\"").body(body);
+    }
+
+    @PostMapping(path = "/api/evaluations/imports", consumes = "text/csv")
+    public ResponseEntity<EvaluationBatchDetailResponse> importCsv(
+            @RequestBody(required = false) byte[] body,
+            @RequestParam(required = false) String fileName,
+            @RequestParam(required = false) String label,
+            Authentication auth) {
+        EvaluationBatch batch = csvImports.importCsv(body, fileName, label, auth.getName());
+        return ResponseEntity.created(URI.create("/api/evaluations/batches/" + batch.getId()))
+                .body(new EvaluationBatchDetailResponse(EvaluationBatchResponse.from(batch),
+                        explorer.aggregates(batch.getId()).stream().map(EvaluationAggregateResponse::from).toList(),
+                        explorer.scenarioKeys(batch.getId())));
     }
 
     @GetMapping("/api/evaluations/{runId}")

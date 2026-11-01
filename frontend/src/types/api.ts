@@ -76,6 +76,14 @@ export interface ApiError {
   message: string
   fieldErrors?: FieldErrorDetail[]
   issues?: TourIssue[]
+  rowErrors?: CsvRowError[]
+}
+
+/** web.dto.CsvRowErrorResponse (row 1 is the CSV header) */
+export interface CsvRowError {
+  row: number
+  column?: string
+  message: string
 }
 
 /** domain.CollectionPointStatus */

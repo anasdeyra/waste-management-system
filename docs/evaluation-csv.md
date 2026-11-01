@@ -62,6 +62,73 @@ The generator samples **real DSNY baskets** of the committed MN01 snapshot
   label at most 120 characters; at most 180 runs per batch. Missing lists default to the
   canonical values.
 
+## 3. Scenario import CSV
+
+`POST /api/evaluations/imports?fileName=&label=` with the raw CSV as the request body and
+`Content-Type: text/csv` (no multipart). PLANNER and ADMIN. The whole file is validated first: any
+error answers **400** with `rowErrors` and **nothing** is created. After validation the MN01G depot
+must exist (409) and routing must be available (503). Then every scenario is evaluated in memory
+by the three methods and the batch, its runs and one audit event are saved in **one transaction**.
+The answer is 201, `Location: /api/evaluations/batches/{id}` and the batch detail.
+
+**Format.** UTF-8 (a leading BOM is ignored), comma separator, RFC 4180 quoting, header row
+required, `\n` or `\r\n`. Row numbers count the header as row 1. **Limits:** body 1 to 1 048 576
+bytes (else 400 on field `file`), at most 5 000 data rows, at most 10 scenarios, 1 to 100 points
+per scenario.
+
+| Column | Required | Rule |
+|---|---|---|
+| `scenario_key` | yes | 1-80 characters of `[A-Za-z0-9._-]`; groups the rows of one scenario |
+| `input_order` | yes | integer >= 1; per scenario exactly 1..n without gaps; it is the baseline order |
+| `point_id` | one identity form | UUID of an existing collection point |
+| `source_dataset`, `source_identifier` | one identity form | source key of an existing collection point (for example `8znf-7b2c`, `10130030`) |
+| `longitude`, `latitude` | yes | decimals inside WGS84 ranges and the service area; must equal the referenced point's stored coordinates within 1e-6 degrees |
+| `category` | yes | name of an existing **active** waste category (case-insensitive) |
+| `demand_kg` | yes | decimal > 0, at most 100 000, at most 2 decimals |
+| `vehicle_capacity_kg` | yes | decimal > 0, at most 100 000, at most 2 decimals; the same on every row of a scenario |
+| `demand_profile` | no | at most 40 characters; the same on every row of a scenario |
+| `seed` | no | integer 0 to 9 223 372 036 854 775 807; the same on every row of a scenario |
+
+Column names are exact and lower case, in any order; unknown or duplicate columns are errors. The
+header must contain every required column and either `point_id` or both `source_dataset` and
+`source_identifier` (it may contain all three).
+
+**Row rules.** Exactly one identity form per row (both given is an error, none is an error). The
+point must exist and must not carry a non-DSNY ownership label (`point <ref> is not a DSNY basket
+(<label>)`, D-019). One row per point and category: rows of a scenario with the same
+`input_order` must reference the same point, may not repeat a category, and the same point may not
+appear under two input orders. Cross-row and scenario-level checks consider only rows without a
+field error, so one bad field produces one error, not a cascade.
+
+**Errors.** Collected over the whole file, sorted by row, at most 100 reported:
+
+```json
+{"status":400,"error":"Bad Request","message":"The CSV has 2 errors; nothing was imported.",
+ "rowErrors":[{"row":2,"column":"category","message":"category Plastic not found"},
+              {"row":4,"column":"demand_kg","message":"must be > 0"}]}
+```
+
+`column` is omitted for record-level errors; scenario-level errors use the scenario's first row.
+With more than 100 errors the message reads `The CSV has <N> errors (first 100 shown); nothing was
+imported.`
+
+**Evaluation of an imported scenario.** Stops in `input_order`, each with the point's id, source
+dataset and identifier and name, the CSV coordinates, demand = the sum of the rows' `demand_kg`
+and `demand_breakdown` = `<category>=<kg>` per category (two decimals, sorted by category name,
+joined by `; `). Capacity, profile and seed come from the CSV, the depot is MN01G, and the
+source snapshot ids are those of every referenced dataset (`<dataset>:unknown` without a snapshot
+row, `USER_ENTERED` for a point without a source dataset). Locations keep their source ids; the
+demand is the CSV's (synthetic) value. All three methods use the same frozen scenario.
+
+**Valid example** (the coordinates are the snapshot coordinates of these baskets):
+
+```
+scenario_key,input_order,source_dataset,source_identifier,longitude,latitude,category,demand_kg,vehicle_capacity_kg,demand_profile,seed
+lower-broadway-3,1,8znf-7b2c,10130067,-74.00212207,40.71528035,Mixed litter,18,10000,,
+lower-broadway-3,2,8znf-7b2c,10130002,-74.00821676,40.71706895,Mixed litter,12.5,10000,,
+lower-broadway-3,3,8znf-7b2c,10110232,-74.0115043,40.71560317,Mixed litter,22,10000,,
+```
+
 ## 4. Results export CSV
 
 `GET /api/evaluations/export?kind=&batchId=&runId=` (all optional, combined with AND; an unknown id
