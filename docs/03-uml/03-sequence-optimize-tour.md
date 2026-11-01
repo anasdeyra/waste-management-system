@@ -45,7 +45,7 @@ sequenceDiagram
         API-->>UI: 422 Unprocessable Content
         UI-->>Planner: Show errors, draft remains unchanged
     else Valid scenario
-        Tours->>Eval: evaluate(frozenScenario)
+        API->>Eval: evaluate(frozenScenario)
         Eval->>Router: buildMatrix(points, depot, roadGraphVersion)
         Router->>GH: Route every directed leg on the versioned graph
         GH-->>Router: Directed distances, base times and road geometry
@@ -55,7 +55,7 @@ sequenceDiagram
             Eval->>Store: Retain failed scenario/run and diagnostic without changing the draft
             Store-->>Eval: evaluationId
             Eval-->>API: Routing/infeasibility explanation, no accepted operational change
-            API-->>UI: Failure result without a valid proposal
+            API-->>UI: 201 Created with status ROUTING_FAILED and no method results
             UI-->>Planner: Show missing routing input or infeasible scenario
         else Complete directed scenario available
             Note over Eval,Optimizer: Evaluate deterministically in method order, no parallel-runtime assumption
@@ -70,7 +70,7 @@ sequenceDiagram
             Eval->>Store: Atomically retain scenario, methods, configurations, snapshots and results
             Store-->>Eval: evaluationId
             Eval-->>API: Three-method comparison and per-method feasibility
-            API-->>UI: 200 OK with evaluationId and comparison
+            API-->>UI: 201 Created (Location /api/evaluations/{evaluationId}) with the comparison
             UI-->>Planner: Display route layers, visit orders, indicators and any method errors
 
             alt Planner accepts a feasible NN + 2-opt proposal
@@ -113,6 +113,7 @@ sequenceDiagram
 
 ### Failure or rejection
 
+- If the road snapshot itself cannot be loaded (missing or checksum mismatch), the API answers 503 and retains nothing.
 - Invalid inputs, unavailable directed legs, or optimization failures never produce a partially
   accepted tour and never corrupt existing operational data.
 - Rejecting/discarding a proposal leaves the current draft order unchanged while retaining the
