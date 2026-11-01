@@ -378,6 +378,7 @@ that I can correct the inputs instead of receiving a misleading tour.**
 - The draft and all previously retained operational/evaluation data remain unchanged.
 
 **Traceability:** FR-16, FR-18; NFR-02, NFR-05, NFR-06.
+**Status:** Done in S5 (422 not-ready explanations, retained routing failures, 503 for an unusable snapshot); UI display in S6.
 
 #### US-23 — Compare route geometry and indicators — P1
 
@@ -394,7 +395,6 @@ so that I can understand where the measured improvement comes from.**
   cost input.
 
 **Traceability:** FR-18, FR-19, FR-20, FR-24; NFR-03, NFR-06, NFR-07, NFR-12.
-**Status:** Done in S5 (422 not-ready explanations, retained routing failures, 503 for an unusable snapshot); UI display in S6.
 
 #### US-24 — Accept or reject an optimized proposal — P1
 
@@ -1525,37 +1525,105 @@ legs of 312.6 m versus 797.3 m between two real baskets.
 
 ### 3.9 Sprint S6 — Optimization review, comparison, planning gate
 
-**Sprint goal.** The planner compares baseline/NN/NN+2-opt geometry and indicators, accepts
-or rejects the proposal explicitly, and only a fully valid draft becomes `PLANNED`.
+**Sprint goal.** The planner compares the input-order, nearest-neighbor and NN + 2-opt road
+routes and indicators on a map and in an accessible table. The planner then explicitly accepts
+the proposal or keeps the input order. Only a fully revalidated draft with a current road route
+becomes `PLANNED`, and its structure is then locked.
 
-**Entrance criteria.** S5 done; at least one retained evaluation run reachable from the UI.
+**Entrance criteria.** S5 done (green baseline: 195 backend tests, frontend build, three lint
+warnings in vendored `components/ui`). The S5 run list, detail and matrix endpoints exist, and no
+decision is pending. Planner fixture (2026-11-01): eight real MN01 baskets (`10130311`,
+`10130009`, `10110472`, `10130156`, `10130147`, `10110073`, `10130335`, `10130346`, 171 kg of
+synthetic demand) give an input order of 11 736.15 m, nearest neighbor 10 211.798 m, and
+NN + 2-opt 7 470.433 m. This is a real case where 2-opt improves on NN (S5 retrospective).
+
+**Scope notes.**
+
+- **Route reference on the tour (class diagram `roadLegsGeoJson`, `roadGraphVersion`).** A draft
+  receives a road route only from a retained, completed evaluation run of its *current*
+  revision:
+  - **accept** applies the NN + 2-opt order and its legs;
+  - **keep input order** (the rejection of the proposal) keeps the order and attaches the
+    input-order legs of the same run.
+
+  The tour also stores the run id, the method, the distance and the duration. Any change to the
+  stops, the order or the depot clears the route. Crew, vehicle and date edits keep it.
+- **Stale proposals.** Accept and reject require `run.tourRevision == tour.revision` and the same
+  stops in the same input order; otherwise they return 409 and change nothing. Both decisions are
+  recorded on the run (`decision`, `decidedBy`, `decidedAt`), and all three method results stay
+  retained. Both are tour mutations, so they increment `revision` (D-045).
+- **Confirmation gate (D-025, activity diagram, OCL `Tour::confirm()`).**
+  `POST /api/tours/{id}/confirmation` revalidates everything and refuses with 422 plus a
+  structured `issues` list. It checks the S4 structural issues (`NO_STOPS`, `NO_VEHICLE`,
+  `NO_DRIVER`, the vehicle/driver/collector `*_UNAVAILABLE` codes, `INACTIVE_STOP`,
+  `INELIGIBLE_STOP`, `OVER_CAPACITY`), plus `PLANNING_DATE_PAST`, `ROUTE_MISSING`, and
+  `ROUTE_OUTDATED` (a stop or the depot moved since the route's run). A valid draft becomes
+  `PLANNED`. The existing S4 draft-only rule then locks the stops, order, crew, header,
+  evaluation, accept and reject (409).
+- **No traffic, no new routing call.** Route geometry comes from retained runs only (D-021). The
+  traffic overlay remains S9.
+- **UI (D-020, map interaction 6).** The tour planner page gains the following:
+  - an evaluation panel with a run selector, the routing-failure and 422/503 explanations
+    (US-22), and a stale badge;
+  - a comparison map with one toggleable road-route layer per method and the stop numbers of a
+    selected method;
+  - an indicator table showing order, distance, duration and changes from input order,
+    execution time and checks;
+  - accept and keep-input-order actions, and a confirmation panel with the server's issues;
+  - a lock notice for `PLANNED` tours.
+
+  The planner map draws the attached road route.
+- **Deferred.** Audit events for accept/reject/confirm go to S8 (US-39). Agent access to planned
+  tours goes to S7. Cancellation of drafts or planned tours goes to S8.
 
 **Task backlog**
 
-1. (M) Frontend data layer for evaluation runs: hooks over the S5 endpoints (`POST
-   /api/tours/{id}/evaluations`, run list/detail/matrix); contract sync if S6 changes a record.
-   **Tests:** retained values round-trip through any new or changed endpoint.
-2. (L) Comparison UI (US-23): distinct map layers per method, ordered stops, road geometry,
-   synchronized indicators (distance, estimated duration, execution time, coverage/checks),
-   % changes relative to input order; attribution visible; traffic never shown as optimizer
-   input.
-3. (M) Accept/reject flow (US-24): accept applies visit order + route reference to the
-   editable draft; reject changes nothing; acceptance does not start or confirm the tour.
-   **Tests:** accept → draft stop order matches proposal and status stays `DRAFT`; reject →
-   draft intact; retained run still lists all methods after rejection.
-4. (M) Confirm-to-planned lifecycle endpoint (US-25): full revalidation (date, depot, stops,
-   coverage, capacity, vehicle, driver, collectors, availability — D-025). **Tests:** invalid
-   draft stays `DRAFT` with structured errors; valid confirms; structural edits (stops,
-   order, resources) rejected while `PLANNED`.
-5. (M) Frontend tour review/confirm screens on `TourPlannerPage`/`TourPage`; stop-lock UI.
-6. (S) Test/build pass.
+1. (M) Domain: route reference and confirmation fields on `Tour`, the new issue codes, and
+   `confirmationIssues(today)`/`confirm()`. Proposal decision on `EvaluationRun`. Class diagram
+   attributes. **Tests:** route cleared by stop/order/depot changes and kept by
+   crew/date edits; issue order; `PLANNING_DATE_PAST`; `confirm()` only from `DRAFT`.
+2. (M) Accept/reject API (US-24): `POST /api/tours/{id}/proposal-acceptances` and
+   `/proposal-rejections` with `{evaluationRunId}`, and the decision in run DTOs. **Tests:** accept
+   → order equals the NN + 2-opt point order, route attached, still `DRAFT`, revision + 1, run
+   `ACCEPTED` with three results; reject → order unchanged, input-order route, run `REJECTED`
+   with three results; stale 409 for both, with nothing changed; accepted twice 409; routing-failed
+   run 422; run of another tour 422; 400/404; role matrix.
+3. (M) Confirmation API (US-25): `POST /api/tours/{id}/confirmation`, `confirmationIssues` and
+   `readyToConfirm` in `TourResponse`, and `issues` in `ApiError`. **Tests:** 422 for each
+   blocking issue (route missing, route outdated, over capacity, vehicle/driver/collector
+   unavailable, no vehicle/driver, inactive stop, past date) with the tour unchanged; valid
+   confirm → `PLANNED` with the route kept; every structural edit, evaluation, accept, reject
+   and second confirm → 409.
+4. (S) Frontend contract and data layer: `api.ts`, `use-evaluations.ts` (run list, detail,
+   evaluate), accept/reject/confirm mutations, and method labels and indicator formatters in
+   `src/lib/`.
+5. (L) Comparison UI (US-22, US-23): evaluation panel, comparison map layers with toggles,
+   indicator table, failure/stale explanations, and attribution plus the
+   "traffic is not an optimizer input" note.
+6. (M) Review and confirm UI (US-24, US-25): accept / keep-input-order actions, confirmation
+   panel with server issues, lock notice, attached route on the planner map, and the route
+   column in the tours list.
+7. (S) Documentation: sequence diagram (accept/reject endpoints, 409 stale), activity diagram
+   (keep-input-order route, confirmation checks) and class diagram attributes, all re-rendered
+   with Mermaid CLI from the scratchpad; README; `docs/geospatial-data.md` §5. Then a full
+   test/build pass.
+8. (S) Review, retrospective and status updates.
 
 **Automated done checks**
 
-- `./mvnw test` green incl. accept/reject/confirm rules.
-- `npm run build` green.
-- Browser: comparison layers toggle independently; indicators match the run detail endpoint
-  values for the same run.
+- `./mvnw test` green, including the domain, accept/reject and confirmation tests above.
+- `npm run build` and `npm run lint` green (no findings in own code).
+- Scripted HTTP checks on spare ports with a scratch database and routing cache (D-040). The
+  fixed eight-basket tour is evaluated, and the run shows NN + 2-opt shorter than NN and NN
+  shorter than the input order. A stale accept or reject returns 409 and changes nothing. The
+  accept applies the proposal order and route. Keep-input-order on a second tour attaches the
+  input-order route. Each blocking issue returns 422 with its code. A valid confirmation gives
+  `PLANNED`. Every edit of the planned tour returns 409. The route and status survive a
+  restart. Accept/confirm work through the Vite proxy.
+- Bundle strings of the comparison, review and lock UI are present. The sequence, activity and
+  class diagrams render with Mermaid CLI (exit 0, no syntax error).
+- Not machine-checked: the visual layer toggling in a browser (D-040). A reviewer walkthrough
+  is written in the review.
 
 **Review.** *To be filled at sprint close.*
 
