@@ -359,3 +359,128 @@ export interface TourAssignmentRequest {
   driverId?: string
   collectorIds: string[]
 }
+
+// --- Evaluation runs (S5; the review UI arrives in S6) ---------------------------------
+
+/** optimization.PlanningMethod */
+export type PlanningMethod = 'INPUT_ORDER' | 'NEAREST_NEIGHBOR' | 'NN_PLUS_2_OPT'
+
+/** domain.EvaluationStatus */
+export type EvaluationStatus = 'COMPLETED' | 'ROUTING_FAILED'
+
+/** domain.ScenarioKind */
+export type ScenarioKind = 'TOUR_DRAFT'
+
+/** Properties of one road leg feature (node 0 is the depot) */
+export interface RoadLegProperties {
+  sequence: number
+  fromIndex: number
+  toIndex: number
+  distanceM: number
+  travelTimeS: number
+}
+
+/** One directed road leg as GeoJSON ([longitude, latitude] coordinates) */
+export interface RoadLegFeature {
+  type: 'Feature'
+  geometry: { type: 'LineString'; coordinates: [number, number][] }
+  properties: RoadLegProperties
+}
+
+/** Road-following legs of one method's route */
+export interface RoadLegCollection {
+  type: 'FeatureCollection'
+  features: RoadLegFeature[]
+}
+
+/** web.dto.EvaluationDepotResponse */
+export interface EvaluationDepot {
+  name: string
+  longitude: number
+  latitude: number
+  sourceIdentifier?: string
+}
+
+/** web.dto.EvaluationStopResponse */
+export interface EvaluationStop {
+  inputIndex: number
+  collectionPointId: string
+  sourceDataset?: string
+  sourceIdentifier?: string
+  name: string
+  longitude: number
+  latitude: number
+  demandKg: number
+}
+
+/** web.dto.MethodResultResponse */
+export interface MethodResult {
+  method: PlanningMethod
+  feasible: boolean
+  infeasibilityReason?: string
+  visitOrder: number[]
+  collectionPointOrder: string[]
+  distanceM?: number
+  travelTimeS?: number
+  durationS?: number
+  executionTimeMs: number
+  coverageOk: boolean
+  capacityOk: boolean
+  algorithmConfiguration: string
+  legs?: RoadLegCollection
+}
+
+/** web.dto.EvaluationRunResponse */
+export interface EvaluationRun {
+  id: string
+  scenarioKind: ScenarioKind
+  tourId?: string
+  tourRevision?: number
+  status: EvaluationStatus
+  failureCode?: string
+  failureMessage?: string
+  createdAt: string
+  createdBy: string
+  roadGraphVersion: string
+  routingEngine: string
+  sourceSnapshotIds: string[]
+  depot: EvaluationDepot
+  vehicleCapacityKg: number
+  serviceTimeSeconds: number
+  pointCount: number
+  totalDemandKg: number
+  stops: EvaluationStop[]
+  results: MethodResult[]
+}
+
+/** web.dto.MethodSummaryResponse */
+export interface MethodSummary {
+  method: PlanningMethod
+  feasible: boolean
+  distanceM?: number
+  durationS?: number
+}
+
+/** web.dto.EvaluationRunSummaryResponse */
+export interface EvaluationRunSummary {
+  id: string
+  tourId?: string
+  tourRevision?: number
+  status: EvaluationStatus
+  failureCode?: string
+  createdAt: string
+  createdBy: string
+  roadGraphVersion: string
+  pointCount: number
+  results: MethodSummary[]
+}
+
+/** web.dto.EvaluationMatrixResponse */
+export interface EvaluationMatrix {
+  runId: string
+  roadGraphVersion: string
+  nodeCount: number
+  nodeLabels: string[]
+  distanceM: number[][]
+  travelTimeS: number[][]
+}

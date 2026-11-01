@@ -138,6 +138,8 @@ public class SecurityConfig {
                                                 "/api/agents",
                                                 "/api/agents/**")
                                         .hasRole("PLANNER")
+                                        .requestMatchers("/api/evaluations", "/api/evaluations/**")
+                                        .hasRole("PLANNER")
                                         // S7 adds GET /api/tours/mine for AGENT above this rule.
                                         .requestMatchers("/api/tours", "/api/tours/**")
                                         .hasRole("PLANNER")

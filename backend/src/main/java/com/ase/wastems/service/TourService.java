@@ -5,20 +5,26 @@ import com.ase.wastems.domain.CollectionPoint;
 import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.Depot;
 import com.ase.wastems.domain.Tour;
+import com.ase.wastems.domain.SourceSnapshot;
+import com.ase.wastems.domain.TourIssue;
 import com.ase.wastems.domain.TourStatus;
 import com.ase.wastems.domain.TourStop;
 import com.ase.wastems.domain.Vehicle;
 import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.CollectionPointRepository;
 import com.ase.wastems.repository.DepotRepository;
+import com.ase.wastems.repository.SourceSnapshotRepository;
 import com.ase.wastems.repository.TourRepository;
 import com.ase.wastems.repository.VehicleRepository;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,18 +41,21 @@ public class TourService {
     private final CollectionPointRepository points;
     private final VehicleRepository vehicles;
     private final AgentRepository agents;
+    private final SourceSnapshotRepository sourceSnapshots;
 
     public TourService(
             TourRepository tours,
             DepotRepository depots,
             CollectionPointRepository points,
             VehicleRepository vehicles,
-            AgentRepository agents) {
+            AgentRepository agents,
+            SourceSnapshotRepository sourceSnapshots) {
         this.tours = tours;
         this.depots = depots;
         this.points = points;
         this.vehicles = vehicles;
         this.agents = agents;
+        this.sourceSnapshots = sourceSnapshots;
     }
 
     private static Tour initialized(Tour t) {
@@ -65,6 +74,74 @@ public class TourService {
     @Transactional(readOnly = true)
     public Tour get(UUID id) {
         return initialized(find(id));
+    }
+
+    /**
+     * Freezes a ready DRAFT into the immutable scenario shared by the three methods (US-19, US-21):
+     * the selected points with their names, coordinates and planned demand totals, the depot, the
+     * vehicle capacity and the source snapshot identifiers. Read-only: the tour is never touched.
+     */
+    @Transactional(readOnly = true)
+    public FrozenScenario loadDraftAndBuildScenario(UUID tourId) {
+        Tour tour = initialized(find(tourId));
+        if (!tour.isDraft()) {
+            throw new ConflictException(
+                    "Only a DRAFT tour can be evaluated; this tour is " + tour.getStatus() + ".");
+        }
+        List<TourIssue> issues = tour.structuralIssues();
+        if (!issues.isEmpty()) {
+            throw new BusinessRuleException(
+                    "The tour is not ready for evaluation ("
+                            + issues.stream().map(i -> i.code().name()).collect(Collectors.joining(", "))
+                            + "): "
+                            + issues.stream().map(TourIssue::message).collect(Collectors.joining(" ")));
+        }
+        TreeSet<String> datasets = new TreeSet<>();
+        boolean userEntered = false;
+        Depot d = tour.getDepot();
+        if (d.getSourceDataset() == null) {
+            userEntered = true;
+        } else {
+            datasets.add(d.getSourceDataset());
+        }
+        List<FrozenStop> stops = new ArrayList<>();
+        for (TourStop stop : tour.getStops()) {
+            CollectionPoint p = stop.getCollectionPoint();
+            if (p.getSourceDataset() == null) {
+                userEntered = true;
+            } else {
+                datasets.add(p.getSourceDataset());
+            }
+            stops.add(
+                    new FrozenStop(
+                            stop.getVisitOrder(),
+                            p.getId(),
+                            p.getSourceDataset(),
+                            p.getSourceIdentifier(),
+                            p.getName(),
+                            p.getLongitude(),
+                            p.getLatitude(),
+                            stop.plannedTotalKg()));
+        }
+        List<String> ids = new ArrayList<>();
+        for (String ds : datasets) {
+            ids.add(
+                    sourceSnapshots
+                            .findBySourceDataset(ds)
+                            .map(SourceSnapshot::getSnapshotId)
+                            .orElse(ds + ":unknown"));
+        }
+        if (userEntered) {
+            ids.add("USER_ENTERED");
+        }
+        BigDecimal capacity = tour.getVehicle().getCapacityKg();
+        return new FrozenScenario(
+                tour.getId(),
+                tour.getRevision(),
+                new FrozenDepot(d.getName(), d.getLongitude(), d.getLatitude(), d.getSourceIdentifier()),
+                stops,
+                capacity,
+                ids);
     }
 
     @Transactional
