@@ -742,37 +742,56 @@ backend.
 **Entrance criteria.** Green baseline; `SecurityConfig.java` exists as a stub; H2 file mode
 configured (D-013).
 
+**Scope notes.**
+
+- Class and enum names follow the class diagram (`docs/03-uml/02-class-diagram.md`):
+  `AppUser`, `AppRole`, `WasteCategory`, with `UUID` identifiers.
+- The optional `AppUser`–`Agent` login link (US-04 last criterion, D-030) needs the `Agent`
+  entity, so it is implemented in S3 with US-16. S1 does not add a link column.
+- US-03 is partially verifiable in S1: the role matrix covers user and category administration
+  and the `ADMIN > PLANNER` hierarchy. Checks that `AGENT` is refused planning endpoints and can
+  only see its own tours are added in the sprints that create those endpoints (S2–S7).
+- Sign-in audit events (FR-30) are recorded in S8 (US-39).
+
 **Task backlog**
 
-1. (M) Domain + persistence: `User` (username, password hash, role enum, active, optional
-   agent link holdover for S3), `WasteCategory` (name, description, active flag) in
-   `domain/`; Spring Data repositories in `repository/`. **Test:** repository round-trip;
-   unique username/unique category name failure.
-2. (M) Authentication in `config/` + a `security/` slice: BCrypt hashing, stateless session
-   (token) issue/revoke, endpoints `POST /api/auth/login`, `POST /api/auth/logout`,
-   `GET /api/auth/me`. Bootstrap: initial `ADMIN` created by a documented dev seed, never a
-   public endpoint. **Test:** valid login; invalid credentials → generic error; deactivated
-   account rejected; password/passwordHash never serialized.
+1. (M) Domain + persistence: `AppUser` (username, password hash, `AppRole` enum, active) and
+   `WasteCategory` (name, description, active flag) in `domain/`; Spring Data repositories in
+   `repository/`. **Test:** repository round-trip; unique username/unique category name failure.
+2. (M) Authentication in `config/` + a `security/` package, following D-038: BCrypt hashing,
+   JSON login that stores the security context in a server-side `HttpSession` (session-id
+   cookie), cookie-based CSRF token for the SPA, and logout that invalidates the session.
+   Endpoints `GET /api/auth/csrf`, `POST /api/auth/login`, `POST /api/auth/logout`,
+   `GET /api/auth/me`. Unauthenticated requests get a JSON 401 and forbidden ones a JSON 403
+   (no redirects). An account deactivated while signed in is rejected on its next request.
+   Bootstrap: the initial `ADMIN` is created by a documented dev-profile seed, never by a public
+   endpoint. **Test:** valid login; invalid credentials → generic error; deactivated account
+   rejected; login without CSRF token → 403; logout → session rejected; password/passwordHash
+   never serialized.
 3. (M) User administration API `/api/users` (create with role, activate/deactivate;
    US-04/US-05). **Test:** `PLANNER` and `AGENT` get 403 on all `/api/users` operations;
    `ADMIN` succeeds (role matrix test).
 4. (S) Waste-category API `/api/waste-categories` (create, edit preserving identity,
    deactivate; US-06/US-07). **Test:** deactivation excludes category from a lightweight
    "active categories" query later used by demand validation.
-5. (M) Frontend foundation: API client + auth store, TanStack Query provider wiring,
-   protected routes, role-aware `AppShell` (nav items per role) under `src/components/shared/`,
-   pages `src/pages/login.tsx`, `UsersAdminPage`, `CategoriesPage`; full contract in
-   `src/types/api.ts`. **Check:** `npm run build` passes in strict mode.
-6. (S) Update README run instructions with the seed account; final `./mvnw test &&
+5. (M) Frontend foundation: API client with CSRF header handling, auth state held in TanStack
+   Query, protected routes, role-aware `AppShell` (nav items per role) under
+   `src/components/shared/`, pages `src/pages/login-page.tsx` (`LoginPage`),
+   `src/pages/users-admin-page.tsx` (`UsersAdminPage`), `src/pages/waste-categories-page.tsx`
+   (`CategoriesPage`); full contract in `src/types/api.ts`. **Check:** `npm run build` passes in
+   strict mode.
+6. (S) Update README run instructions with the seed accounts; final `./mvnw test &&
    npm run build`.
 
 **Automated done checks**
 
-- `./mvnw test` green, including: role matrix, login failure handling, inactive-user and
-  inactive-category rules.
+- `./mvnw test` green, including: role matrix, login failure handling, CSRF enforcement,
+  inactive-user and inactive-category rules.
 - `npm run build` green.
-- `curl` checks: login → token; `GET /api/users` as `AGENT` → 403; logout → guarded endpoint
-  rejects.
+- `curl` checks against the running backend: CSRF cookie → login → session cookie and
+  `GET /api/auth/me` 200; login without CSRF → 403; `GET /api/users` as `AGENT` or `PLANNER` →
+  403; a deactivated user's session and new logins → 401; category create/edit/deactivate as
+  `ADMIN`, and 403 for `PLANNER`; logout → guarded endpoint returns 401.
 
 **Review.** *To be filled at sprint close.*
 
