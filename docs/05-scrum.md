@@ -247,7 +247,7 @@ use only operable resources.**
 - Changing availability does not erase or rewrite historical assignments.
 
 **Traceability:** FR-07, FR-10, FR-11; NFR-02.
-**Status:** Partially done (S3 availability; S4 rejection on new assignment and kept historical assignments); recheck at confirm/start in S6/S7.
+**Status:** Partially done (S3 availability; S4 rejection on new assignment and kept historical assignments; S6 recheck at confirmation); recheck at start in S7.
 
 #### US-15 — Create and edit an agent — P0
 
@@ -293,7 +293,7 @@ people available for collection work.**
 - Changing availability does not erase historical assignments or collection results.
 
 **Traceability:** FR-09, FR-10, FR-11; NFR-02.
-**Status:** Partially done (S3 availability; S4 rejection on new assignment and kept historical assignments); recheck at confirm/start in S6/S7.
+**Status:** Partially done (S3 availability; S4 rejection on new assignment and kept historical assignments; S6 recheck at confirmation); recheck at start in S7.
 
 ### 1.5 Epic E04 — Tour planning and intelligent optimization
 
@@ -310,7 +310,7 @@ collection work before confirming it.**
 - The planner can consult and edit the draft before confirmation.
 
 **Traceability:** FR-11; NFR-02.
-**Status:** Done in S4 (draft creation/edit); the PLANNED gate is enforced by confirmation in S6.
+**Status:** Done in S4/S6 (draft creation/edit; PLANNED gate by confirmation).
 
 #### US-19 — Select and arrange tour stops — P1
 
@@ -343,7 +343,7 @@ tour has a valid operating crew and capacity.**
   capacity; an over-capacity tour cannot become `PLANNED`.
 
 **Traceability:** FR-06, FR-08, FR-10, FR-11; NFR-02.
-**Status:** Done in S4 (assignment rules, capacity report); blocking at confirmation in S6.
+**Status:** Done in S4/S6 (assignment rules, capacity report; blocking at confirmation).
 
 #### US-21 — Run the three-method evaluation — P1
 
@@ -378,7 +378,7 @@ that I can correct the inputs instead of receiving a misleading tour.**
 - The draft and all previously retained operational/evaluation data remain unchanged.
 
 **Traceability:** FR-16, FR-18; NFR-02, NFR-05, NFR-06.
-**Status:** Done in S5 (422 not-ready explanations, retained routing failures, 503 for an unusable snapshot); UI display in S6.
+**Status:** Done in S5/S6 (422 not-ready explanations, retained routing failures, 503 for an unusable snapshot; displayed in the S6 evaluation panel).
 
 #### US-23 — Compare route geometry and indicators — P1
 
@@ -396,6 +396,8 @@ so that I can understand where the measured improvement comes from.**
 
 **Traceability:** FR-18, FR-19, FR-20, FR-24; NFR-03, NFR-06, NFR-07, NFR-12.
 
+**Status:** Done in S6 (comparison map layers, indicator table, % changes; verified by build/bundle/HTTP checks, D-040).
+
 #### US-24 — Accept or reject an optimized proposal — P1
 
 **As a planner, I want to review and explicitly accept or reject an optimized proposal so that an
@@ -410,6 +412,8 @@ algorithm cannot silently change operational work.**
 - The retained evaluation still contains all compared methods, including a rejected proposal.
 
 **Traceability:** FR-16, FR-17, FR-21; NFR-05, NFR-06, NFR-09.
+
+**Status:** Done in S6 (accept/keep input order with stale refusal; decision retained on the run; audit event in S8).
 
 #### US-25 — Confirm a tour as planned — P1
 
@@ -426,6 +430,8 @@ a reviewed collection tour.**
   is `PLANNED`.
 
 **Traceability:** FR-08, FR-10, FR-11, FR-17; NFR-02.
+
+**Status:** Done in S6 (confirmation gate with structured issues; planned tours locked).
 
 ### 1.6 Epic E05 — Collection execution and history
 
@@ -685,7 +691,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S5 executed; S6–S10 planned.** Review and retrospective slots of S6–S10 stay empty until each sprint actually closes. |
+| Status | **S1–S6 executed; S7–S10 planned.** Review and retrospective slots of S7–S10 stay empty until each sprint actually closes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -735,7 +741,7 @@ Differences from a human-team sprint backlog, and why:
 | S3 | Fleet, crew, and MN01 import groundwork | US-13…US-17 (+ US-33 groundwork) | Done (frontend verified by build, lint and proxy checks only, no browser walkthrough) |
 | S4 | Tour drafts: stops, order, crew, capacity | US-18…US-20 | Done (frontend verified by build, lint, bundle and proxy checks only, no browser walkthrough) |
 | S5 | Directed routing and the three-method optimizer | US-21, US-22 | Done (no UI by plan; verified by tests, scripted HTTP checks and an independent matrix-based verifier) |
-| S6 | Optimization review, comparison, planning gate | US-23…US-25 | Not started |
+| S6 | Optimization review, comparison, planning gate | US-23…US-25 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Not started |
 | S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Not started |
 | S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Not started |
@@ -1625,9 +1631,93 @@ NN + 2-opt 7 470.433 m. This is a real case where 2-opt improves on NN (S5 retro
 - Not machine-checked: the visual layer toggling in a browser (D-040). A reviewer walkthrough
   is written in the review.
 
-**Review.** *To be filled at sprint close.*
+**Review.** 2026-11-01.
 
-**Retrospective.** *To be filled at sprint close.*
+- `./mvnw test`: **225 tests, 0 failures, 0 errors, 0 skipped** (195 from S1-S5 plus 30 new: tour
+  domain 8, review API 9, confirmation API 13). `npm run build` exits 0 (only the pre-existing
+  >500 kB chunk warning); `npm run lint` shows the three pre-existing warnings in vendored
+  `src/components/ui/` and nothing else.
+- Done-check `s6-done-check.sh`: 173 `PASS` assertions, final line `FAILS=0` on the first run, no
+  script change. Backend on 8081 with a scratch H2 and an empty scratch routing cache, Vite on
+  5174. The owner's servers (8080, 5173), `backend/data/` and `backend/routing-cache/` were not
+  touched.
+- Mermaid: the class, sequence and activity diagrams render with `@mermaid-js/mermaid-cli` 11
+  (installed in the session scratchpad, not a repo dependency): exit 0, SVG written, no "syntax
+  error", re-run inside the done-check. This closes the S5 known gap "not rendered with a tool".
+  The first render of the sequence diagram failed because the replacement block left one extra
+  `end`; it was fixed before the docs commit.
+- Fixture facts (real MN01 baskets, eight eligible points, 171 kg synthetic demand, road graph
+  `osm-mn01-e1f2fabaa937`, run 1 of the done-check):
+
+  | Method | Visit order | Distance | Duration | Execution time |
+  |---|---|---|---|---|
+  | `INPUT_ORDER` | `[1,2,3,4,5,6,7,8]` | 11736.150 m | 6313.2 s | 0.494 ms |
+  | `NEAREST_NEIGHBOR` | `[1,5,7,4,8,6,2,3]` | 10211.798 m | 6051.5 s | 0.033 ms |
+  | `NN_PLUS_2_OPT` | `[1,5,7,4,8,3,6,2]` | 7470.433 m | 5756.0 s | 0.785 ms |
+
+  Changes versus the input order: nearest neighbor -13.0 % distance / -4.1 % duration; NN + 2-opt
+  -36.3 % / -8.8 %. NN + 2-opt is shorter than NN on real data here, unlike the S5 six-point tour.
+
+| Group | Check | Observed |
+|---|---|---|
+| Static / UML | no traffic or routing engine in `optimization/`; GraphHopper only in `routing/`; diagrams name the review endpoints, the kept input-order route and the route attributes; three diagrams render | 0 offending files; yes; yes; exit 0 and no syntax error for all three |
+| Roles and bad requests | AGENT accept/reject/confirm; anonymous with CSRF token; no CSRF; `{}`, malformed run id, unknown run/tour, malformed tour id | 403 x3; 401; 403 x2; 400 x2; 404 x2; 404 / 400; tour unchanged |
+| New draft | eight-basket draft, confirm without route | `confirmationIssues` = `ROUTE_MISSING`, not ready, no `route`; 422 with issue `ROUTE_MISSING` and message prefix; tour unchanged |
+| Evaluation (2-opt improvement) | run 1 orders, distances, ordering | orders above; 11736 / 10212 / 7470 m; NN + 2-opt < NN < input order; run 1 undecided |
+| Stale | reorder after run 1, then accept and reject | 409 "changed since this evaluation" twice; tour unchanged; run 1 undecided with 3 results |
+| Accept | run of another tour; accept run 2; accept again | 422 "belongs to another tour"; 200 `DRAFT`, revision + 1, stops in the NN + 2-opt point order, route `NN_PLUS_2_OPT`, run 2, graph `osm-mn01-e1f2fabaa937`, 9 legs, indicators equal to the run; ready to confirm; run `ACCEPTED` by `planner` with 3 results; 409 "already accepted" |
+| Keep input order | reject on a second tour, then confirm | 200, same stop ids in order, `DRAFT`, revision + 1, route `INPUT_ORDER`; run `REJECTED` with 3 results; confirm 200 `PLANNED` |
+| Blocking issues | `OVER_CAPACITY`, `VEHICLE_UNAVAILABLE`, `DRIVER_UNAVAILABLE`, `COLLECTOR_UNAVAILABLE`, `NO_VEHICLE` + `NO_DRIVER`, `INACTIVE_STOP`, `ROUTE_OUTDATED`, `ROUTE_MISSING` after adding a stop | each 422 with its code in `issues` and in `confirmationIssues`; tour `DRAFT`, unchanged; ready again after repairs; confirm after re-evaluation and accept 200 `PLANNED` |
+| Lock | confirm tour A, then add, remove, reorder, assignment, header, evaluation, accept, reject, confirm | `PLANNED`, revision + 1, route kept, not ready, no issues; nine 409s; tour unchanged; listed under `?status=PLANNED` with its route method; run 1 retained, undecided |
+| Routing-failed run | Queens point; accept and reject; not-ready evaluation | `ROUTING_FAILED`; 422 "has no proposal" twice; tour unchanged; 422 |
+| Restart | same database | tour A identical, run 2 still `ACCEPTED`, no dev passwords logged |
+| Frontend / bundle / proxy | `api.ts`, hooks, lat/lng flip, build, lint, bundle strings, Vite 5174 | S6 types and endpoints present; flip only in `geo.ts`; build 0; no lint findings outside `components/ui`; 19 required strings present and the two outdated sentences absent; login, tour detail with route, run list, evaluate 201, accept 200 (CSRF through the proxy), confirm 200 `PLANNED`, SPA route serves the root element |
+
+- **US-23 met**, within D-040's limit: layers, toggles, the indicator table and the percentage
+  changes exist in the bundle and read the same run detail the API returns, but they were not
+  viewed in a browser.
+- **US-24 met.** Accept applies the order and the road route to the draft, which stays `DRAFT`;
+  keep-input-order leaves the order and attaches the input-order route; stale proposals return
+  409; all methods stay retained.
+- **US-25 met.** Full revalidation with structured issues, `DRAFT` to `PLANNED`, structural edits
+  answer 409.
+- **US-22** UI half met. The S4 deferred items are done: US-18/US-20 "cannot become PLANNED" and
+  the US-14/US-17 recheck at confirmation; the recheck at start is S7.
+- **Deferred.** Audit events of accept/reject/confirm (S8, US-39); agent view and start of
+  planned tours (S7); cancellation of planned tours (S8); the evaluation explorer and CSV (S9);
+  the 60-scenario campaign (S10).
+- **Known gaps.**
+  - No browser walkthrough (D-040).
+  - The stop/depot move check compares coordinates only (names and demand snapshots do not change
+    the route).
+  - `PLANNING_DATE_PAST` is covered by tests only.
+  - A planned tour whose point is later deactivated stays `PLANNED` (the recheck at start is S7).
+- **Reviewer walkthrough.**
+  1. As `planner`, open a draft with stops and crew.
+  2. Route evaluation, then `Evaluate routes`.
+  3. Toggle the three layers with `Show on map` and choose the numbers.
+  4. Read the indicator table and the visit-order lists.
+  5. `Accept NN + 2-opt proposal`: the stop list and map numbers follow and the solid road route
+     appears.
+  6. Confirmation, then `Confirm as planned`: the lock notice appears and the edit controls
+     disappear.
+  7. On another draft, `Keep input order (reject proposal)` and confirm.
+  8. Reorder a stop after an evaluation: the run shows `Stale` and the buttons explain why.
+
+**Retrospective.**
+
+- *Went well.* The planner's fixture (eight real baskets) gave an improving 2-opt case, so the
+  done-check now shows NN + 2-opt 36.3 % shorter than the input order, closing the S5 process
+  item. All 225 tests and all 173 done-check assertions passed on the first run, with no script
+  correction. Rendering the diagrams with a tool was part of the sprint and caught one real
+  error.
+- *Went badly.* The Mermaid sequence diagram did not parse after the scripted replacement: the
+  plan's block boundary left one extra `end`, which only the renderer revealed. The plan quoted
+  "about 120 checks" for the done-check while the script prints 173 assertions. The UI was again
+  verified without a browser.
+- *Process changes for S7.* Render every changed diagram immediately after editing it, before the
+  docs commit; count the done-check assertions from the script output instead of quoting an
+  estimate; plan a browser walkthrough for S7 if the owner can supply one.
 
 ### 3.10 Sprint S7 — Agent execution loop and the complete MN01 demonstration
 
