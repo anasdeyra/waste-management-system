@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.ase.wastems.domain.EvaluationRun;
 import com.ase.wastems.domain.EvaluationStatus;
 import com.ase.wastems.domain.MethodResult;
+import com.ase.wastems.domain.ScenarioKind;
 import com.ase.wastems.optimization.PlanningMethod;
 import com.ase.wastems.repository.EvaluationRunRepository;
 import com.ase.wastems.routing.DirectedCostMatrixProvider;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -51,6 +53,9 @@ class EvaluationServiceTest {
 
     @Autowired
     ObjectMapper mapper;
+
+    @Autowired
+    JdbcTemplate jdbc;
 
     private final UUID tourId = UUID.randomUUID();
 
@@ -202,5 +207,47 @@ class EvaluationServiceTest {
     @Test
     void getUnknownRunIs404() {
         assertThatThrownBy(() -> service.get(UUID.randomUUID())).isInstanceOf(NotFoundException.class);
+    }
+
+    private BatchScenario batchScenario() {
+        List<FrozenStop> stops = new ArrayList<>();
+        for (int k = 1; k <= 4; k++) {
+            stops.add(new FrozenStop(k, UUID.randomUUID(), "8znf-7b2c", "id" + k, "S" + k, point(k).longitude(),
+                    point(k).latitude(), new BigDecimal("10.00"), "Mixed litter=10.00"));
+        }
+        return new BatchScenario("mn01-X-s1-n4", "UNIFORM_LOW", 1L, 1,
+                new FrozenDepot("MN01G", -74.0104, 40.7255, "MN01G"), stops, new BigDecimal("1000.00"),
+                List.of("a", "b"));
+    }
+
+    @Test
+    void computeBatchRunDoesNotSaveOrAudit() {
+        when(matrices.buildMatrix(anyList())).thenReturn(matrix());
+        long auditBefore = jdbc.queryForObject("select count(*) from audit_event", Long.class);
+        UUID batchId = UUID.randomUUID();
+        EvaluationRun run = service.computeBatchRun(batchScenario(), ScenarioKind.EXPERIMENT, batchId, "planner1");
+        assertThat(run.getStatus()).isEqualTo(EvaluationStatus.COMPLETED);
+        assertThat(run.getResults()).hasSize(3);
+        assertThat(run.getScenarioKind()).isEqualTo(ScenarioKind.EXPERIMENT);
+        assertThat(run.getTourId()).isNull();
+        assertThat(run.getBatchId()).isEqualTo(batchId);
+        assertThat(run.getScenarioKey()).isEqualTo("mn01-X-s1-n4");
+        assertThat(run.getRepetition()).isEqualTo(1);
+        assertThat(run.getPointCount()).isEqualTo(4);
+        assertThat(run.getStops().get(0).getDemandBreakdown()).isEqualTo("Mixed litter=10.00");
+        assertThat(runs.count()).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from audit_event", Long.class)).isEqualTo(auditBefore);
+    }
+
+    @Test
+    void computeBatchRunKeepsARoutingFailureUnsaved() {
+        when(matrices.buildMatrix(anyList())).thenThrow(new RoadLegUnavailableException(
+                RoadLegUnavailableException.Reason.NO_ROAD_PATH, 1, 2, "x"));
+        EvaluationRun run = service.computeBatchRun(batchScenario(), ScenarioKind.CSV_IMPORT, UUID.randomUUID(), "planner1");
+        assertThat(run.getStatus()).isEqualTo(EvaluationStatus.ROUTING_FAILED);
+        assertThat(run.getFailureCode()).isEqualTo("NO_ROAD_PATH");
+        assertThat(run.getResults()).isEmpty();
+        assertThat(run.getStops()).hasSize(4);
+        assertThat(runs.count()).isZero();
     }
 }

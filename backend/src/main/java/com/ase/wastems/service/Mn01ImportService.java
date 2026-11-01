@@ -333,7 +333,7 @@ public class Mn01ImportService {
     }
 
     /** D-043: {@code STREET1 & STREET2}, else the non-blank street, else {@code Basket <id>}. */
-    static String basketName(String street1, String street2, String basketId) {
+    public static String basketName(String street1, String street2, String basketId) {
         String a = street1 == null ? "" : street1.trim();
         String b = street2 == null ? "" : street2.trim();
         String name;

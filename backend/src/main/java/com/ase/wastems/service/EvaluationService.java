@@ -8,6 +8,7 @@ import com.ase.wastems.domain.EvaluationRun;
 import com.ase.wastems.domain.EvaluationStatus;
 import com.ase.wastems.domain.EvaluationStop;
 import com.ase.wastems.domain.MethodResult;
+import com.ase.wastems.domain.ScenarioKind;
 import com.ase.wastems.optimization.MethodOutcome;
 import com.ase.wastems.optimization.PlanningScenario;
 import com.ase.wastems.optimization.TourOptimizationModule;
@@ -18,6 +19,7 @@ import com.ase.wastems.routing.RoadMatrix;
 import com.ase.wastems.routing.WgsPoint;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -25,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,34 +64,12 @@ public class EvaluationService {
     /** RoutingUnavailableException propagates and nothing is retained. */
     public EvaluationRun evaluate(FrozenScenario s, String username) {
         Instant now = Instant.now().truncatedTo(ChronoUnit.MILLIS);
-        List<WgsPoint> nodes = new ArrayList<>();
-        nodes.add(new WgsPoint(s.depot().longitude(), s.depot().latitude()));
-        List<EvaluationStop> frozenStops = new ArrayList<>();
-        for (FrozenStop st : s.stops()) {
-            nodes.add(new WgsPoint(st.longitude(), st.latitude()));
-            frozenStops.add(new EvaluationStop(st.inputIndex(), st.collectionPointId(), st.sourceDataset(),
-                    st.sourceIdentifier(), st.name(), st.longitude(), st.latitude(), st.demandKg()));
-        }
-        EvaluationRun run;
-        try {
-            RoadMatrix m = matrices.buildMatrix(nodes);
-            run = newRun(s, username, now, m.roadGraphVersion(), frozenStops);
-            double[] demand = new double[s.stops().size()];
-            for (int i = 0; i < demand.length; i++) {
-                demand[i] = s.stops().get(i).demandKg().doubleValue();
-            }
-            PlanningScenario ps = new PlanningScenario(m, demand, s.vehicleCapacityKg().doubleValue(),
-                    props.serviceTimeSeconds());
-            List<MethodResult> results = new ArrayList<>();
-            for (MethodOutcome o : optimizer.planAll(ps)) {
-                results.add(MethodResult.from(o, o.feasible() ? legsGeoJson(m, o.visitOrder()) : null));
-            }
-            run.complete(matrixJson(m), results);
-        } catch (RoadLegUnavailableException e) {
-            String version = matrices.roadGraphVersion();
-            run = newRun(s, username, now, version, frozenStops);
-            run.failRouting(e.getReason().name(), describe(e, s, version));
-        }
+        List<EvaluationStop> frozenStops = frozenStops(s.stops());
+        EvaluationRun run = compute(s.depot(), s.stops(), s.vehicleCapacityKg(),
+                version -> EvaluationRun.forTourDraft(s.tourId(), s.tourRevision(), username, now, version,
+                        matrices.routingEngine(), s.sourceSnapshotIds(), s.depot().name(), s.depot().longitude(),
+                        s.depot().latitude(), s.depot().sourceIdentifier(), s.vehicleCapacityKg(),
+                        props.serviceTimeSeconds(), frozenStops));
         EvaluationRun toSave = run;
         return txTemplate.execute(
                 st -> {
@@ -106,27 +87,77 @@ public class EvaluationService {
                 });
     }
 
-    private EvaluationRun newRun(FrozenScenario s, String username, Instant now, String version,
-            List<EvaluationStop> frozenStops) {
-        return EvaluationRun.forTourDraft(s.tourId(), s.tourRevision(), username, now, version,
-                matrices.routingEngine(), s.sourceSnapshotIds(), s.depot().name(), s.depot().longitude(),
-                s.depot().latitude(), s.depot().sourceIdentifier(), s.vehicleCapacityKg(),
-                props.serviceTimeSeconds(), frozenStops);
+    /**
+     * Evaluates an experiment or CSV scenario and returns the UNSAVED run (completed, or
+     * routing-failed with the same code and message format as tour runs). Writes nothing and
+     * records no audit event. RoutingUnavailableException propagates.
+     */
+    public EvaluationRun computeBatchRun(BatchScenario s, ScenarioKind kind, UUID batchId, String username) {
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+        List<EvaluationStop> frozenStops = frozenStops(s.stops());
+        return compute(s.depot(), s.stops(), s.vehicleCapacityKg(),
+                version -> EvaluationRun.forBatchScenario(kind, batchId, s.scenarioKey(), s.demandProfile(),
+                        s.seed(), s.repetition(), username, now, version, matrices.routingEngine(),
+                        s.sourceSnapshotIds(), s.depot().name(), s.depot().longitude(), s.depot().latitude(),
+                        s.depot().sourceIdentifier(), s.vehicleCapacityKg(), props.serviceTimeSeconds(),
+                        frozenStops));
     }
 
-    private static String label(FrozenScenario s, int node) {
-        if (node <= 0) {
-            return "the depot (" + s.depot().name() + ")";
+    private static List<EvaluationStop> frozenStops(List<FrozenStop> stops) {
+        List<EvaluationStop> frozen = new ArrayList<>();
+        for (FrozenStop st : stops) {
+            frozen.add(new EvaluationStop(st.inputIndex(), st.collectionPointId(), st.sourceDataset(),
+                    st.sourceIdentifier(), st.name(), st.longitude(), st.latitude(), st.demandKg(),
+                    st.demandBreakdown()));
         }
-        return "stop " + node + " (" + s.stops().get(node - 1).name() + ")";
+        return frozen;
     }
 
-    private static String describe(RoadLegUnavailableException e, FrozenScenario s, String version) {
+    /** Shared routing and optimization core; the factory builds the unsaved run for a graph version. */
+    private EvaluationRun compute(FrozenDepot depot, List<FrozenStop> stops, BigDecimal capacityKg,
+            Function<String, EvaluationRun> factory) {
+        List<WgsPoint> nodes = new ArrayList<>();
+        nodes.add(new WgsPoint(depot.longitude(), depot.latitude()));
+        for (FrozenStop st : stops) {
+            nodes.add(new WgsPoint(st.longitude(), st.latitude()));
+        }
+        EvaluationRun run;
+        try {
+            RoadMatrix m = matrices.buildMatrix(nodes);
+            run = factory.apply(m.roadGraphVersion());
+            double[] demand = new double[stops.size()];
+            for (int i = 0; i < demand.length; i++) {
+                demand[i] = stops.get(i).demandKg().doubleValue();
+            }
+            PlanningScenario ps = new PlanningScenario(m, demand, capacityKg.doubleValue(),
+                    props.serviceTimeSeconds());
+            List<MethodResult> results = new ArrayList<>();
+            for (MethodOutcome o : optimizer.planAll(ps)) {
+                results.add(MethodResult.from(o, o.feasible() ? legsGeoJson(m, o.visitOrder()) : null));
+            }
+            run.complete(matrixJson(m), results);
+        } catch (RoadLegUnavailableException e) {
+            String version = matrices.roadGraphVersion();
+            run = factory.apply(version);
+            run.failRouting(e.getReason().name(), describe(e, depot.name(), stops, version));
+        }
+        return run;
+    }
+
+    private static String label(String depotName, List<FrozenStop> stops, int node) {
+        if (node <= 0) {
+            return "the depot (" + depotName + ")";
+        }
+        return "stop " + node + " (" + stops.get(node - 1).name() + ")";
+    }
+
+    private static String describe(RoadLegUnavailableException e, String depotName, List<FrozenStop> stops,
+            String version) {
         return switch (e.getReason()) {
-            case POINT_NOT_ROUTABLE -> label(s, e.getFromNode()) + " cannot be routed on road graph " + version
-                    + ": " + e.getMessage();
-            case NO_ROAD_PATH -> "No directed road path from " + label(s, e.getFromNode()) + " to "
-                    + label(s, e.getToNode()) + " on road graph " + version + ": " + e.getMessage();
+            case POINT_NOT_ROUTABLE -> label(depotName, stops, e.getFromNode()) + " cannot be routed on road graph "
+                    + version + ": " + e.getMessage();
+            case NO_ROAD_PATH -> "No directed road path from " + label(depotName, stops, e.getFromNode()) + " to "
+                    + label(depotName, stops, e.getToNode()) + " on road graph " + version + ": " + e.getMessage();
         };
     }
 
