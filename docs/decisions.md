@@ -27,7 +27,7 @@ artifacts, metrics, and presentation remain consistent.
 - **Rationale:** The project owner selected route optimization and defined the research
   dimension as integrating an intelligent module and measuring its impact on the system.
   The algorithm, baseline, routing model, datasets, and evaluation protocol are resolved
-  in D-008–D-010 and D-015–D-016.
+  in D-008–D-010 and D-015–D-016, as amended by D-019–D-022.
 
 ## D-004 — Technology stack
 
@@ -57,7 +57,7 @@ artifacts, metrics, and presentation remain consistent.
   fixed calendar end date. The presentation date will be recorded when known.
 - **Rationale:** Selected by the project owner.
 
-## D-007 — Prototype scope
+## D-007 — Prototype scope (extended by D-019–D-022)
 
 - **Date:** 2026-10-31
 - **Decision:** The prototype scope is **Extended**:
@@ -69,7 +69,7 @@ artifacts, metrics, and presentation remain consistent.
     history;
   - multiple vehicles and multiple tours per planning day;
   - dashboards/charts;
-  - CSV import/export;
+  - evaluation-only CSV import/export (narrowed by D-028);
   - audit log.
 
   Explicitly excluded: connected fill-level sensors or other IoT hardware, real-time GPS
@@ -80,7 +80,7 @@ artifacts, metrics, and presentation remain consistent.
 - **Resolution:** "Multiple vehicles" means a fleet with multiple single-vehicle tours per
   planning day; the optimizer plans one tour per run (D-012).
 
-## D-008 — Optimization method and baseline
+## D-008 — Optimization method and baseline (amended by D-022)
 
 - **Date:** 2026-10-31
 - **Decision:** The evaluation compares three planning methods on identical scenarios:
@@ -94,7 +94,7 @@ artifacts, metrics, and presentation remain consistent.
   three-point comparison separates the gain from smarter construction from the gain from
   local search, which strengthens the Part 6 answer.
 
-## D-009 — Routing and scenario model
+## D-009 — Routing and scenario model (superseded by D-021)
 
 - **Date:** 2026-10-31
 - **Decision:** An optimization scenario uses:
@@ -109,7 +109,7 @@ artifacts, metrics, and presentation remain consistent.
 - **Rationale:** Euclidean distance is fully reproducible, needs no external service, and
   keeps the comparison focused on tour order and capacity rather than road-network data.
 
-## D-010 — Evaluation datasets
+## D-010 — Evaluation datasets (amended by D-022)
 
 - **Date:** 2026-10-31
 - **Decision:** Evaluation uses **seeded synthetic scenarios** at 10, 25, 50, and 100
@@ -152,7 +152,7 @@ artifacts, metrics, and presentation remain consistent.
 - **Rationale:** A realistic small collection crew with bounded assignment validation.
   Resolves the open point in D-011.
 
-## D-015 — Duration parameters
+## D-015 — Duration parameters (amended by D-021)
 
 - **Date:** 2026-10-31
 - **Decision:** The duration model defaults to **40 km/h average speed** and **10 minutes
@@ -160,7 +160,7 @@ artifacts, metrics, and presentation remain consistent.
 - **Rationale:** Typical urban collection assumptions; configurability keeps the
   evaluation transparent and reproducible.
 
-## D-016 — Evaluation matrix
+## D-016 — Evaluation matrix (amended by D-022)
 
 - **Date:** 2026-10-31
 - **Decision:** The synthetic evaluation matrix is **60 scenarios**: 3 demand profiles ×
@@ -193,13 +193,192 @@ artifacts, metrics, and presentation remain consistent.
   - `backend/` — Spring Boot REST API, Maven build, package `com.ase.wastems`;
   - `frontend/` — Vite + React application, npm build.
 
-  The API is organised by resource (`/api/collection-points`, `/api/vehicles`, `/api/agents`,
-  `/api/tours`, `/api/waste-categories`, `/api/optimization`, `/api/dashboard`,
-  `/api/auth`). During development the Vite server proxies `/api` to
+  The API is planned to be organised by resource (`/api/collection-points`, `/api/vehicles`,
+  `/api/agents`, `/api/tours`, `/api/waste-categories`, `/api/optimization`,
+  `/api/dashboard`, `/api/auth`). During development the Vite server proxies `/api` to
   `http://localhost:8080`, so the browser only ever talks to a single origin.
 - **Rationale:** Two independent builds keep the frontend toolchain (Node, Vite) out of the
   Maven build and make the metrics of Part 6 attributable to each part. The proxy removes
   the need for CORS in development while the production build can point
   `VITE_API_BASE_URL` to any deployment.
-- **Consequence:** The API contract is mirrored by the TypeScript types in
+- **Consequence:** The API contract will be mirrored by the TypeScript types in
   `frontend/src/types/api.ts`; both sides must be changed together.
+
+## D-019 — Real-city case study and data provenance
+
+- **Date:** 2026-10-31
+- **Decision:** The case study is **New York City**, initially scoped to **Lower Manhattan
+  (DSNY district MN01)**. Collection-point and depot coordinates come from the official DSNY
+  Litter Basket Inventory and DSNY Garages datasets. The initial optimization scenarios use
+  only records with a `DSNY ...` basket type; other ownership types retain their source label
+  and are not treated as DSNY service obligations. The MN01G garage is the initial depot.
+  Waste demands, fleet/crew records, and collection outcomes remain explicitly synthetic.
+- **Rationale:** A source check on 2026-10-31 verified 449 geolocated MN01 basket records,
+  including 238 DSNY-type records, plus the official MN01G garage location. NYC also publishes
+  traffic-speed link geometry and a detailed street centerline. This is the strongest verified
+  combination of waste, depot, road, and traffic data for the prototype.
+- **Consequence:** The reproducible source extracts, queries, limitations, and attribution are
+  documented in `docs/geospatial-data.md`; CSV snapshots are stored under
+  `backend/src/main/resources/data/`.
+
+## D-020 — Map-centric user experience
+
+- **Date:** 2026-10-31
+- **Decision:** Interactive maps are a core part of the prototype, not an optional chart. The
+  React frontend will use **Leaflet/React Leaflet** with an attributed OSM-compatible basemap.
+  Required workflows include collection-point display/filtering, popup inspection,
+  click-to-set coordinates, map-based stop selection, depot and stop-order display,
+  road-following tour geometry, baseline/optimized route comparison, execution status, and a
+  timestamped traffic layer. Synchronized forms and lists remain available for precise editing
+  and accessibility.
+- **Rationale:** Selected by the project owner. Leaflet is lightweight, open source, and
+  sufficient for the required markers, polylines, popups, and layer controls without a
+  commercial mapping SDK.
+- **Boundary:** Real-time vehicle GPS tracking is still excluded. No mapping or routing feature
+  is marked implemented until it exists in the frontend/backend and has been run.
+
+## D-021 — Real road routing and traffic boundary
+
+- **Date:** 2026-10-31
+- **Decision:** Tours use a **versioned OpenStreetMap road-network snapshot** and the local,
+  open-source **GraphHopper** routing engine for road geometry, directed distance, and base
+  travel time. Straight-line distances are not used for operational tours. NYC DOT traffic
+  speeds are displayed as a timestamped overlay with visible coverage limitations; they do
+  **not** modify optimization costs or trigger dynamic rerouting. Experimental comparisons use
+  the same road graph and base travel-time matrix for every method.
+- **Rationale:** The project owner selected real street routes plus a traffic overlay. A local
+  Java-compatible engine preserves reproducibility and avoids a commercial routing service.
+  Traffic sensors cover mostly major arterials and highways, so claiming citywide
+  traffic-aware collection routing would be misleading.
+- **Impact:** Supersedes the Euclidean operational-routing model in D-009 and the fixed
+  40 km/h travel-time assumption in D-015. Commercial mapping/routing services, live vehicle
+  tracking, and automatic traffic-aware rerouting remain excluded.
+
+## D-022 — Real-location evaluation scenarios
+
+- **Date:** 2026-10-31
+- **Decision:** The **60-scenario matrix remains fixed** at 3 synthetic demand profiles × 5
+  seeds × 4 sizes (10, 25, 50, and 100 points), but point locations are now sampled without
+  replacement within each scenario from the eligible real MN01 DSNY basket records. Each
+  scenario retains its source snapshot and road graph version. Distance and base travel time
+  use a directed road-network matrix. A separate
+  hand-crafted Lower Manhattan demo remains part of the presentation data.
+- **Rationale:** Real coordinates and road geometry improve realism while seeded selection and
+  synthetic demand preserve reproducibility and controlled capacity comparisons. Traffic is
+  not varied within this experiment.
+- **Impact:** Amends D-010 and D-016. For directed road costs, NN + 2-opt must evaluate the
+  actual cost of reversed segments; the symmetric-TSP edge-delta shortcut is not valid.
+
+## D-023 — Product Backlog granularity
+
+- **Date:** 2026-10-31
+- **Decision:** The Product Backlog uses **atomic user stories grouped by epic**. Each story has
+  a priority, acceptance criteria, and traceability to the functional requirements.
+- **Rationale:** Selected by the project owner. Atomic stories support sprint selection and
+  provide a stable basis for deriving UML use cases without hiding several unrelated operations
+  in one broad story.
+
+## D-024 — Collection demand and mixed-category capacity
+
+- **Date:** 2026-10-31
+- **Decision:** A collection point can have **one or more demand entries**, each identifying one
+  waste category and a quantity in kilograms. A tour may serve mixed waste categories; the sum
+  of all selected demand quantities is checked against the single vehicle capacity. Separate
+  vehicle compartments and category-specific capacities are not modeled.
+- **Rationale:** Selected by the project owner. This represents mixed demand without expanding
+  the prototype into compartmented-vehicle routing.
+
+## D-025 — Tour lifecycle
+
+- **Date:** 2026-10-31
+- **Decision:** Tours use the lifecycle **DRAFT → PLANNED → IN_PROGRESS → COMPLETED**. A tour may
+  move to **CANCELLED** before completion. Optimization proposals remain subject to planner
+  review, and only a valid planned tour can be started.
+- **Rationale:** Selected by the project owner. The lifecycle distinguishes editable planning,
+  confirmed work, execution, and retained terminal history while keeping the model simple.
+
+## D-026 — User administration and role hierarchy
+
+- **Date:** 2026-10-31
+- **Decision:** Administrators can create user accounts, assign roles, and activate/deactivate
+  accounts; public self-registration is excluded. **ADMIN inherits all PLANNER capabilities** and
+  additionally manages users and waste categories. **PLANNER** manages operational planning and
+  optimization. **AGENT** accesses only assigned execution work.
+- **Rationale:** Selected by the project owner. This fulfills the requirement that administrators
+  manage user access while avoiding unnecessary role separation during a demonstration.
+
+## D-027 — Collection-execution update authorization
+
+- **Date:** 2026-10-31
+- **Decision:** The assigned driver or either assigned collector may record progress, collected
+  quantities, and incidents on their assigned tour. Planners and administrators may consult
+  execution results and correct them through audited operations.
+- **Rationale:** Selected by the project owner. Any present crew member can maintain the shared
+  operational record, while privileged corrections remain traceable.
+
+## D-028 — Evaluation-only CSV exchange
+
+- **Date:** 2026-10-31
+- **Decision:** CSV exchange is limited to **importing evaluation-scenario points and exporting
+  evaluation results**. Export covers input-order baseline, nearest-neighbor, and NN + 2-opt
+  results. General CSV import/export for users, vehicles, agents, categories, and operational
+  tours is excluded.
+- **Rationale:** Selected by the project owner. This keeps CSV support focused on reproducible
+  research workflows rather than broad master-data migration.
+
+## D-029 — Dashboard and audit scope
+
+- **Date:** 2026-10-31
+- **Decision:** Dashboards include **operational resource/tour summaries and retained evaluation
+  comparisons**. The audit log records sign-in and data-change events with actor, UTC timestamp,
+  action, entity type/identifier, outcome, and concise details. Field-level before/after diffs
+  are excluded.
+- **Rationale:** Selected by the project owner. This supplies useful operational and research
+  visibility with a bounded, implementable audit model.
+
+## D-030 — Agent-to-user account relationship
+
+- **Date:** 2026-10-31
+- **Decision:** An operational agent record has an **optional one-to-one link** to an `AGENT`
+  user account. An agent can be managed without login access; only an agent with a linked,
+  active account can authenticate and access assigned tours.
+- **Rationale:** Selected by the project owner. This separates workforce records from credentials
+  without duplicating agent identity or requiring every operational record to have login access.
+
+## D-031 — Stop execution outcomes
+
+- **Date:** 2026-10-31
+- **Decision:** A tour stop begins as **PENDING** and finishes as either **COLLECTED** or
+  **NOT_COLLECTED**. Collected stops record actual quantities by waste category; not-collected
+  stops require an incident/reason. A tour can be completed only when every stop has a terminal
+  outcome.
+- **Rationale:** Selected by the project owner. Explicit terminal outcomes support reliable map
+  display, collection history, and completion validation.
+
+## D-032 — UML notation and first-pass behavioral coverage
+
+- **Date:** 2026-11-01
+- **Decision:** UML sources use **Mermaid inside Markdown**. The first pass contains the four
+  required diagrams: a use-case diagram, a class diagram, one sequence diagram for
+  optimize/review/accept, and one activity diagram for the tour lifecycle.
+- **Rationale:** Selected by the project owner. Mermaid follows the repository convention and the
+  four diagrams cover the assignment minimum without duplicating behavioral workflows.
+
+## D-033 — Main class-diagram scope
+
+- **Date:** 2026-11-01
+- **Decision:** The main class diagram covers the **operational domain only**: users, agents,
+  collection points and demand, categories, vehicles, depots, tours, stops, and collection
+  results. Optimization/evaluation classes, controllers, DTOs, repositories, and UI classes are
+  excluded from this diagram; optimization interactions appear in the sequence diagram.
+- **Rationale:** Selected by the project owner. This keeps the main model focused on operational
+  concepts rather than a premature implementation architecture.
+
+## D-034 — Use-case organization
+
+- **Date:** 2026-11-01
+- **Decision:** The use-case model is a **grouped system overview**, not 39 isolated story bubbles.
+  Each grouped use case has a short description and explicit traceability to its user stories and
+  functional requirements. `ADMIN` inheritance of planner behavior is shown explicitly.
+- **Rationale:** Selected by the project owner. Grouping preserves readability while retaining
+  atomic-story traceability.

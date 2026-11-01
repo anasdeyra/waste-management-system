@@ -33,20 +33,20 @@ An agent's job is to help produce **all** of these, coherently, not only the cod
 | Item | State |
 |---|---|
 | Assignment transcribed | ✅ `project-assignment.md` |
-| Subject / domain chosen | ✅ Intelligent waste management; collection points, vehicles, agents, tours, and waste |
-| Tech stack chosen | ✅ Java 21 + Spring Boot 3 (REST API) + React 19 + Vite + TypeScript + Tailwind v4 + shadcn/ui + H2 (file) + Maven |
+| Subject / domain chosen | ✅ Map-centric intelligent waste management; New York City / Lower Manhattan MN01 case study with real DSNY coordinates |
+| Tech stack chosen | ✅ Java 21 + Spring Boot 3 (REST API) + React 19 + Vite + TypeScript + Tailwind v4 + shadcn/ui + H2 (file) + Maven; Leaflet/React Leaflet + local GraphHopper selected but not installed |
 | Project mode | ✅ Individual |
 | Prototype scope | ✅ Extended; multiple single-vehicle tours per day |
-| Optimization model | ✅ Input-order baseline, NN + 2-opt; 60-scenario matrix fixed |
+| Optimization model | ✅ Directed road-network input-order baseline, NN + directed-cost 2-opt; 60 real-location scenarios fixed; NYC traffic overlay only |
 | Repository scaffold | ✅ `backend/`, `frontend/`, `docs/`, `tools/`, `README.md` |
 | Toolchain | ✅ JDK 21 + Maven 3.9 + CKJM installed locally by `tools/setup-toolchain.sh` |
-| Documentation (Parts 1, 2, 5, 6) | 🟡 Part 1 complete; Part 6 has the tooling and a preliminary baseline; Parts 2 and 5 not started |
-| UML diagrams (Part 3) | ❌ Not started |
-| Prototype (Part 4) | 🟡 Scaffold running: domain model, auth, read APIs, optimizer, seed data, React shell + 7 pages. Write operations, tour execution and evaluation harness not started |
-| Metrics + research answer (Part 6) | 🟡 Tooling and baseline done (`tools/metrics.sh`, `docs/06-metrics.md`); the 60-scenario matrix and the final answer are pending |
+| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog complete, sprints/reviews/retrospectives not started; Part 6 not started |
+| UML diagrams (Part 3) | ✅ Use case, operational class, optimization sequence, tour-lifecycle activity, and OCL complete; all Mermaid sources rendered successfully |
+| Prototype (Part 4) | ❌ Framework scaffold only: Spring Boot API and React SPA are initialised and run, but no domain feature is implemented |
+| Metrics + research answer (Part 6) | ❌ Not started (`tools/metrics.sh` is ready) |
 | Presentation | ❌ Not started |
 
-**Last updated:** 2026-10-31
+**Last updated:** 2026-11-01
 
 Update this table whenever the state changes. Do not claim something is done unless the
 artifact exists in the repo.
@@ -76,49 +76,48 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [x] Problem statement
 
 ### Part 2 — Literature review → `docs/02-literature-review.md`
-- [ ] Research question tied to the domain
-- [ ] 5–10 credible scientific sources (papers, standards, books)
-- [ ] Synthesis: what exists, what is missing, what this project borrows
-- [ ] Citations with links/DOIs
+- [x] Research question tied to the domain
+- [x] 5–10 credible scientific sources (papers, standards, books)
+- [x] Synthesis: what exists, what is missing, what this project borrows
+- [x] Citations with links/DOIs
 
 ### Part 3 — UML → `docs/03-uml/`
-- [ ] Use case diagram (+ short descriptions)
-- [ ] Class diagram
-- [ ] At least one sequence diagram (core scenario)
-- [ ] At least one activity diagram
-- [ ] OCL constraints where relevant
+- [x] Use case diagram (+ short descriptions)
+- [x] Class diagram
+- [x] At least one sequence diagram (core scenario)
+- [x] At least one activity diagram
+- [x] OCL constraints where relevant
 
 ### Part 4 — Prototype → `backend/` + `frontend/`
-> Agreed scope: **Extended** (see `docs/decisions.md` D-007). Scaffold in place, features in progress.
-- [x] Runnable locally (backend on 8080, frontend on 5173, Vite proxies `/api`)
-- [ ] Covers the agreed scope
-- [x] Authentication (opaque bearer tokens, BCrypt hashes, role model)
-- [x] Seed/demo data so a reviewer can try it immediately
+> Agreed scope: **Extended** (see `docs/decisions.md` D-007). Framework scaffold only.
+- [x] Frameworks initialised and runnable locally (backend on 8080, frontend on 5173, Vite proxies `/api`)
 - [x] README with setup + run instructions
-- [ ] Write operations (create / update / deactivate) for the five core areas
-- [ ] Tour creation, agent execution updates, accepted tours
-- [ ] Optimization evaluation harness that persists the 60-scenario matrix
-- [ ] CSV import/export and audit log
+- [ ] Authentication
+- [ ] Collection points, vehicles, agents, tours, waste categories (CRUD)
+- [ ] Intelligent tour optimization on directed NYC road-network costs and impact measurement
+- [ ] Interactive maps for point editing/selection, tour display/comparison, and execution
+- [ ] Versioned OSM/GraphHopper routing and timestamped NYC DOT traffic overlay
+- [ ] Dashboards, CSV import/export, audit log
+- [ ] Import the included real MN01 basket/depot snapshots and add demo operations so a reviewer can try them immediately
 
 ### Part 5 — Scrum → `docs/05-scrum.md`
-- [ ] Product Backlog as user stories ("As a …, I want …, so that …")
-- [ ] Prioritized, with acceptance criteria
+- [x] Product Backlog as user stories ("As a …, I want …, so that …")
+- [x] Prioritized, with acceptance criteria
 - [ ] Sprint Backlog(s)
 - [ ] Sprint review notes
 - [ ] Retrospective notes (what went well / badly)
 
 ### Part 6 — Metrology → `docs/06-metrics.md`
-> Tooling is in place; the measurements are a preliminary baseline on the scaffold.
-- [x] Tooling named and reproducible (`bash tools/metrics.sh`)
-- [x] LOC (baseline measured)
-- [x] Cyclomatic complexity (baseline measured)
-- [x] Coupling (baseline measured)
-- [x] Cohesion (baseline measured)
-- [x] Number of classes / methods
-- [x] Depth of inheritance
-- [x] Code smells (0 violations in the baseline)
-- [ ] Final measurement on the completed prototype
-- [ ] The 60-scenario evaluation matrix executed
+> Tooling is in place (`bash tools/metrics.sh`); the measurements are not started.
+- [x] Tooling named and reproducible
+- [ ] LOC
+- [ ] Cyclomatic complexity
+- [ ] Coupling
+- [ ] Cohesion
+- [ ] Number of classes / methods
+- [ ] Depth of inheritance
+- [ ] Code smells
+- [ ] Generate and execute the fixed 60 real-location MN01 scenarios, retaining directed-road results and snapshot identifiers
 - [ ] A research question **answered with the measured data**, not just stated
 
 ### Presentation → `presentation/`
@@ -140,17 +139,9 @@ project-ase/
 │   ├── pom.xml
 │   └── src/
 │       ├── main/java/com/ase/wastems/
-│       │   ├── domain/       # entities and enums
-│       │   ├── repository/   # Spring Data JPA repositories
-│       │   ├── service/      # application services
-│       │   ├── web/          # REST controllers + DTO records
-│       │   ├── web/dto/      # API contract records
-│       │   ├── optimization/ # intelligent module
-│       │   ├── security/     # token authentication
-│       │   ├── config/       # Spring configuration
-│       │   ├── common/       # error handling
-│       │   └── bootstrap/    # demonstration data
-│       ├── main/resources/   # application.yml
+│       │   ├── config/        # Spring configuration (security, CORS)
+│       │   └── WasteMsApplication.java
+│       ├── main/resources/   # application.yml + real NYC source snapshots in data/
 │       └── test/             # JUnit 5 tests
 ├── frontend/                 # React 19 + Vite + TypeScript SPA
 │   ├── package.json
@@ -158,14 +149,12 @@ project-ase/
 │   ├── components.json       # shadcn/ui configuration
 │   └── src/
 │       ├── components/ui/    # shadcn/ui components (vendored, not own code)
-│       ├── components/layout/
-│       ├── components/shared/
-│       ├── pages/
-│       ├── hooks/
-│       ├── lib/              # API client, formatters
-│       └── types/            # TypeScript mirror of the API contract
+│       ├── lib/              # cn() helper
+│       ├── App.tsx           # placeholder page
+│       └── main.tsx          # providers: Query, Router
 ├── docs/
 │   ├── decisions.md          # decision log
+│   ├── geospatial-data.md    # NYC sources, snapshots, maps, routing, attribution
 │   ├── 01-analysis.md
 │   ├── 02-literature-review.md
 │   ├── 03-uml/
@@ -181,7 +170,9 @@ project-ase/
 ```
 
 The top-level shape is stable: `backend/` and `frontend/` replace the single `src/` folder
-because the prototype is two independently built applications (D-018).
+because the prototype is two independently built applications (D-018). The domain packages
+(`domain/`, `repository/`, `service/`, `web/`, `optimization/`, `routing/`) are created as the
+feature sprints are implemented. D-019–D-022 fix the NYC/MN01, map, and road-network direction.
 
 ## 7. Conventions
 
@@ -189,14 +180,20 @@ because the prototype is two independently built applications (D-018).
 - **Diagrams:** Mermaid inside Markdown by default (renders on GitHub, no toolchain).
   Use PlantUML only if the user prefers it. Always keep the source next to the export.
 - **Backend code:** Java 21 idioms. Entities in `domain/`, persistence in `repository/`,
-  business rules in `service/`, transport in `web/`. DTOs are Java `record`s. No Lombok:
-  explicit accessors keep the Part 6 metrics honest. The intelligent module lives in its own
-  package and must not depend on Spring or on the persistence layer.
+  business rules in `service/`, transport in `web/`, and road-network integration in
+  `routing/`. DTOs are Java `record`s. No Lombok: explicit accessors keep the Part 6 metrics
+  honest. The intelligent module lives in its own package and must not depend on Spring, the
+  persistence layer, or GraphHopper; it consumes a directed cost matrix through a small core
+  interface.
 - **Frontend code:** TypeScript strict mode. shadcn/ui components are vendored under
   `src/components/ui/` and are **not** counted as own code in Part 6. Pages live in
   `src/pages/`, shared widgets in `src/components/shared/`, server state through TanStack
-  Query. The API contract is typed in `src/types/api.ts` and must stay in sync with the
-  backend records.
+  Query. Interactive map components live in `src/components/maps/`. The API contract is typed
+  in `src/types/api.ts` and must stay in sync with the backend records.
+- **Geospatial data:** Use WGS84 and explicit `longitude`/`latitude` fields; GeoJSON coordinate
+  arrays are `[longitude, latitude]`. Preserve source IDs and distinguish real locations from
+  synthetic demand/operations. Route geometry must follow the versioned road graph, and 2-opt
+  must recalculate directed costs for reversed segments. Keep required NYC/OSM attribution.
 - **Naming:** kebab-case for files, `PascalCase`/`camelCase` per language norms for code.
 - **Traceability:** each functional requirement in Part 1 should be traceable to a use
   case, to code, and (ideally) to a test. Each metric in Part 6 must point to a command

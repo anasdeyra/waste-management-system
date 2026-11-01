@@ -1,13 +1,24 @@
 # WasteMS — Intelligent Waste Management System
 
-Management system for municipal waste collection, organised around five core areas —
-**collection points, vehicles, agents, tours and waste** — plus an **intelligent
-tour-optimization module** and a **reproducible impact evaluation** against a documented
-baseline.
+Map-centric management system for municipal waste collection, organised around five core areas
+— **collection points, vehicles, agents, tours and waste** — plus **real street routing**, an
+**intelligent tour-optimization module**, and a **reproducible impact evaluation** against a
+documented baseline. The worked example uses official DSNY locations in **New York City,
+Lower Manhattan (MN01)**, with interactive maps for planning, execution, and comparison.
 
-This repository is the deliverable of the Advanced Software Engineering course project. It
-contains the problem analysis, the literature review, the UML models, the prototype, the
-Scrum artifacts and the software metrics.
+This repository is being developed as the deliverable of the Advanced Software Engineering
+course project. Its intended final contents are the problem analysis, literature review, UML
+models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
+completed artifacts from planned work.
+
+> **Current state: framework scaffold.** Both applications are initialised, build and run.
+> No domain feature or interactive map is implemented yet — that is the work of the Scrum
+> sprints. Real MN01 source extracts are already included under
+> `backend/src/main/resources/data/`.
+
+The real-city sources, included snapshots, map interactions, routing rules, and attribution
+are documented in [`docs/geospatial-data.md`](docs/geospatial-data.md). Traffic is a timestamped
+map overlay; it does not drive dynamic rerouting or the controlled optimization experiment.
 
 ---
 
@@ -24,11 +35,13 @@ Scrum artifacts and the software metrics.
 | Styling | Tailwind CSS | 4.x |
 | Components | shadcn/ui (Radix UI) | latest |
 | Data fetching | TanStack Query + React Router | 5.x / 7.x |
+| Interactive maps (planned) | Leaflet + React Leaflet, OSM-compatible basemap | not installed yet |
+| Road routing (planned) | GraphHopper + versioned OpenStreetMap extract | not installed yet |
 | Tests | JUnit 5, AssertJ, Spring Security Test | — |
 | Metrics | PMD, CKJM, JDepend, `tools/count-loc.py` | — |
 
-The stack is recorded in [`docs/decisions.md`](docs/decisions.md) (D-004, D-013, D-017,
-D-018).
+The stack and geospatial direction are recorded in
+[`docs/decisions.md`](docs/decisions.md) (D-004, D-013, D-017–D-022).
 
 ## 2. Repository layout
 
@@ -39,24 +52,24 @@ project-ase/
 ├── README.md                  # this file
 ├── backend/                   # Spring Boot REST API (Java 21, Maven)
 │   ├── mvnw                   # Maven wrapper
-│   └── src/main/java/com/ase/wastems/
-│       ├── domain/            # entities and enums
-│       ├── repository/        # Spring Data JPA repositories
-│       ├── service/           # application services
-│       ├── web/               # REST controllers and DTOs
-│       ├── optimization/      # the intelligent module (baseline, NN, NN + 2-opt)
-│       ├── security/          # token authentication
-│       ├── config/            # Spring configuration
-│       └── bootstrap/         # demonstration data
+│   ├── pom.xml
+│   └── src/
+│       ├── main/java/com/ase/wastems/
+│       │   └── WasteMsApplication.java
+│       ├── main/resources/    # application.yml + real NYC snapshots in data/
+│       └── test/              # JUnit 5 tests
 ├── frontend/                  # React single-page application (Vite, Tailwind, shadcn/ui)
+│   ├── package.json
+│   ├── vite.config.ts         # @ alias, Tailwind plugin, /api proxy
+│   ├── components.json        # shadcn/ui configuration
 │   └── src/
 │       ├── components/ui/     # shadcn/ui components (vendored)
-│       ├── components/layout/ # application shell
-│       ├── pages/             # one page per functional area
-│       ├── lib/               # API client and formatting helpers
-│       └── types/             # TypeScript mirror of the API contract
+│       ├── lib/               # cn() helper
+│       ├── App.tsx            # placeholder page
+│       └── main.tsx           # providers: Query, Router
 ├── docs/
 │   ├── decisions.md           # decision log
+│   ├── geospatial-data.md     # NYC sources, snapshots, maps, routing, attribution
 │   ├── 01-analysis.md         # Part 1 — problem analysis
 │   ├── 02-literature-review.md
 │   ├── 03-uml/                # Part 3 — UML models (Mermaid)
@@ -85,7 +98,7 @@ bash tools/setup-toolchain.sh
 
 The script is idempotent: it skips anything that is already present.
 
-## 4. Running the prototype
+## 4. Running the scaffold
 
 ### 4.1 Backend
 
@@ -94,20 +107,9 @@ cd backend
 ./mvnw spring-boot:run          # or: mvn spring-boot:run
 ```
 
-The API listens on <http://localhost:8080>. The H2 database is created on first start in
-`backend/data/` and is seeded with the demonstration data set.
-
-| User | Password | Role |
-|---|---|---|
-| `admin` | `admin123` | administrator + manager |
-| `manager` | `manager123` | collection manager / planner |
-| `agent` | `agent123` | collection agent |
-
-Useful URLs:
-
-- <http://localhost:8080/api/health> — liveness probe
-- <http://localhost:8080/h2-console> — database console (JDBC URL
-  `jdbc:h2:file:./data/wastems`, user `sa`, empty password)
+The API listens on <http://localhost:8080>. The H2 database file is created on first start in
+`backend/data/`; the H2 console is available at <http://localhost:8080/h2-console> (JDBC URL
+`jdbc:h2:file:./data/wastems`, user `sa`, empty password).
 
 ### 4.2 Frontend
 
@@ -142,11 +144,12 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | Part | Document | State |
 |---|---|---|
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
-| 2 — Literature review | `docs/02-literature-review.md` | to do |
-| 3 — UML modelling | `docs/03-uml/` | to do |
-| 4 — Prototype | `backend/`, `frontend/` | scaffold running; features in progress |
-| 5 — Scrum | `docs/05-scrum.md` | to do |
-| 6 — Metrology | [`docs/06-metrics.md`](docs/06-metrics.md) | tooling + preliminary baseline; final measurement pending |
+| 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
+| 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
+| 4 — Prototype | `backend/`, `frontend/` | framework scaffold |
+| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; sprints/reviews/retrospectives to do |
+| 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
+| Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; maps/routing to do |
 
 ## 7. Conventions
 

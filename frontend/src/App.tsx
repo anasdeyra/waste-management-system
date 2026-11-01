@@ -1,42 +1,35 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Boxes } from 'lucide-react'
 
-import { AppShell } from '@/components/layout/app-shell'
-import { useAuth } from '@/hooks/use-auth'
-import { AgentsPage } from '@/pages/agents'
-import { CollectionPointsPage } from '@/pages/collection-points'
-import { DashboardPage } from '@/pages/dashboard'
-import { LoginPage } from '@/pages/login'
-import { NotFoundPage } from '@/pages/not-found'
-import { OptimizationPage } from '@/pages/optimization'
-import { ToursPage } from '@/pages/tours'
-import { VehiclesPage } from '@/pages/vehicles'
-import { WasteCategoriesPage } from '@/pages/waste-categories'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
+/**
+ * Placeholder of the WasteMS single-page application.
+ *
+ * <p>The application shell, the routing and the pages of the five functional areas are
+ * built in the feature sprints described in `docs/05-scrum.md`.
+ */
 export default function App() {
-  const { isAuthenticated } = useAuth()
-
-  if (!isAuthenticated) {
-    return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    )
-  }
-
   return (
-    <Routes>
-      <Route path="/login" element={<Navigate to="/" replace />} />
-      <Route element={<AppShell />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="collection-points" element={<CollectionPointsPage />} />
-        <Route path="vehicles" element={<VehiclesPage />} />
-        <Route path="agents" element={<AgentsPage />} />
-        <Route path="tours" element={<ToursPage />} />
-        <Route path="waste-categories" element={<WasteCategoriesPage />} />
-        <Route path="optimization" element={<OptimizationPage />} />
-      </Route>
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+    <main className="flex min-h-svh items-center justify-center bg-muted/30 p-6">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Boxes className="size-5" />
+          </div>
+          <CardTitle>WasteMS</CardTitle>
+          <CardDescription>
+            Intelligent Waste Management System — React + Tailwind CSS + shadcn/ui, talking to the
+            Spring Boot API on port 8080.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <Button disabled>Action</Button>
+          <p className="text-sm text-muted-foreground">
+            Framework scaffold only. The domain features are implemented in the upcoming sprints.
+          </p>
+        </CardContent>
+      </Card>
+    </main>
   )
 }
