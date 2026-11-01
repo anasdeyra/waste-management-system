@@ -15,7 +15,9 @@ proposal gives the proposal's legs; keeping the input order gives the input-orde
 `routeEvaluationRunId` and `routeMethod` identify that run and method without making evaluation
 results part of this diagram (D-033). Any change of stops, order or depot clears the route.
 `Tour.revision` counts structural draft changes so that an evaluation run can prove it
-used the tour's current inputs (S5/S6).
+used the tour's current inputs (S5/S6). `startedAt`/`startedBy` and `completedAt`/`completedBy`
+record who started and completed the tour (usernames, UTC); a stop's outcome records its actor
+and time (S7).
 
 ## 2. Diagram
 
@@ -91,6 +93,10 @@ classDiagram
         +PlanningMethod routeMethod
         +Double routeDistanceM
         +Double routeDurationS
+        +Instant startedAt
+        +String startedBy
+        +Instant completedAt
+        +String completedBy
         +Long revision
         +confirm()
         +start()
@@ -317,8 +323,12 @@ pre ResourcesStillAvailable:
   vehicle.status = ResourceStatus::AVAILABLE and
   driver.status = ResourceStatus::AVAILABLE and
   collectors->forAll(status = ResourceStatus::AVAILABLE)
+pre PointsStillActive:
+  stops->forAll(s | s.collectionPoint.status = CollectionPointStatus::ACTIVE)
+pre VersionedRoadRoute:
+  roadLegsGeoJson <> null and roadGraphVersion <> null
 post InProgress:
-  status = TourStatus::IN_PROGRESS
+  status = TourStatus::IN_PROGRESS and startedAt <> null
 
 context Tour::complete()
 pre ActiveOnly:
@@ -328,7 +338,7 @@ pre EveryStopTerminal:
   stops->forAll(status = TourStopStatus::COLLECTED or
                 status = TourStopStatus::NOT_COLLECTED)
 post Completed:
-  status = TourStatus::COMPLETED
+  status = TourStatus::COMPLETED and completedAt <> null
 
 context Tour::cancel(reason : String)
 pre NotAlreadyTerminal:

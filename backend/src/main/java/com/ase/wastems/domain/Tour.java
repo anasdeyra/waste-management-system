@@ -33,7 +33,7 @@ import com.ase.wastems.optimization.PlanningMethod;
  * date, ordered stops with planned demand snapshots, vehicle, driver and up to two collectors.
  * The revision counts structural changes so later evaluations can prove they used identical
  * inputs. S6 adds the road-route reference (accepted or kept proposal) and the DRAFT to PLANNED
- * confirmation.
+ * confirmation. S7 adds the execution (start, stop outcomes, completion).
  */
 @Entity
 @Table(name = "tour")
@@ -100,6 +100,18 @@ public class Tour {
 
     @Column(name = "route_duration_s")
     private Double routeDurationS;
+
+    @Column(name = "started_at")
+    private Instant startedAt;
+
+    @Column(name = "started_by", length = 50)
+    private String startedBy;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    @Column(name = "completed_by", length = 50)
+    private String completedBy;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -222,6 +234,36 @@ public class Tour {
         routeDurationS = null;
     }
 
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public String getStartedBy() {
+        return startedBy;
+    }
+
+    public Instant getCompletedAt() {
+        return completedAt;
+    }
+
+    public String getCompletedBy() {
+        return completedBy;
+    }
+
+    /** True iff the agent id is the driver's or one collector's. Null-safe. */
+    public boolean isCrewMember(UUID agentId) {
+        if (agentId == null) {
+            return false;
+        }
+        return (driver != null && agentId.equals(driver.getId()))
+                || collectors.stream().anyMatch(c -> agentId.equals(c.getId()));
+    }
+
+    /** Number of stops with a terminal outcome. */
+    public int terminalStopCount() {
+        return (int) stops.stream().filter(TourStop::isTerminal).count();
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -319,6 +361,65 @@ public class Tour {
             throw new IllegalStateException("A planned tour needs a versioned road route.");
         }
         status = TourStatus.PLANNED;
+    }
+
+    /**
+     * Start findings (OCL Tour::start(), activity "resources remain valid?"): empty unless
+     * PLANNED; otherwise the structural issues, then ROUTE_MISSING when no route is attached.
+     * ROUTE_OUTDATED is added by TourService (it needs the retained run). No planning-date check.
+     */
+    public List<TourIssue> startIssues() {
+        if (status != TourStatus.PLANNED) {
+            return List.of();
+        }
+        List<TourIssue> issues = new ArrayList<>(structuralIssues());
+        if (!hasRoute()) {
+            issues.add(new TourIssue(TourIssueCode.ROUTE_MISSING,
+                    "No road route is attached. A planner must evaluate the tour again."));
+        }
+        return issues;
+    }
+
+    /** PLANNED to IN_PROGRESS. The service has checked every start issue. */
+    public void start(Instant at, String by) {
+        if (status != TourStatus.PLANNED) {
+            throw new IllegalStateException("Only a PLANNED tour can be started.");
+        }
+        if (!hasRoute()) {
+            throw new IllegalStateException("A started tour needs a versioned road route.");
+        }
+        status = TourStatus.IN_PROGRESS;
+        startedAt = at;
+        startedBy = by;
+    }
+
+    /** Completion findings: empty unless IN_PROGRESS; one STOP_PENDING per pending stop. */
+    public List<TourIssue> completionIssues() {
+        if (status != TourStatus.IN_PROGRESS) {
+            return List.of();
+        }
+        List<TourIssue> issues = new ArrayList<>();
+        for (TourStop s : stops) {
+            if (!s.isTerminal()) {
+                issues.add(new TourIssue(TourIssueCode.STOP_PENDING,
+                        "Stop " + s.getVisitOrder() + " (" + s.getCollectionPoint().getName()
+                                + ") has no outcome yet."));
+            }
+        }
+        return issues;
+    }
+
+    /** IN_PROGRESS to COMPLETED (D-031: every stop has an outcome). */
+    public void complete(Instant at, String by) {
+        if (status != TourStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Only an IN_PROGRESS tour can be completed.");
+        }
+        if (stops.isEmpty() || !completionIssues().isEmpty()) {
+            throw new IllegalStateException("Every stop needs an outcome before completion.");
+        }
+        status = TourStatus.COMPLETED;
+        completedAt = at;
+        completedBy = by;
     }
 
     /**
