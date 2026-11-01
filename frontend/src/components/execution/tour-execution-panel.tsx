@@ -115,6 +115,19 @@ export function TourExecutionPanel({ tour }: { tour: Tour }) {
           )}
         </>
       )}
+      {tour.status === 'CANCELLED' && (
+        <Alert variant="destructive">
+          <AlertTitle>Tour cancelled</AlertTitle>
+          <AlertDescription>
+            {tour.cancellationReason && <p>{tour.cancellationReason}</p>}
+            {tour.cancelledBy && tour.cancelledAt && (
+              <p>
+                Cancelled by {tour.cancelledBy} at {local(tour.cancelledAt)}.
+              </p>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
       {tour.status === 'COMPLETED' && (
         <Alert>
           <AlertTitle>Tour completed</AlertTitle>

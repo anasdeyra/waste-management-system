@@ -4,6 +4,8 @@ import { evaluationsKey } from '@/hooks/use-evaluations'
 import { apiFetch } from '@/lib/api-client'
 import type {
   AddTourStopRequest,
+  CancelTourRequest,
+  OutcomeCorrectionRequest,
   ProposalDecisionRequest,
   ReorderTourStopsRequest,
   Tour,
@@ -121,4 +123,51 @@ export function useConfirmTour() {
   return useTourMutation((v: { id: string }) =>
     apiFetch<Tour>(`/api/tours/${v.id}/confirmation`, { method: 'POST' }),
   )
+}
+
+/** DRAFT, PLANNED or IN_PROGRESS -> CANCELLED with a reason (POST .../cancellation). */
+export function useCancelTour() {
+  return useTourMutation(
+    (v: { id: string; body: CancelTourRequest }) =>
+      apiFetch<Tour>(`/api/tours/${v.id}/cancellation`, { method: 'POST', body: v.body }),
+    [historyKey],
+  )
+}
+
+/** Planner correction of a recorded stop outcome (POST .../stops/{stopId}/corrections). */
+export function useCorrectStopOutcome() {
+  return useTourMutation(
+    (v: { id: string; stopId: string; body: OutcomeCorrectionRequest }) =>
+      apiFetch<Tour>(`/api/tours/${v.id}/stops/${v.stopId}/corrections`, {
+        method: 'POST',
+        body: v.body,
+      }),
+    [historyKey],
+  )
+}
+
+export const historyKey = ['tours', 'history'] as const
+
+export interface HistoryFilters {
+  from?: string
+  to?: string
+  status?: 'COMPLETED' | 'CANCELLED'
+  vehicleId?: string
+  agentId?: string
+  pointId?: string
+}
+
+/** Completed and cancelled tours (GET /api/tours/history). */
+export function useTourHistory(filters: HistoryFilters) {
+  return useQuery({
+    queryKey: [...historyKey, filters],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      for (const [k, v] of Object.entries(filters)) {
+        if (v) params.set(k, v)
+      }
+      const qs = params.toString()
+      return apiFetch<TourSummary[]>(`/api/tours/history${qs ? `?${qs}` : ''}`)
+    },
+  })
 }

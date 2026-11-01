@@ -6,6 +6,7 @@ import AgentsPage from '@/pages/agents-page'
 import CollectionPointsPage from '@/pages/collection-points-page'
 import CategoriesPage from '@/pages/waste-categories-page'
 import DataImportPage from '@/pages/data-import-page'
+import HistoryPage from '@/pages/history-page'
 import HomePage from '@/pages/home-page'
 import LoginPage from '@/pages/login-page'
 import MyTourPage from '@/pages/my-tour-page'
@@ -66,6 +67,14 @@ export default function App() {
           element={
             <RequireRole role="PLANNER">
               <TourPlannerPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="history"
+          element={
+            <RequireRole role="PLANNER">
+              <HistoryPage />
             </RequireRole>
           }
         />

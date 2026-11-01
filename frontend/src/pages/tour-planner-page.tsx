@@ -9,6 +9,7 @@ import { TourRouteLayer } from '@/components/maps/route-layers'
 import { INPUT_ORDER_LABEL, TourStopsLayer } from '@/components/maps/tour-stops-layer'
 import { CapacityIndicator } from '@/components/tours/capacity-indicator'
 import { EvaluationPanel } from '@/components/tours/evaluation-panel'
+import { TourCancelDialog } from '@/components/tours/tour-cancel-dialog'
 import { TourConfirmPanel } from '@/components/tours/tour-confirm-panel'
 import { TourAssignmentPanel } from '@/components/tours/tour-assignment-panel'
 import { TourCandidateList } from '@/components/tours/tour-candidate-list'
@@ -138,6 +139,16 @@ export default function TourPlannerPage() {
               <TourConfirmPanel tour={t} />
             </CardContent>
           </Card>
+          {t.cancellable && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Cancellation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TourCancelDialog tour={t} />
+              </CardContent>
+            </Card>
+          )}
           {t.status !== 'DRAFT' && (
             <Card>
               <CardHeader>
@@ -171,7 +182,21 @@ export default function TourPlannerPage() {
                     </AlertDescription>
                   </Alert>
                 )}
+                {t.status === 'CANCELLED' && t.cancelledBy && t.cancelledAt && (
+                  <p>
+                    Cancelled by {t.cancelledBy} at {new Date(t.cancelledAt).toLocaleString()} (was{' '}
+                    {t.cancelledFromStatus ? STATUS_LABELS[t.cancelledFromStatus] : 'unknown'})
+                  </p>
+                )}
+                {t.status === 'CANCELLED' && t.cancellationReason && (
+                  <p>Reason: {t.cancellationReason}</p>
+                )}
                 <p className="text-muted-foreground">Execution updates are made by the assigned crew.</p>
+                {t.correctable && (
+                  <p className="text-muted-foreground">
+                    Planners can correct recorded outcomes; every correction is kept and audited.
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
@@ -214,8 +239,7 @@ export default function TourPlannerPage() {
           </CardHeader>
           <CardContent>
             <TourStopList
-              stops={t.stops}
-              tourStatus={t.status}
+              tour={t}
               selectedStopId={selectedStopId}
               editable={editable}
               busy={busy}

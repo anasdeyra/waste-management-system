@@ -47,6 +47,11 @@ export function AppShell() {
               </NavLink>
             )}
             {hasRole(user, 'PLANNER') && (
+              <NavLink to="/history" className={navClass}>
+                History
+              </NavLink>
+            )}
+            {hasRole(user, 'PLANNER') && (
               <NavLink to="/waste-categories" className={navClass}>
                 Waste categories
               </NavLink>
