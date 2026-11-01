@@ -72,3 +72,71 @@ export interface ApiError {
   message: string
   fieldErrors?: FieldErrorDetail[]
 }
+
+/** domain.CollectionPointStatus */
+export type CollectionPointStatus = 'ACTIVE' | 'INACTIVE'
+
+/** domain.DataOrigin */
+export type DataOrigin = 'IMPORTED_REAL' | 'SYNTHETIC' | 'USER_ENTERED'
+
+/** web.dto.DemandEntryResponse */
+export interface DemandEntry {
+  id: string
+  categoryId: string
+  categoryName: string
+  categoryActive: boolean
+  quantityKg: number
+  origin: DataOrigin
+}
+
+/** web.dto.CollectionPointResponse (source fields are omitted when null) */
+export interface CollectionPoint {
+  id: string
+  name: string
+  longitude: number
+  latitude: number
+  status: CollectionPointStatus
+  origin: DataOrigin
+  sourceDataset?: string
+  sourceIdentifier?: string
+  sourceOwnershipType?: string
+  demands: DemandEntry[]
+  totalDemandKg: number
+}
+
+/** web.dto.DepotResponse */
+export interface Depot {
+  id: string
+  name: string
+  longitude: number
+  latitude: number
+  origin: DataOrigin
+  sourceDataset?: string
+  sourceIdentifier?: string
+}
+
+/** web.dto.DemandEntryRequest */
+export interface DemandEntryRequest {
+  categoryId: string
+  quantityKg: number
+}
+
+/** web.dto.CreateCollectionPointRequest */
+export interface CreateCollectionPointRequest {
+  name: string
+  longitude: number
+  latitude: number
+  demands: DemandEntryRequest[]
+}
+
+/** web.dto.UpdateCollectionPointRequest */
+export interface UpdateCollectionPointRequest {
+  name: string
+  longitude: number
+  latitude: number
+}
+
+/** web.dto.CollectionPointStatusRequest */
+export interface CollectionPointStatusRequest {
+  status: CollectionPointStatus
+}
