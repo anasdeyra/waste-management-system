@@ -107,6 +107,33 @@ public class TourService {
         return tours.search(status, planningDate).stream().map(TourService::initialized).toList();
     }
 
+    /** Completed and cancelled tours matching every given filter (US-32); newest first. */
+    @Transactional(readOnly = true)
+    public List<Tour> history(TourHistoryQuery q) {
+        List<TourStatus> statuses =
+                q.status() == null
+                        ? List.of(TourStatus.COMPLETED, TourStatus.CANCELLED)
+                        : List.of(q.status());
+        return tours.findByStatusIn(statuses).stream()
+                .filter(t -> q.from() == null || !t.getPlanningDate().isBefore(q.from()))
+                .filter(t -> q.to() == null || !t.getPlanningDate().isAfter(q.to()))
+                .filter(t -> q.vehicleId() == null
+                        || (t.getVehicle() != null && q.vehicleId().equals(t.getVehicle().getId())))
+                .filter(t -> q.agentId() == null || t.isCrewMember(q.agentId()))
+                .filter(t -> q.pointId() == null || t.containsPoint(q.pointId()))
+                .sorted(java.util.Comparator.comparing(Tour::getPlanningDate)
+                        .thenComparing(TourService::terminalAt,
+                                java.util.Comparator.nullsFirst(java.util.Comparator.<Instant>naturalOrder()))
+                        .thenComparing(Tour::getCreatedAt)
+                        .reversed())
+                .map(TourService::initialized)
+                .toList();
+    }
+
+    private static Instant terminalAt(Tour t) {
+        return t.getCompletedAt() != null ? t.getCompletedAt() : t.getCancelledAt();
+    }
+
     @Transactional(readOnly = true)
     public Tour get(UUID id) {
         return initialized(find(id));

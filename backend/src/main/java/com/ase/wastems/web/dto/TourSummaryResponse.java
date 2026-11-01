@@ -30,7 +30,11 @@ public record TourSummaryResponse(
         boolean structurallyValid,
         int issueCount,
         Instant updatedAt,
-        PlanningMethod routeMethod) {
+        PlanningMethod routeMethod,
+        Instant completedAt,
+        Instant cancelledAt,
+        String cancellationReason,
+        int correctionCount) {
 
     public static TourSummaryResponse from(Tour t) {
         int issues = t.structuralIssues().size();
@@ -54,6 +58,10 @@ public record TourSummaryResponse(
                 issues == 0,
                 issues,
                 t.getUpdatedAt(),
-                t.getRouteMethod());
+                t.getRouteMethod(),
+                t.getCompletedAt(),
+                t.getCancelledAt(),
+                t.getCancellationReason(),
+                t.correctionCount());
     }
 }

@@ -422,6 +422,10 @@ export interface TourSummary {
   issueCount: number
   updatedAt: string
   routeMethod?: PlanningMethod
+  completedAt?: string
+  cancelledAt?: string
+  cancellationReason?: string
+  correctionCount: number
 }
 
 /** web.dto.TourRequest */

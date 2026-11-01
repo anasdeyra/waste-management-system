@@ -3,6 +3,7 @@ package com.ase.wastems.repository;
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.TourStatus;
 import java.time.LocalDate;
+import java.util.Collection;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,8 @@ public interface TourRepository extends JpaRepository<Tour, UUID> {
             order by t.planningDate desc, t.createdAt desc""")
     List<Tour> search(
             @Param("status") TourStatus status, @Param("planningDate") LocalDate planningDate);
+
+    List<Tour> findByStatusIn(Collection<TourStatus> statuses);
 
     @Query(
             """

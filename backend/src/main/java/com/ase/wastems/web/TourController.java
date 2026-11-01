@@ -6,7 +6,9 @@ import com.ase.wastems.domain.TourStop;
 import com.ase.wastems.service.TourService;
 import com.ase.wastems.web.dto.AddTourStopRequest;
 import com.ase.wastems.web.dto.CancelTourRequest;
+import com.ase.wastems.service.InvalidRequestException;
 import com.ase.wastems.service.StopOutcomeCommand;
+import com.ase.wastems.service.TourHistoryQuery;
 import com.ase.wastems.web.dto.OutcomeCorrectionRequest;
 import com.ase.wastems.web.dto.ProposalDecisionRequest;
 import com.ase.wastems.web.dto.ReorderTourStopsRequest;
@@ -58,6 +60,26 @@ public class TourController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                     LocalDate planningDate) {
         return service.list(status, planningDate).stream().map(TourSummaryResponse::from).toList();
+    }
+
+    /** Completed and cancelled tours (US-32); the literal mapping wins over {@code /{id}}. */
+    @GetMapping("/history")
+    public List<TourSummaryResponse> history(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) TourStatus status,
+            @RequestParam(required = false) UUID vehicleId,
+            @RequestParam(required = false) UUID agentId,
+            @RequestParam(required = false) UUID pointId) {
+        if (status != null && status != TourStatus.COMPLETED && status != TourStatus.CANCELLED) {
+            throw new InvalidRequestException("status", "must be COMPLETED or CANCELLED");
+        }
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new InvalidRequestException("to", "must not be before from");
+        }
+        return service.history(new TourHistoryQuery(from, to, status, vehicleId, agentId, pointId)).stream()
+                .map(TourSummaryResponse::from)
+                .toList();
     }
 
     @PostMapping
