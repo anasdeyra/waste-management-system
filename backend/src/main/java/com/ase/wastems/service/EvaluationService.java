@@ -1,7 +1,11 @@
 package com.ase.wastems.service;
 
 import com.ase.wastems.config.OptimizationProperties;
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEntityType;
+import com.ase.wastems.domain.AuditOutcome;
 import com.ase.wastems.domain.EvaluationRun;
+import com.ase.wastems.domain.EvaluationStatus;
 import com.ase.wastems.domain.EvaluationStop;
 import com.ase.wastems.domain.MethodResult;
 import com.ase.wastems.optimization.MethodOutcome;
@@ -40,10 +44,12 @@ public class EvaluationService {
     private final OptimizationProperties props;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate txTemplate;
+    private final AuditService audit;
 
     public EvaluationService(DirectedCostMatrixProvider matrices, TourOptimizationModule optimizer,
             EvaluationRunRepository runs, OptimizationProperties props, ObjectMapper objectMapper,
-            PlatformTransactionManager txManager) {
+            PlatformTransactionManager txManager, AuditService audit) {
+        this.audit = audit;
         this.matrices = matrices;
         this.optimizer = optimizer;
         this.runs = runs;
@@ -84,7 +90,20 @@ public class EvaluationService {
             run.failRouting(e.getReason().name(), describe(e, s, version));
         }
         EvaluationRun toSave = run;
-        return txTemplate.execute(st -> runs.save(toSave));
+        return txTemplate.execute(
+                st -> {
+                    EvaluationRun saved = runs.save(toSave);
+                    audit.record(
+                            AuditAction.TOUR_EVALUATED,
+                            AuditEntityType.TOUR,
+                            saved.getTourId(),
+                            saved.getStatus() == EvaluationStatus.ROUTING_FAILED
+                                    ? AuditOutcome.FAILURE
+                                    : AuditOutcome.SUCCESS,
+                            "run " + saved.getId() + " " + saved.getStatus() + " on "
+                                    + saved.getRoadGraphVersion());
+                    return saved;
+                });
     }
 
     private EvaluationRun newRun(FrozenScenario s, String username, Instant now, String version,

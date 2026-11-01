@@ -1,6 +1,8 @@
 package com.ase.wastems.service;
 
 import com.ase.wastems.config.ServiceAreaProperties;
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEntityType;
 import com.ase.wastems.domain.CollectionPoint;
 import com.ase.wastems.domain.CollectionPointStatus;
 import com.ase.wastems.domain.DataOrigin;
@@ -22,11 +24,14 @@ public class CollectionPointService {
     private final CollectionPointRepository points;
     private final WasteCategoryService categories;
     private final ServiceAreaProperties area;
+    private final AuditService audit;
 
     public CollectionPointService(
             CollectionPointRepository points,
             WasteCategoryService categories,
-            ServiceAreaProperties area) {
+            ServiceAreaProperties area,
+            AuditService audit) {
+        this.audit = audit;
         this.points = points;
         this.categories = categories;
         this.area = area;
@@ -81,7 +86,20 @@ public class CollectionPointService {
             WasteCategory c = categories.requireActive(d.categoryId());
             p.addDemand(new DemandEntry(c, d.quantityKg(), DataOrigin.USER_ENTERED));
         }
-        return points.save(p);
+        CollectionPoint saved = points.save(p);
+        audit.record(
+                AuditAction.POINT_CREATED,
+                AuditEntityType.COLLECTION_POINT,
+                saved.getId(),
+                saved.getName()
+                        + " at "
+                        + longitude
+                        + ", "
+                        + latitude
+                        + "; "
+                        + demands.size()
+                        + " demand entries");
+        return saved;
     }
 
     @Transactional
@@ -91,6 +109,11 @@ public class CollectionPointService {
         p.setName(name.trim());
         p.setLongitude(longitude);
         p.setLatitude(latitude);
+        audit.record(
+                AuditAction.POINT_UPDATED,
+                AuditEntityType.COLLECTION_POINT,
+                p.getId(),
+                p.getName() + " at " + longitude + ", " + latitude);
         return p;
     }
 
@@ -98,6 +121,11 @@ public class CollectionPointService {
     public CollectionPoint setStatus(UUID id, CollectionPointStatus status) {
         CollectionPoint p = load(id);
         p.setStatus(status);
+        audit.record(
+                AuditAction.POINT_STATUS_CHANGED,
+                AuditEntityType.COLLECTION_POINT,
+                p.getId(),
+                status.name());
         return p;
     }
 
@@ -110,6 +138,7 @@ public class CollectionPointService {
         p.addDemand(d);
         // p is managed: flushing cascades persist to d, which receives its id (save() would merge a copy)
         points.flush();
+        recordDemand(AuditAction.DEMAND_ADDED, p, d);
         return d;
     }
 
@@ -126,6 +155,7 @@ public class CollectionPointService {
         d.setQuantityKg(quantityKg);
         d.setOrigin(DataOrigin.USER_ENTERED);
         points.flush();
+        recordDemand(AuditAction.DEMAND_UPDATED, p, d);
         return d;
     }
 
@@ -136,7 +166,26 @@ public class CollectionPointService {
         if (p.getDemands().size() <= 1) {
             throw new BusinessRuleException("A collection point must keep at least one demand entry.");
         }
+        String categoryName = d.getCategory().getName();
         p.removeDemand(d);
+        audit.record(
+                AuditAction.DEMAND_REMOVED,
+                AuditEntityType.COLLECTION_POINT,
+                p.getId(),
+                categoryName + " (entry " + demandId + ")");
+    }
+
+    private void recordDemand(AuditAction action, CollectionPoint p, DemandEntry d) {
+        audit.record(
+                action,
+                AuditEntityType.COLLECTION_POINT,
+                p.getId(),
+                d.getCategory().getName()
+                        + " "
+                        + d.getQuantityKg().toPlainString()
+                        + " kg (entry "
+                        + d.getId()
+                        + ")");
     }
 
     private CollectionPoint load(UUID id) {

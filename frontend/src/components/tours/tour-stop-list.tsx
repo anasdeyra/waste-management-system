@@ -2,14 +2,14 @@ import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
 
 import { StopOutcomeSummary } from '@/components/execution/stop-outcome-summary'
 import { StopStatusBadge } from '@/components/execution/stop-status-badge'
+import { StopCorrectionDialog } from '@/components/tours/stop-correction-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { TourStatus, TourStop } from '@/types/api'
+import type { Tour, TourStop } from '@/types/api'
 
 /** Ordered stop list: the accessible, map-free editor of stops and their input order. */
 export function TourStopList({
-  stops,
-  tourStatus,
+  tour,
   selectedStopId,
   editable,
   busy,
@@ -17,8 +17,7 @@ export function TourStopList({
   onReorder,
   onRemove,
 }: {
-  stops: TourStop[]
-  tourStatus: TourStatus
+  tour: Tour
   selectedStopId: string | null
   editable: boolean
   busy: boolean
@@ -26,6 +25,7 @@ export function TourStopList({
   onReorder: (stopIds: string[]) => void
   onRemove: (stopId: string) => void
 }) {
+  const stops = tour.stops
   if (stops.length === 0) {
     return <p className="text-sm text-muted-foreground">No stops yet. Add points from the map or the list.</p>
   }
@@ -73,7 +73,8 @@ export function TourStopList({
             </div>
             <StopOutcomeSummary stop={s} />
           </div>
-          {(s.status !== 'PENDING' || tourStatus !== 'DRAFT') && <StopStatusBadge status={s.status} />}
+          {(s.status !== 'PENDING' || tour.status !== 'DRAFT') && <StopStatusBadge status={s.status} />}
+          {tour.correctable && s.status !== 'PENDING' && <StopCorrectionDialog tour={tour} stop={s} />}
           {editable && (
             <div className="flex gap-1">
               <Button

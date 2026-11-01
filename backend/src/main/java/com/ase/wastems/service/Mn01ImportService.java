@@ -1,6 +1,8 @@
 package com.ase.wastems.service;
 
 import com.ase.wastems.config.ServiceAreaProperties;
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEntityType;
 import com.ase.wastems.domain.CollectionPoint;
 import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.DemandEntry;
@@ -56,6 +58,7 @@ public class Mn01ImportService {
     private final WasteCategoryRepository categories;
     private final SourceSnapshotRepository snapshots;
     private final ServiceAreaProperties area;
+    private final AuditService audit;
     private final AtomicReference<Mn01ImportReport> lastReport = new AtomicReference<>();
 
     public Mn01ImportService(
@@ -63,7 +66,9 @@ public class Mn01ImportService {
             DepotRepository depots,
             WasteCategoryRepository categories,
             SourceSnapshotRepository snapshots,
-            ServiceAreaProperties area) {
+            ServiceAreaProperties area,
+            AuditService audit) {
+        this.audit = audit;
         this.points = points;
         this.depots = depots;
         this.categories = categories;
@@ -125,6 +130,25 @@ public class Mn01ImportService {
                         SYNTHETIC_CATEGORY,
                         warnings.toList());
         lastReport.set(report);
+        audit.record(
+                AuditAction.DATA_IMPORTED,
+                AuditEntityType.DATA_IMPORT,
+                baskets.snapshotId(),
+                trigger
+                        + ": baskets created "
+                        + baskets.created()
+                        + ", updated "
+                        + baskets.updated()
+                        + ", existing "
+                        + baskets.existing()
+                        + ", skipped "
+                        + baskets.skipped()
+                        + "; depots created "
+                        + depotResult.created()
+                        + ", existing "
+                        + depotResult.existing()
+                        + "; warnings "
+                        + report.warnings().size());
         return report;
     }
 

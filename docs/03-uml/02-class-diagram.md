@@ -18,6 +18,12 @@ results part of this diagram (D-033). Any change of stops, order or depot clears
 used the tour's current inputs (S5/S6). `startedAt`/`startedBy` and `completedAt`/`completedBy`
 record who started and completed the tour (usernames, UTC); a stop's outcome records its actor
 and time (S7).
+A cancelled tour keeps who cancelled it, when, why and from which status
+(`cancelledFromStatus`). An `OutcomeCorrection` retains the previous and the corrected outcome of
+a stop, including the previous and new category quantities (category name and kilograms, stored
+as value lists), the correcting user, the UTC time and the reason; the stop's
+`outcomeRecordedAt` keeps the original recording (S8). Audit events (US-39) are a cross-cutting
+log outside this operational diagram (D-033).
 
 ## 2. Diagram
 
@@ -86,6 +92,9 @@ classDiagram
         +LocalDate planningDate
         +TourStatus status
         +String cancellationReason
+        +Instant cancelledAt
+        +String cancelledBy
+        +TourStatus cancelledFromStatus
         +DataOrigin origin
         +String roadLegsGeoJson
         +String roadGraphVersion
@@ -110,6 +119,7 @@ classDiagram
         +TourStopStatus status
         +String incidentReason
         +Instant outcomeRecordedAt
+        +correctOutcome(status, quantities, incident, reason)
     }
 
     class StopDemand {
@@ -120,6 +130,17 @@ classDiagram
     class CollectedQuantity {
         +UUID id
         +BigDecimal actualQuantityKg
+    }
+
+    class OutcomeCorrection {
+        +UUID id
+        +Instant correctedAt
+        +String correctedBy
+        +String reason
+        +TourStopStatus previousStatus
+        +String previousIncidentReason
+        +TourStopStatus newStatus
+        +String newIncidentReason
     }
 
     class AppRole {
@@ -180,6 +201,7 @@ classDiagram
     WasteCategory "1" <-- "0..*" StopDemand : category
     TourStop "1" *-- "0..*" CollectedQuantity : actual quantities
     WasteCategory "1" <-- "0..*" CollectedQuantity : category
+    TourStop "1" *-- "0..*" OutcomeCorrection : corrections
     AppUser "0..1" <-- "0..*" TourStop : outcome recorded by
 ```
 
@@ -195,12 +217,15 @@ classDiagram
   `NOT_COLLECTED` requires an incident/reason. Both are terminal outcomes for completion.
 - `CANCELLED` is terminal and retains whatever stops/results existed when the draft, planned, or
   in-progress tour was cancelled. It is not a hard deletion.
+- A stop has zero or more corrections, oldest first. Corrections are allowed
+  only on recorded outcomes of `IN_PROGRESS`, `COMPLETED` or `CANCELLED` tours and never return a
+  stop to `PENDING`.
 
 ## 4. OCL constraints
 
 The following OCL uses association-end names implied by the diagram (`demands`, `stops`,
 `stopDemands`, `actualQuantities`, `vehicle`, `driver`, `collectors`, `agent`, and
-`outcomeRecordedBy`). These are design constraints to implement and test, not claims about code
+`outcomeRecordedBy`, `tour` and `corrections`). These are design constraints to implement and test, not claims about code
 that already exists.
 
 ### 4.1 Location, demand, and provenance
@@ -296,6 +321,13 @@ inv NotCollectedReasonRequired:
 inv PendingHasNoRecordedOutcome:
   status = TourStopStatus::PENDING implies
     (actualQuantities->isEmpty() and outcomeRecordedAt = null)
+
+context OutcomeCorrection
+inv CorrectionReasonGiven:
+  reason <> null and reason.size() > 0
+inv TerminalBeforeAndAfter:
+  (previousStatus = TourStopStatus::COLLECTED or previousStatus = TourStopStatus::NOT_COLLECTED) and
+  (newStatus = TourStopStatus::COLLECTED or newStatus = TourStopStatus::NOT_COLLECTED)
 ```
 
 ### 4.4 Lifecycle operations
@@ -347,7 +379,19 @@ pre NotAlreadyTerminal:
 pre ReasonGiven:
   reason <> null and reason.size() > 0
 post Cancelled:
-  status = TourStatus::CANCELLED and cancellationReason = reason
+  status = TourStatus::CANCELLED and cancellationReason = reason and
+  cancelledAt <> null and cancelledFromStatus = status@pre
+
+context TourStop::correctOutcome(newStatus : TourStopStatus, reason : String)
+pre RecordedOutcome:
+  status = TourStopStatus::COLLECTED or status = TourStopStatus::NOT_COLLECTED
+pre ExecutedTour:
+  tour.status = TourStatus::IN_PROGRESS or tour.status = TourStatus::COMPLETED or
+  tour.status = TourStatus::CANCELLED
+pre ReasonGiven:
+  reason <> null and reason.size() > 0
+post CorrectionRetained:
+  corrections->size() = corrections@pre->size() + 1 and status = newStatus
 ```
 
 `confirm()` and `start()` also require authorization and all resource/point validations described

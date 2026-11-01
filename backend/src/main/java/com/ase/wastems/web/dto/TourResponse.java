@@ -35,7 +35,13 @@ public record TourResponse(
         String completedBy,
         List<TourIssueResponse> startIssues,
         boolean readyToStart,
-        boolean readyToComplete) {
+        boolean readyToComplete,
+        String cancellationReason,
+        Instant cancelledAt,
+        String cancelledBy,
+        TourStatus cancelledFromStatus,
+        boolean cancellable,
+        boolean correctable) {
 
     public static TourResponse from(
             Tour t, List<TourIssue> confirmationIssues, List<TourIssue> startIssues) {
@@ -67,6 +73,12 @@ public record TourResponse(
                 t.getStatus() == TourStatus.PLANNED && startIssues.isEmpty(),
                 t.getStatus() == TourStatus.IN_PROGRESS
                         && !t.getStops().isEmpty()
-                        && t.completionIssues().isEmpty());
+                        && t.completionIssues().isEmpty(),
+                t.getCancellationReason(),
+                t.getCancelledAt(),
+                t.getCancelledBy(),
+                t.getCancelledFromStatus(),
+                t.isCancellable(),
+                t.isCorrectable());
     }
 }

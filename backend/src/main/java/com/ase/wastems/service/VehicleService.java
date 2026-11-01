@@ -1,5 +1,7 @@
 package com.ase.wastems.service;
 
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEntityType;
 import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.ResourceStatus;
 import com.ase.wastems.domain.Vehicle;
@@ -17,7 +19,10 @@ public class VehicleService {
 
     private final VehicleRepository vehicles;
 
-    public VehicleService(VehicleRepository vehicles) {
+    private final AuditService audit;
+
+    public VehicleService(VehicleRepository vehicles, AuditService audit) {
+        this.audit = audit;
         this.vehicles = vehicles;
     }
 
@@ -44,7 +49,9 @@ public class VehicleService {
         if (vehicles.existsByRegistration(reg)) {
             throw new ConflictException("Vehicle registration already exists: " + reg);
         }
-        return vehicles.save(new Vehicle(reg, capacityKg, DataOrigin.USER_ENTERED));
+        Vehicle saved = vehicles.save(new Vehicle(reg, capacityKg, DataOrigin.USER_ENTERED));
+        audit.record(AuditAction.VEHICLE_CREATED, AuditEntityType.VEHICLE, saved.getId(), describe(saved));
+        return saved;
     }
 
     /** Edits registration and capacity; the identifier never changes (US-13). */
@@ -58,6 +65,7 @@ public class VehicleService {
         }
         v.setRegistration(reg);
         v.setCapacityKg(capacityKg);
+        audit.record(AuditAction.VEHICLE_UPDATED, AuditEntityType.VEHICLE, v.getId(), describe(v));
         return v;
     }
 
@@ -65,6 +73,8 @@ public class VehicleService {
     public Vehicle setStatus(UUID id, ResourceStatus status) {
         Vehicle v = get(id);
         v.setStatus(status);
+        audit.record(
+                AuditAction.VEHICLE_STATUS_CHANGED, AuditEntityType.VEHICLE, v.getId(), status.name());
         return v;
     }
 
@@ -72,6 +82,10 @@ public class VehicleService {
     @Transactional(readOnly = true)
     public List<Vehicle> findUsable() {
         return list(ResourceStatus.AVAILABLE);
+    }
+
+    private static String describe(Vehicle v) {
+        return v.getRegistration() + ", capacity " + v.getCapacityKg().toPlainString() + " kg";
     }
 
     private static void requirePositive(BigDecimal capacityKg) {

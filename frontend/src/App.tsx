@@ -3,9 +3,11 @@ import { Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/shared/app-shell'
 import { RequireAuth, RequireRole } from '@/components/shared/require-auth'
 import AgentsPage from '@/pages/agents-page'
+import AuditLogPage from '@/pages/audit-log-page'
 import CollectionPointsPage from '@/pages/collection-points-page'
 import CategoriesPage from '@/pages/waste-categories-page'
 import DataImportPage from '@/pages/data-import-page'
+import HistoryPage from '@/pages/history-page'
 import HomePage from '@/pages/home-page'
 import LoginPage from '@/pages/login-page'
 import MyTourPage from '@/pages/my-tour-page'
@@ -70,6 +72,14 @@ export default function App() {
           }
         />
         <Route
+          path="history"
+          element={
+            <RequireRole role="PLANNER">
+              <HistoryPage />
+            </RequireRole>
+          }
+        />
+        <Route
           path="waste-categories"
           element={
             <RequireRole role="PLANNER">
@@ -98,6 +108,14 @@ export default function App() {
           element={
             <RequireRole role="ADMIN">
               <DataImportPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/audit"
+          element={
+            <RequireRole role="ADMIN">
+              <AuditLogPage />
             </RequireRole>
           }
         />

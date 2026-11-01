@@ -45,6 +45,7 @@ class Mn01ImportServiceTest {
     @Autowired private WasteCategoryRepository categories;
     @Autowired private SourceSnapshotRepository snapshots;
     @Autowired private ServiceAreaProperties area;
+    @Autowired private AuditService audit;
 
     @BeforeEach
     void setUp() {
@@ -237,7 +238,7 @@ class Mn01ImportServiceTest {
     @Test
     void lastReportIsEmptyBeforeAnyImport() {
         Mn01ImportService fresh =
-                new Mn01ImportService(points, depots, categories, snapshots, area);
+                new Mn01ImportService(points, depots, categories, snapshots, area, audit);
         assertTrue(fresh.lastReport().isEmpty());
         fresh.importAll(ImportTrigger.MANUAL);
         assertTrue(fresh.lastReport().isPresent());

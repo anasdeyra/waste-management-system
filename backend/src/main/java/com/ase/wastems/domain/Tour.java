@@ -33,7 +33,8 @@ import com.ase.wastems.optimization.PlanningMethod;
  * date, ordered stops with planned demand snapshots, vehicle, driver and up to two collectors.
  * The revision counts structural changes so later evaluations can prove they used identical
  * inputs. S6 adds the road-route reference (accepted or kept proposal) and the DRAFT to PLANNED
- * confirmation. S7 adds the execution (start, stop outcomes, completion).
+ * confirmation. S7 adds the execution (start, stop outcomes, completion). S8 adds the
+ * cancellation and the retained outcome corrections.
  */
 @Entity
 @Table(name = "tour")
@@ -112,6 +113,19 @@ public class Tour {
 
     @Column(name = "completed_by", length = 50)
     private String completedBy;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancelled_by", length = 50)
+    private String cancelledBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancelled_from_status", length = 20)
+    private TourStatus cancelledFromStatus;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -248,6 +262,66 @@ public class Tour {
 
     public String getCompletedBy() {
         return completedBy;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public Instant getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public String getCancelledBy() {
+        return cancelledBy;
+    }
+
+    public TourStatus getCancelledFromStatus() {
+        return cancelledFromStatus;
+    }
+
+    /** DRAFT, PLANNED or IN_PROGRESS (OCL Tour::cancel NotAlreadyTerminal). */
+    public boolean isCancellable() {
+        return status == TourStatus.DRAFT
+                || status == TourStatus.PLANNED
+                || status == TourStatus.IN_PROGRESS;
+    }
+
+    /** IN_PROGRESS, COMPLETED or CANCELLED: recorded outcomes may be corrected (US-31). */
+    public boolean isCorrectable() {
+        return status == TourStatus.IN_PROGRESS
+                || status == TourStatus.COMPLETED
+                || status == TourStatus.CANCELLED;
+    }
+
+    /** Not DRAFT, and not a cancelled draft: the crew sees only confirmed work (D-049). */
+    public boolean isVisibleToCrew() {
+        return status != TourStatus.DRAFT
+                && !(status == TourStatus.CANCELLED && cancelledFromStatus == TourStatus.DRAFT);
+    }
+
+    /**
+     * DRAFT/PLANNED/IN_PROGRESS -> CANCELLED (D-025, US-30). Keeps stops, outcomes, crew and route;
+     * pending stops stay PENDING.
+     */
+    public void cancel(String reason, Instant at, String by) {
+        if (!isCancellable()) {
+            throw new IllegalStateException(
+                    "Only a DRAFT, PLANNED or IN_PROGRESS tour can be cancelled.");
+        }
+        if (reason == null || reason.isBlank() || at == null || by == null) {
+            throw new IllegalArgumentException("A cancellation needs a reason, a time and an actor.");
+        }
+        cancelledFromStatus = status;
+        status = TourStatus.CANCELLED;
+        cancellationReason = reason.trim();
+        cancelledAt = at;
+        cancelledBy = by;
+    }
+
+    /** Number of corrections over all stops. */
+    public int correctionCount() {
+        return stops.stream().mapToInt(s -> s.getCorrections().size()).sum();
     }
 
     /** True iff the agent id is the driver's or one collector's. Null-safe. */

@@ -278,6 +278,29 @@ export interface CollectedQuantity {
   actualQuantityKg: number
 }
 
+/** web.dto.CorrectionQuantityResponse */
+export interface CorrectionQuantity {
+  categoryId: string
+  categoryName: string
+  quantityKg: number
+}
+
+/** web.dto.OutcomeCorrectionResponse (null fields are omitted) */
+export interface OutcomeCorrection {
+  id: string
+  correctedAt: string
+  correctedBy: string
+  reason: string
+  previousStatus: TourStopStatus
+  previousIncidentReason?: string
+  previousRecordedBy?: string
+  previousRecordedAt?: string
+  previousQuantities: CorrectionQuantity[]
+  newStatus: TourStopStatus
+  newIncidentReason?: string
+  newQuantities: CorrectionQuantity[]
+}
+
 /** web.dto.TourStopResponse (source fields are omitted when null) */
 export interface TourStop {
   id: string
@@ -299,6 +322,7 @@ export interface TourStop {
   outcomeRecordedBy?: string
   actualQuantities: CollectedQuantity[]
   actualTotalKg?: number
+  corrections: OutcomeCorrection[]
 }
 
 /** web.dto.TourCapacityResponse (vehicle fields are omitted when no vehicle is assigned) */
@@ -342,12 +366,31 @@ export interface Tour {
   startIssues: TourIssue[]
   readyToStart: boolean
   readyToComplete: boolean
+  cancellationReason?: string
+  cancelledAt?: string
+  cancelledBy?: string
+  cancelledFromStatus?: TourStatus
+  cancellable: boolean
+  correctable: boolean
+}
+
+/** web.dto.CancelTourRequest */
+export interface CancelTourRequest {
+  reason: string
 }
 
 /** web.dto.CollectedQuantityRequest */
 export interface CollectedQuantityRequest {
   categoryId: string
   actualQuantityKg: number
+}
+
+/** web.dto.OutcomeCorrectionRequest */
+export interface OutcomeCorrectionRequest {
+  status: 'COLLECTED' | 'NOT_COLLECTED'
+  quantities?: CollectedQuantityRequest[]
+  incidentReason?: string
+  reason: string
 }
 
 /** web.dto.StopOutcomeRequest */
@@ -379,6 +422,10 @@ export interface TourSummary {
   issueCount: number
   updatedAt: string
   routeMethod?: PlanningMethod
+  completedAt?: string
+  cancelledAt?: string
+  cancellationReason?: string
+  correctionCount: number
 }
 
 /** web.dto.TourRequest */
@@ -579,4 +626,80 @@ export interface DemoLoadReport {
   tours: DemoCount
   tourStates: DemoTourState[]
   warnings: string[]
+}
+
+/** domain.AuditAction (the catalogue is in D-049) */
+export type AuditAction =
+  | 'SIGN_IN'
+  | 'SIGN_OUT'
+  | 'USER_CREATED'
+  | 'USER_STATUS_CHANGED'
+  | 'CATEGORY_CREATED'
+  | 'CATEGORY_UPDATED'
+  | 'CATEGORY_STATUS_CHANGED'
+  | 'POINT_CREATED'
+  | 'POINT_UPDATED'
+  | 'POINT_STATUS_CHANGED'
+  | 'DEMAND_ADDED'
+  | 'DEMAND_UPDATED'
+  | 'DEMAND_REMOVED'
+  | 'VEHICLE_CREATED'
+  | 'VEHICLE_UPDATED'
+  | 'VEHICLE_STATUS_CHANGED'
+  | 'AGENT_CREATED'
+  | 'AGENT_UPDATED'
+  | 'AGENT_STATUS_CHANGED'
+  | 'AGENT_ACCOUNT_LINKED'
+  | 'AGENT_ACCOUNT_UNLINKED'
+  | 'DATA_IMPORTED'
+  | 'TOUR_CREATED'
+  | 'TOUR_UPDATED'
+  | 'TOUR_STOP_ADDED'
+  | 'TOUR_STOP_REMOVED'
+  | 'TOUR_STOPS_REORDERED'
+  | 'TOUR_ASSIGNED'
+  | 'TOUR_EVALUATED'
+  | 'PROPOSAL_ACCEPTED'
+  | 'PROPOSAL_REJECTED'
+  | 'TOUR_CONFIRMED'
+  | 'TOUR_STARTED'
+  | 'STOP_OUTCOME_RECORDED'
+  | 'TOUR_COMPLETED'
+  | 'TOUR_CANCELLED'
+  | 'STOP_OUTCOME_CORRECTED'
+  | 'DEMO_LOADED'
+
+/** domain.AuditEntityType */
+export type AuditEntityType =
+  | 'USER'
+  | 'WASTE_CATEGORY'
+  | 'COLLECTION_POINT'
+  | 'VEHICLE'
+  | 'AGENT'
+  | 'TOUR'
+  | 'DATA_IMPORT'
+  | 'DEMO_DATA'
+
+/** domain.AuditOutcome */
+export type AuditOutcome = 'SUCCESS' | 'FAILURE'
+
+/** web.dto.AuditEventResponse (null fields are omitted) */
+export interface AuditEvent {
+  id: string
+  occurredAt: string
+  actor: string
+  action: AuditAction
+  entityType?: AuditEntityType
+  entityId?: string
+  outcome: AuditOutcome
+  details?: string
+}
+
+/** web.dto.AuditEventPageResponse */
+export interface AuditEventPage {
+  items: AuditEvent[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
 }

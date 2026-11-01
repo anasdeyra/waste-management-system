@@ -11,7 +11,7 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
 completed artifacts from planned work.
 
-> **Current state: Sprint S7 delivered.** Session authentication with CSRF protection, the
+> **Current state: Sprint S8 delivered.** Session authentication with CSRF protection, the
 > ADMIN / PLANNER / AGENT roles, user administration, waste categories, collection points with
 > demand entries on a Leaflet/OpenStreetMap map (S2), and (S3) vehicles and operational agents
 > with availability, the ADMIN-only agent to AGENT-account link, and the idempotent import of
@@ -34,6 +34,11 @@ completed artifacts from planned work.
 > collected (reason), and completes the tour once every stop is resolved. A `dev` start loads a
 > reproducible MN01 demonstration (see §4.6). The real MN01 source extracts are under
 > `backend/src/main/resources/data/`.
+>
+> **Corrections, history and audit (S8):** planners cancel a draft, planned or in-progress tour with
+> a reason, correct a recorded stop outcome (the previous values are kept), and search the history
+> of completed and cancelled tours. Administrators search an append-only audit log of sign-ins
+> and data changes (`/admin/audit`).
 
 The real-city sources, included snapshots, map interactions, routing rules, and attribution
 are documented in [`docs/geospatial-data.md`](docs/geospatial-data.md). Traffic is a timestamped
@@ -262,6 +267,20 @@ curl -s -b $J "${H[@]}" -d '{"status":"NOT_COLLECTED","incidentReason":"Blocked 
 curl -s -b $J -X POST "${H[@]}" $B/api/tours/$TOUR_ID/completion            # 422 STOP_PENDING while a stop is pending
 ```
 
+Cancellation, corrections, history and the audit log (S8):
+
+```bash
+# cancel a tour with a reason (PLANNER/ADMIN; 409 when COMPLETED or CANCELLED)
+curl -s -b $J "${H[@]}" -d '{"reason":"Street fair on Broadway"}' $B/api/tours/$TOUR_ID/cancellation
+# correct a recorded stop outcome (PLANNER/ADMIN; the previous values are kept)
+curl -s -b $J "${H[@]}" -d "{\"status\":\"COLLECTED\",\"quantities\":[{\"categoryId\":\"$CATEGORY_ID\",\"actualQuantityKg\":18}],\"reason\":\"Weighbridge ticket\"}" \
+     $B/api/tours/$TOUR_ID/stops/$STOP_ID/corrections
+# history of completed and cancelled tours (filters: from, to, status, vehicleId, agentId, pointId)
+curl -s -b $J "$B/api/tours/history?status=COMPLETED"
+# audit log (ADMIN; filters: from, to (UTC, ISO-8601 with Z), actor, action, entityType, entityId, outcome, page, size)
+curl -s -b $J "$B/api/admin/audit-events?action=SIGN_IN&outcome=FAILURE"
+```
+
 A draft that is not ready answers 422 (e.g. `OVER_CAPACITY`, `NO_VEHICLE`); an unroutable point or
 missing directed leg answers 201 with a retained run of status `ROUTING_FAILED`; a missing or
 corrupt road snapshot answers 503. Evaluation never
@@ -272,7 +291,7 @@ draft. There is no `DELETE /api/tours/{id}`.
 
 Collection points, depots, vehicles, agents and tours are available to PLANNER and ADMIN only; AGENT
 receives 403 **except** `/api/tours/mine…` and the start/outcome/completion endpoints, which are
-AGENT only and restricted to the tour's crew (403 otherwise). Linking agents to accounts (`/api/agents/{id}/user-account`) and the data import
+AGENT only and restricted to the tour's crew (403 otherwise). Cancellation, corrections and history are PLANNER/ADMIN; the audit log is ADMIN only. Linking agents to accounts (`/api/agents/{id}/user-account`) and the data import
 (`/api/admin/**`) are ADMIN only.
 
 ### 4.5 Map attribution
@@ -332,6 +351,18 @@ Dana Lopez (demo) has no login. Eli Novak (demo) and `DEMO-03` are unavailable.
    assigned to this tour."
 7. (Optional) as `planner`, deactivate a basket of a planned tour: the agent's *Start tour* is
    blocked with `INACTIVE_STOP` until it is reactivated.
+8. As `planner`, open the completed tour, *Correct* its not-collected stop (for example
+   Collected, Mixed litter 18 kg, reason "Weighbridge ticket"): the stop shows *Corrected* and the
+   previous values.
+9. As `planner`, open the planned tour and *Cancel tour* with a reason; `agent` sees it as
+   cancelled in *My tours*.
+10. As `planner`, open *History*: filter by status, vehicle, agent or collection point; the
+    corrected and the cancelled tours are listed.
+11. As `admin`, open *Audit log*: filter by action (`Outcome corrected`, `Sign-in` with outcome
+    `Failure`, …), actor or the tour id.
+
+The demo load itself is recorded as one `DEMO_LOADED` event (actor `system` at start-up); the tour
+steps it performs appear as their own events.
 
 On a database that already holds other data, the loader reuses existing names and skips what it
 cannot do (for example an `agent` account linked to another agent); the warnings are in the report
@@ -354,8 +385,8 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
 | 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
 | 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
-| 4 — Prototype | `backend/`, `frontend/` | S1–S7: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, three-method evaluation, review and confirmation, crew execution, MN01 demonstration |
-| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S7 executed, S8–S10 planned |
+| 4 — Prototype | `backend/`, `frontend/` | S1–S8: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, three-method evaluation, review and confirmation, crew execution, MN01 demonstration, cancellation, outcome corrections, operational history, audit log |
+| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S8 executed, S9–S10 planned |
 | 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
 | Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; point map implemented; routing to do |
 

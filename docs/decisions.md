@@ -846,3 +846,107 @@ artifacts, metrics, and presentation remain consistent.
   - The done-check ran unmodified (no `s7-done-check.orig.sh`): 191 `PASS` lines, `FAILS=0` on the first
     run. No plan API needed correction.
 
+
+## D-049 — S8 implementation conventions
+
+- **Date:** 2026-11-01
+- **Decision:**
+  - **Roles.** Cancel (US-30), correct (US-31) and history (US-32): PLANNER and ADMIN (D-027); agents
+    keep `/api/tours/mine`. The audit log (US-39, US-03) is ADMIN only. AGENT is refused all four with
+    403, anonymous gets 401. `SecurityConfig` has no new URL rule (the new tour endpoints fall under the
+    `/api/tours/**` PLANNER rule, `/api/admin/**` is ADMIN); it only gains a logout handler.
+  - **Audit model.** `AuditEvent` (table `audit_event`): UUID, `occurred_at` (UTC, milliseconds), `actor`
+    (at most 50), `action`, `entity_type`, `entity_id` (at most 80), `outcome` (`SUCCESS` or `FAILURE`),
+    `details` (at most 500). `@Immutable`, no setters, outside the D-033 class diagram. Immutability:
+    `AuditEventRepository` extends Spring Data `Repository` (not `CrudRepository`) and declares only
+    `save`, `findById`, `count`, `findAll` and the paged `search`; the API has two GETs, so PUT, PATCH,
+    DELETE and POST answer 405 for everyone.
+  - **Actor.** `AuditService.currentActor()` is the authenticated, non-anonymous principal name, else
+    `system` (start-up runners). Sign-in events use the attempted username (trimmed, lower-cased, cut to
+    50). The actor is a string, so deactivating or unlinking an account keeps its rows (US-05).
+  - **Hook point.** One service-level component, `AuditService`, called by the mutating service methods
+    right after the change succeeded and inside the same transaction: a refused request rolls back and
+    leaves no event. `record*` never throws (it truncates instead of validating), because an exception
+    would mark the surrounding transaction rollback-only. Exceptions: sign-in is recorded by
+    `AuthController` (failure in a `catch` that rethrows), sign-out by a `LogoutHandler`,
+    `EvaluationService.evaluate` inside the transaction that saves the run, `Mn01ImportService.importAll`
+    and `DemoDataService.load` one summary event per run. Only `AuthController` and `AuditEventController`
+    use `AuditService` in `web/`.
+  - **Outcomes and secrets.** `FAILURE` rows exist only for failed sign-ins and for retained
+    `ROUTING_FAILED` evaluation runs; refused data-change requests are not audited. Details never contain
+    a password, hash, CSRF token or session id (`USER_CREATED` names the username and role only; the demo
+    summary names counts only). Free-text reasons inside details are cut to 200 characters.
+  - **Catalogue (38 actions).** `SIGN_IN`, `SIGN_OUT`, `USER_CREATED`, `USER_STATUS_CHANGED`,
+    `CATEGORY_CREATED`, `CATEGORY_UPDATED`, `CATEGORY_STATUS_CHANGED`, `POINT_CREATED`, `POINT_UPDATED`,
+    `POINT_STATUS_CHANGED`, `DEMAND_ADDED`, `DEMAND_UPDATED`, `DEMAND_REMOVED`, `VEHICLE_CREATED`,
+    `VEHICLE_UPDATED`, `VEHICLE_STATUS_CHANGED`, `AGENT_CREATED`, `AGENT_UPDATED`, `AGENT_STATUS_CHANGED`,
+    `AGENT_ACCOUNT_LINKED`, `AGENT_ACCOUNT_UNLINKED`, `DATA_IMPORTED`, `TOUR_CREATED`, `TOUR_UPDATED`,
+    `TOUR_STOP_ADDED`, `TOUR_STOP_REMOVED`, `TOUR_STOPS_REORDERED`, `TOUR_ASSIGNED`, `TOUR_EVALUATED`,
+    `PROPOSAL_ACCEPTED`, `PROPOSAL_REJECTED`, `TOUR_CONFIRMED`, `TOUR_STARTED`, `STOP_OUTCOME_RECORDED`,
+    `TOUR_COMPLETED`, `TOUR_CANCELLED`, `STOP_OUTCOME_CORRECTED`, `DEMO_LOADED`. Entity types: `USER`,
+    `WASTE_CATEGORY`, `COLLECTION_POINT`, `VEHICLE`, `AGENT`, `TOUR`, `DATA_IMPORT`, `DEMO_DATA`. Stop-level
+    events use the tour as entity, so one filter returns a tour's whole trail. Link and unlink events are
+    written only when something changed. Details formats are in the service code (for example
+    `username <u>, role <ROLE>`, `from <STATUS>; <n> of <m> stops resolved; reason: <reason>`,
+    `correction <id> of stop <n> <point>: <PREV> -> <NEW>; reason: <reason>`).
+  - **Seeds, import and demo.** Start-up seeding of the dev accounts and map sample is not audited
+    (bootstrap). The MN01 import records `DATA_IMPORTED` per run; the demo load records one `DEMO_LOADED`
+    (counts only), and the tour steps it performs through the services are their own events (actor `system`
+    at start-up, the admin for `POST /api/admin/demo`).
+  - **Cancellation.** `POST /api/tours/{id}/cancellation` `{reason}` (`@NotBlank`, at most 500), 200 with the
+    tour. Rule order: 400, 404, 409 (`COMPLETED` or `CANCELLED`: "Only a DRAFT, PLANNED or IN_PROGRESS
+    tour can be cancelled; this tour is X."), 200. The tour keeps stops (pending stays `PENDING`),
+    outcomes, quantities, crew, vehicle and route, and records `cancellationReason`, `cancelledAt`,
+    `cancelledBy`, `cancelledFromStatus`; revision + 1; pessimistic lock. Every later edit, evaluation,
+    confirmation, start, outcome and completion answers 409; `DELETE` stays 405. The crew sees a cancelled
+    tour iff it had been confirmed (`cancelledFromStatus` `PLANNED` or `IN_PROGRESS`): `Tour.isVisibleToCrew()`
+    and `TourRepository.findAssignedTo` agree.
+  - **Correction.** `POST /api/tours/{id}/stops/{stopId}/corrections` `{status, quantities, incidentReason,
+    reason}` (same body rules as the S7 outcome plus a required reason of at most 500). Rule order: 400, 404
+    tour, 404 stop of another tour, 409 tour not `IN_PROGRESS`/`COMPLETED`/`CANCELLED`, 409 pending stop,
+    404 category, 422 duplicate category, 422 inactive category that is neither planned on the stop nor
+    already recorded, 422 nothing changes, 200. One `OutcomeCorrection` is appended with the previous and
+    the new status, incident text and quantities (category id, name at that time, kilograms), the
+    correcting user, UTC time and reason; the stop's `outcomeRecordedBy/At` keep the original recording;
+    corrections are never edited or deleted. Quantities are updated in place (kept categories), removed
+    (dropped) or added (new): clearing and re-adding would hit the unique key because Hibernate flushes
+    inserts before deletes. Correction times are strictly increasing per stop so the order is stable.
+    `OutcomeQuantities` holds the category rules shared with outcome recording.
+  - **History.** `GET /api/tours/history?from&to&status&vehicleId&agentId&pointId`: only `COMPLETED` and
+    `CANCELLED` tours; `from`/`to` inclusive on the planning date; `agentId` matches the driver or a
+    collector; `pointId` matches any stop; order planning date desc, terminal time desc, creation desc.
+    400: `status` other than `COMPLETED`/`CANCELLED` (field `status`), `from` after `to` (field `to`),
+    malformed date or uuid. The detail is the existing `GET /api/tours/{id}`; no reopen, no delete. The
+    literal mapping wins over `/{id}`.
+  - **Audit search.** `GET /api/admin/audit-events?from&to&actor&action&entityType&entityId&outcome&page&size`
+    (`from` inclusive, `to` exclusive, ISO-8601 instants with `Z`; `actor` exact after trim and lower-case;
+    page from 0, size 1…200, default 50; newest first) and `GET /api/admin/audit-events/{id}`. 400 for
+    unknown enums, malformed instants, `from` not before `to` (field `to`), `page` < 0, `size` out of range.
+    The null-tolerant JPQL variant worked with a null `Instant` parameter, so the sentinel fallback was not
+    needed.
+  - **Schema.** All new `tour` columns are nullable; new tables `outcome_correction`,
+    `outcome_correction_previous_quantity`, `outcome_correction_new_quantity` and `audit_event`, so
+    `ddl-auto: update` upgrades an S7 database in place (verified from the S7 jar and on a copy of the
+    owner's database file).
+  - **Frontend (D-020, D-040).** Cancellation card and dialog, cancellation facts, a *Correct* dialog per
+    recorded stop, corrections under each stop (planner and agent), a cancelled notice for the crew, the
+    `/history` page (PLANNER) and the `/admin/audit` page (ADMIN); verified by build, lint, bundle strings and
+    proxy checks only.
+- **Rationale:** One hook inside the change transaction makes the log exactly as truthful as the data
+  (no event without a committed change, none missing), keeps controllers free of audit code and keeps
+  `record` unable to poison a transaction. An append-only repository type plus a GET-only API makes
+  immutability structural rather than a convention. Retaining previous values in a dedicated entity keeps
+  corrections traceable (US-31) without making history editable.
+- **Deviations from the plan.**
+  - The commit trailer is `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`, as the executing
+    environment instructs (the plan named another model as a fallback).
+  - `TourStop.correctOutcome` makes the correction time strictly increasing per stop (the plan only said
+    `correctedAt ASC`), so two corrections in the same millisecond keep their order.
+  - `Mn01ImportServiceTest` built `Mn01ImportService` directly and was updated for the new constructor
+    parameter (anticipated by the plan's constructor risk).
+  - The T8 and T9 frontend commits share `App.tsx`, `app-shell.tsx` and `home-page.tsx`; the audit
+    parts were held back from the T8 commit so each commit builds.
+  - `TourStopList` now takes the whole `tour` instead of `stops` and `tourStatus`, because the correction
+    dialog needs `tour.correctable`.
+  - The done-check ran unmodified: 173 `PASS` lines, `FAILS=0` on the first run, no
+    `s8-done-check.orig.sh`.

@@ -146,6 +146,7 @@ public class DemoDataService {
     private final EvaluationService evaluationService;
     private final TourExecutionService executionService;
     private final PasswordEncoder encoder;
+    private final AuditService audit;
     private final TransactionTemplate tx;
     private volatile DemoLoadReport last;
 
@@ -164,7 +165,9 @@ public class DemoDataService {
             EvaluationService evaluationService,
             TourExecutionService executionService,
             PasswordEncoder encoder,
+            AuditService audit,
             PlatformTransactionManager txManager) {
+        this.audit = audit;
         this.props = props;
         this.records = records;
         this.categories = categories;
@@ -242,6 +245,25 @@ public class DemoDataService {
                 cats.toCount(), demands.toCount(), vehs.toCount(), accts.toCount(), ags.toCount(), trs.toCount(),
                 List.copyOf(states), List.copyOf(warnings));
         last = report;
+        audit.record(
+                com.ase.wastems.domain.AuditAction.DEMO_LOADED,
+                com.ase.wastems.domain.AuditEntityType.DEMO_DATA,
+                null,
+                trigger
+                        + ": created categories "
+                        + cats.created
+                        + ", demand entries "
+                        + demands.created
+                        + ", vehicles "
+                        + vehs.created
+                        + ", accounts "
+                        + accts.created
+                        + ", agents "
+                        + ags.created
+                        + ", tours "
+                        + trs.created
+                        + "; warnings "
+                        + warnings.size());
         LOG.info("Demo load ({}): categories created={}, existing={}; demand entries created={}, existing={};"
                         + " vehicles created={}, existing={}; accounts created={}, existing={}; agents created={},"
                         + " existing={}; tours created={}, existing={}; warnings={}",

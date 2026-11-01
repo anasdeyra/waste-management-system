@@ -2,6 +2,9 @@ package com.ase.wastems.service;
 
 import com.ase.wastems.domain.Agent;
 import com.ase.wastems.domain.AppUser;
+import com.ase.wastems.domain.AuditAction;
+import com.ase.wastems.domain.AuditEntityType;
+import com.ase.wastems.domain.CollectedQuantity;
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.StopDemand;
 import com.ase.wastems.domain.TourIssue;
@@ -31,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Execution of tours by their assigned crew (S7, D-027, D-031): the crew's own tours, start,
  * stop outcomes and completion. A caller is a crew member iff its account is linked to the
- * tour's driver or one of its collectors; drafts are invisible to the crew.
+ * tour's driver or one of its collectors; drafts and cancelled drafts are invisible to the crew.
  */
 @Service
 public class TourExecutionService {
@@ -44,9 +47,12 @@ public class TourExecutionService {
     private final AgentRepository agents;
     private final WasteCategoryRepository categories;
     private final TourService tourService;
+    private final AuditService audit;
 
     public TourExecutionService(TourRepository tours, AppUserRepository users, AgentRepository agents,
-            WasteCategoryRepository categories, TourService tourService) {
+            WasteCategoryRepository categories, TourService tourService,
+            AuditService audit) {
+        this.audit = audit;
         this.tours = tours;
         this.users = users;
         this.agents = agents;
@@ -64,7 +70,7 @@ public class TourExecutionService {
         };
     }
 
-    /** Tours whose crew contains the caller's linked agent, excluding drafts; empty when unlinked. */
+    /** Tours whose crew contains the caller's linked agent, excluding drafts and cancelled drafts; empty when unlinked. */
     @Transactional(readOnly = true)
     public List<Tour> listAssigned(String username, TourStatus status) {
         Optional<Agent> agent = users.findByUsername(username).flatMap(agents::findByUserAccount);
@@ -102,6 +108,11 @@ public class TourExecutionService {
         }
         tour.start(now(), username);
         tour.touch();
+        audit.record(
+                AuditAction.TOUR_STARTED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "IN_PROGRESS, started by " + username);
         return TourService.initialized(tour);
     }
 
@@ -130,7 +141,29 @@ public class TourExecutionService {
         }
         tour.touch();
         tours.flush();
+        String prefix = "stop " + stop.getVisitOrder() + " " + stop.getCollectionPoint().getName() + ": ";
+        audit.record(
+                AuditAction.STOP_OUTCOME_RECORDED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                (cmd.status() == TourStopStatus.COLLECTED
+                                ? prefix + "COLLECTED " + describeQuantities(stop)
+                                : prefix
+                                        + "NOT_COLLECTED ("
+                                        + AuditService.brief(stop.getIncidentReason())
+                                        + ")")
+                        + " by "
+                        + username);
         return TourService.initialized(tour);
+    }
+
+    /** Actual quantities as {@code Name 10.00 kg, ...}, sorted by category name. */
+    static String describeQuantities(TourStop stop) {
+        return stop.getActualQuantities().stream()
+                .sorted(Comparator.comparing(
+                        (CollectedQuantity q) -> q.getCategory().getName(), String.CASE_INSENSITIVE_ORDER))
+                .map(q -> q.getCategory().getName() + " " + q.getActualQuantityKg().toPlainString() + " kg")
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     private Map<WasteCategory, BigDecimal> resolveQuantities(TourStop stop, StopOutcomeCommand cmd) {
@@ -138,27 +171,7 @@ public class TourExecutionService {
         for (StopDemand d : stop.getStopDemands()) {
             planned.add(d.getCategory().getId());
         }
-        Map<WasteCategory, BigDecimal> resolved = new LinkedHashMap<>();
-        Set<UUID> seen = new HashSet<>();
-        List<WasteCategory> found = new ArrayList<>();
-        for (StopOutcomeCommand.QuantityInput q : cmd.quantities()) {
-            WasteCategory c = categories.findById(q.categoryId()).orElseThrow(
-                    () -> new NotFoundException("Waste category not found: " + q.categoryId()));
-            found.add(c);
-        }
-        for (WasteCategory c : found) {
-            if (!seen.add(c.getId())) {
-                throw new BusinessRuleException("Each waste category may appear only once.");
-            }
-        }
-        for (int i = 0; i < found.size(); i++) {
-            WasteCategory c = found.get(i);
-            if (!c.isActive() && !planned.contains(c.getId())) {
-                throw new BusinessRuleException("Waste category " + c.getName() + " is inactive.");
-            }
-            resolved.put(c, cmd.quantities().get(i).quantityKg());
-        }
-        return resolved;
+        return OutcomeQuantities.resolve(categories, cmd.quantities(), planned);
     }
 
     /** IN_PROGRESS to COMPLETED when every stop is terminal (US-29). */
@@ -175,6 +188,19 @@ public class TourExecutionService {
         }
         tour.complete(now(), username);
         tour.touch();
+        long collected =
+                tour.getStops().stream().filter(x -> x.getStatus() == TourStopStatus.COLLECTED).count();
+        audit.record(
+                AuditAction.TOUR_COMPLETED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "COMPLETED by "
+                        + username
+                        + "; "
+                        + collected
+                        + " collected, "
+                        + (tour.getStops().size() - collected)
+                        + " not collected");
         return TourService.initialized(tour);
     }
 
@@ -197,7 +223,7 @@ public class TourExecutionService {
     Tour visibleTour(Tour tour, String username) {
         Agent agent = agents.findByUserAccount(caller(username))
                 .orElseThrow(() -> new ForbiddenException(NOT_LINKED));
-        if (tour.isDraft() || !tour.isCrewMember(agent.getId())) {
+        if (!tour.isVisibleToCrew() || !tour.isCrewMember(agent.getId())) {
             throw new ForbiddenException(NOT_ASSIGNED);
         }
         return tour;

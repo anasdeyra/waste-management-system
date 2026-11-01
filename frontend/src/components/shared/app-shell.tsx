@@ -47,6 +47,11 @@ export function AppShell() {
               </NavLink>
             )}
             {hasRole(user, 'PLANNER') && (
+              <NavLink to="/history" className={navClass}>
+                History
+              </NavLink>
+            )}
+            {hasRole(user, 'PLANNER') && (
               <NavLink to="/waste-categories" className={navClass}>
                 Waste categories
               </NavLink>
@@ -69,6 +74,11 @@ export function AppShell() {
             {hasRole(user, 'ADMIN') && (
               <NavLink to="/admin/data-import" className={navClass}>
                 Data import
+              </NavLink>
+            )}
+            {hasRole(user, 'ADMIN') && (
+              <NavLink to="/admin/audit" className={navClass}>
+                Audit log
               </NavLink>
             )}
           </nav>

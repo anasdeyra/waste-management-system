@@ -1,3 +1,5 @@
+import { StopCorrections } from '@/components/execution/stop-corrections'
+import { Badge } from '@/components/ui/badge'
 import type { TourStop } from '@/types/api'
 
 /** One line with the recorded outcome of a terminal stop; nothing for a pending stop. */
@@ -16,6 +18,12 @@ export function StopOutcomeSummary({ stop }: { stop: TourStop }) {
     <div className="text-xs">
       {parts.join(' — ')}
       {by && <span className="ml-1 text-muted-foreground">{by}</span>}
+      {stop.corrections.length > 0 && (
+        <Badge variant="outline" className="ml-2">
+          Corrected
+        </Badge>
+      )}
+      <StopCorrections stop={stop} />
     </div>
   )
 }

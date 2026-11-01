@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 import com.ase.wastems.optimization.PlanningMethod;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** Plain unit tests of the tour draft domain rules (no Spring). */
@@ -23,8 +25,16 @@ class TourTest {
 
     private final WasteCategory paper = new WasteCategory("Paper", null);
     private final WasteCategory glass = new WasteCategory("Glass", null);
+    private final WasteCategory metal = new WasteCategory("Metal", null);
     private final Depot depot =
             new Depot("MN01G", -74.0104, 40.7255, DataOrigin.IMPORTED_REAL, "xw3j-2yxf", "MN01G");
+
+    @BeforeEach
+    void giveCategoriesIds() {
+        for (WasteCategory c : List.of(paper, glass, metal)) {
+            ReflectionTestUtils.setField(c, "id", UUID.randomUUID());
+        }
+    }
 
     private Tour newTour() {
         return new Tour(LocalDate.now().plusDays(1), depot, DataOrigin.USER_ENTERED);
@@ -430,5 +440,180 @@ class TourTest {
         assertEquals(0, t.terminalStopCount());
         t.getStops().get(0).recordNotCollected("Blocked", actor, now);
         assertEquals(1, t.terminalStopCount());
+    }
+
+    private Tour completedTourWithQuantities() {
+        Tour t = startedTour();
+        Map<WasteCategory, BigDecimal> m = new LinkedHashMap<>();
+        m.put(paper, new BigDecimal("10.00"));
+        m.put(glass, new BigDecimal("2.00"));
+        t.getStops().get(0).recordCollected(m, null, actor, now);
+        t.getStops().get(1).recordNotCollected("Blocked", actor, now);
+        t.complete(now, "agent2");
+        return t;
+    }
+
+    @Test
+    void cancelFromEachOpenState() {
+        Tour draft = newTour();
+        Instant at = Instant.now();
+        draft.cancel("  Road closed ", at, "planner1");
+        assertEquals(TourStatus.CANCELLED, draft.getStatus());
+        assertEquals("Road closed", draft.getCancellationReason());
+        assertEquals(at, draft.getCancelledAt());
+        assertEquals("planner1", draft.getCancelledBy());
+        assertEquals(TourStatus.DRAFT, draft.getCancelledFromStatus());
+        Tour planned = plannedTour();
+        planned.cancel("Road closed", at, "planner1");
+        assertEquals(TourStatus.PLANNED, planned.getCancelledFromStatus());
+        Tour started = startedTour();
+        started.cancel("Road closed", at, "planner1");
+        assertEquals(TourStatus.IN_PROGRESS, started.getCancelledFromStatus());
+        assertEquals(TourStatus.CANCELLED, started.getStatus());
+    }
+
+    @Test
+    void cancelRefusesTerminalToursAndBlankReason() {
+        Tour done = completedTourWithQuantities();
+        assertThrows(IllegalStateException.class, () -> done.cancel("x", now, "planner1"));
+        Tour cancelled = newTour();
+        cancelled.cancel("x", now, "planner1");
+        assertThrows(IllegalStateException.class, () -> cancelled.cancel("y", now, "planner1"));
+        Tour t = plannedTour();
+        assertThrows(IllegalArgumentException.class, () -> t.cancel("   ", now, "planner1"));
+        assertEquals(TourStatus.PLANNED, t.getStatus());
+        assertNull(t.getCancelledFromStatus());
+    }
+
+    @Test
+    void cancelKeepsStopsOutcomesAndRoute() {
+        Tour t = startedTour();
+        t.getStops().get(0).recordCollected(Map.of(paper, new BigDecimal("4.00")), null, actor, now);
+        t.cancel("Strike", now, "planner1");
+        assertEquals(TourStopStatus.COLLECTED, t.getStops().get(0).getStatus());
+        assertEquals(1, t.getStops().get(0).getActualQuantities().size());
+        assertEquals(TourStopStatus.PENDING, t.getStops().get(1).getStatus());
+        assertTrue(t.hasRoute());
+        assertEquals(dana, t.getDriver());
+        assertEquals(List.of(eli), t.getCollectors());
+    }
+
+    @Test
+    void crewVisibilityExcludesDraftsAndCancelledDrafts() {
+        assertFalse(newTour().isVisibleToCrew());
+        assertTrue(plannedTour().isVisibleToCrew());
+        Tour cancelledDraft = newTour();
+        cancelledDraft.cancel("x", now, "planner1");
+        assertFalse(cancelledDraft.isVisibleToCrew());
+        Tour cancelledPlanned = plannedTour();
+        cancelledPlanned.cancel("x", now, "planner1");
+        assertTrue(cancelledPlanned.isVisibleToCrew());
+        assertTrue(completedTourWithQuantities().isVisibleToCrew());
+        // cancellable / correctable truth table
+        Tour d = newTour();
+        assertTrue(d.isCancellable());
+        assertFalse(d.isCorrectable());
+        Tour p = plannedTour();
+        assertTrue(p.isCancellable());
+        assertFalse(p.isCorrectable());
+        Tour ip = startedTour();
+        assertTrue(ip.isCancellable());
+        assertTrue(ip.isCorrectable());
+        Tour c = completedTourWithQuantities();
+        assertFalse(c.isCancellable());
+        assertTrue(c.isCorrectable());
+        assertFalse(cancelledPlanned.isCancellable());
+        assertTrue(cancelledPlanned.isCorrectable());
+    }
+
+    @Test
+    void correctOutcomeRetainsPreviousValues() {
+        Tour t = completedTourWithQuantities();
+        TourStop a = t.getStops().get(0);
+        Instant later = now.plusSeconds(60);
+        OutcomeCorrection c =
+                a.correctOutcome(TourStopStatus.NOT_COLLECTED, Map.of(), " Bin missing ", "Crew misreported",
+                        "planner1", later);
+        assertEquals(TourStopStatus.COLLECTED, c.getPreviousStatus());
+        assertEquals(List.of("Glass", "Paper"),
+                c.getPreviousQuantities().stream().map(CorrectionQuantity::getCategoryName).toList());
+        assertEquals(0, c.getPreviousQuantities().get(1).getQuantityKg().compareTo(new BigDecimal("10.00")));
+        assertEquals("agent1", c.getPreviousRecordedBy());
+        assertEquals(TourStopStatus.NOT_COLLECTED, c.getNewStatus());
+        assertEquals("Bin missing", c.getNewIncidentReason());
+        assertTrue(c.getNewQuantities().isEmpty());
+        assertEquals("Crew misreported", c.getReason());
+        assertEquals("planner1", c.getCorrectedBy());
+        assertEquals(TourStopStatus.NOT_COLLECTED, a.getStatus());
+        assertTrue(a.getActualQuantities().isEmpty());
+        assertSame(actor, a.getOutcomeRecordedBy());
+        assertEquals(now, a.getOutcomeRecordedAt());
+        assertEquals(1, a.getCorrections().size());
+        assertEquals(1, t.correctionCount());
+    }
+
+    @Test
+    void correctOutcomeUpdatesQuantitiesInPlace() {
+        Tour t = completedTourWithQuantities();
+        TourStop a = t.getStops().get(0);
+        CollectedQuantity paperQ = a.getActualQuantities().stream()
+                .filter(q -> q.getCategory() == paper).findFirst().orElseThrow();
+        Map<WasteCategory, BigDecimal> m = new LinkedHashMap<>();
+        m.put(paper, new BigDecimal("12.50"));
+        m.put(metal, new BigDecimal("1.00"));
+        OutcomeCorrection c = a.correctOutcome(TourStopStatus.COLLECTED, m, null, "Weighbridge", "planner1",
+                now.plusSeconds(1));
+        assertSame(paperQ, a.getActualQuantities().stream().filter(q -> q.getCategory() == paper).findFirst().orElseThrow());
+        assertEquals(0, paperQ.getActualQuantityKg().compareTo(new BigDecimal("12.50")));
+        assertEquals(2, a.getActualQuantities().size());
+        assertTrue(a.getActualQuantities().stream().noneMatch(q -> q.getCategory() == glass));
+        assertTrue(a.getActualQuantities().stream().anyMatch(q -> q.getCategory() == metal));
+        assertEquals(0, a.actualTotalKg().compareTo(new BigDecimal("13.50")));
+        assertEquals(List.of("Glass", "Paper"),
+                c.getPreviousQuantities().stream().map(CorrectionQuantity::getCategoryName).toList());
+        assertEquals(List.of("Metal", "Paper"),
+                c.getNewQuantities().stream().map(CorrectionQuantity::getCategoryName).toList());
+        assertEquals(0, c.getNewQuantities().get(1).getQuantityKg().compareTo(new BigDecimal("12.50")));
+    }
+
+    @Test
+    void correctionGuards() {
+        Tour planned = plannedTour();
+        TourStop ps = planned.getStops().get(0);
+        Map<WasteCategory, BigDecimal> ok = Map.of(paper, new BigDecimal("1"));
+        assertThrows(IllegalStateException.class,
+                () -> ps.correctOutcome(TourStopStatus.COLLECTED, ok, null, "r", "planner1", now));
+        Tour started = startedTour();
+        TourStop pending = started.getStops().get(0);
+        assertThrows(IllegalStateException.class,
+                () -> pending.correctOutcome(TourStopStatus.COLLECTED, ok, null, "r", "planner1", now));
+        Tour done = completedTourWithQuantities();
+        TourStop a = done.getStops().get(0);
+        assertThrows(IllegalArgumentException.class,
+                () -> a.correctOutcome(TourStopStatus.COLLECTED, ok, null, " ", "planner1", now));
+        assertThrows(IllegalArgumentException.class,
+                () -> a.correctOutcome(TourStopStatus.PENDING, ok, null, "r", "planner1", now));
+        assertThrows(IllegalArgumentException.class,
+                () -> a.correctOutcome(TourStopStatus.COLLECTED, Map.of(paper, new BigDecimal("-1")), null, "r",
+                        "planner1", now));
+        assertTrue(ps.getCorrections().isEmpty());
+        assertTrue(pending.getCorrections().isEmpty());
+        assertTrue(a.getCorrections().isEmpty());
+        assertEquals(2, a.getActualQuantities().size());
+    }
+
+    @Test
+    void hasOutcomeComparesStatusTextAndQuantities() {
+        Tour t = startedTour();
+        TourStop a = t.getStops().get(0);
+        a.recordCollected(Map.of(paper, new BigDecimal("10.00")), null, actor, now);
+        assertTrue(a.hasOutcome(TourStopStatus.COLLECTED, Map.of(paper, new BigDecimal("10.0")), "  "));
+        assertFalse(a.hasOutcome(TourStopStatus.COLLECTED, Map.of(paper, new BigDecimal("10.01")), null));
+        Map<WasteCategory, BigDecimal> extra = new LinkedHashMap<>();
+        extra.put(paper, new BigDecimal("10.00"));
+        extra.put(glass, BigDecimal.ZERO);
+        assertFalse(a.hasOutcome(TourStopStatus.COLLECTED, extra, null));
+        assertFalse(a.hasOutcome(TourStopStatus.COLLECTED, Map.of(paper, new BigDecimal("10.00")), "A note"));
+        assertFalse(a.hasOutcome(TourStopStatus.NOT_COLLECTED, Map.of(), "x"));
     }
 }

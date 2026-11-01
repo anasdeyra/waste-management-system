@@ -5,6 +5,11 @@ import com.ase.wastems.domain.TourStatus;
 import com.ase.wastems.domain.TourStop;
 import com.ase.wastems.service.TourService;
 import com.ase.wastems.web.dto.AddTourStopRequest;
+import com.ase.wastems.web.dto.CancelTourRequest;
+import com.ase.wastems.service.InvalidRequestException;
+import com.ase.wastems.service.StopOutcomeCommand;
+import com.ase.wastems.service.TourHistoryQuery;
+import com.ase.wastems.web.dto.OutcomeCorrectionRequest;
 import com.ase.wastems.web.dto.ProposalDecisionRequest;
 import com.ase.wastems.web.dto.ReorderTourStopsRequest;
 import com.ase.wastems.web.dto.TourAssignmentRequest;
@@ -57,6 +62,26 @@ public class TourController {
         return service.list(status, planningDate).stream().map(TourSummaryResponse::from).toList();
     }
 
+    /** Completed and cancelled tours (US-32); the literal mapping wins over {@code /{id}}. */
+    @GetMapping("/history")
+    public List<TourSummaryResponse> history(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) TourStatus status,
+            @RequestParam(required = false) UUID vehicleId,
+            @RequestParam(required = false) UUID agentId,
+            @RequestParam(required = false) UUID pointId) {
+        if (status != null && status != TourStatus.COMPLETED && status != TourStatus.CANCELLED) {
+            throw new InvalidRequestException("status", "must be COMPLETED or CANCELLED");
+        }
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new InvalidRequestException("to", "must not be before from");
+        }
+        return service.history(new TourHistoryQuery(from, to, status, vehicleId, agentId, pointId)).stream()
+                .map(TourSummaryResponse::from)
+                .toList();
+    }
+
     @PostMapping
     public ResponseEntity<TourResponse> create(@Valid @RequestBody TourRequest req) {
         Tour t = service.create(req.planningDate(), req.depotId());
@@ -102,6 +127,34 @@ public class TourController {
     @PostMapping("/{id}/confirmation")
     public TourResponse confirm(@PathVariable UUID id) {
         return respond(service.confirm(id));
+    }
+
+    @PostMapping("/{id}/cancellation")
+    public TourResponse cancel(
+            @PathVariable UUID id, @Valid @RequestBody CancelTourRequest req, Authentication auth) {
+        return respond(service.cancel(id, req.reason(), auth.getName()));
+    }
+
+    @PostMapping("/{id}/stops/{stopId}/corrections")
+    public TourResponse correctOutcome(
+            @PathVariable UUID id,
+            @PathVariable UUID stopId,
+            @Valid @RequestBody OutcomeCorrectionRequest req,
+            Authentication auth) {
+        req.validateOutcome();
+        List<StopOutcomeCommand.QuantityInput> q =
+                req.quantities() == null
+                        ? List.of()
+                        : req.quantities().stream()
+                                .map(x -> new StopOutcomeCommand.QuantityInput(x.categoryId(), x.actualQuantityKg()))
+                                .toList();
+        return respond(
+                service.correctOutcome(
+                        id,
+                        stopId,
+                        new StopOutcomeCommand(req.status(), q, req.incidentReason()),
+                        req.reason(),
+                        auth.getName()));
     }
 
     @PostMapping("/{id}/proposal-acceptances")

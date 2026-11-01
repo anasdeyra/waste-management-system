@@ -142,6 +142,12 @@ flowchart LR
 `POST /api/tours/{id}/completion` (AGENT role, crew only, D-048). UC20 is served by the `dev`
 start-up load and `POST /api/admin/demo`.
 
+**Implemented in S8.** UC17 is served by `POST /api/tours/{id}/cancellation`, UC18 by
+`POST /api/tours/{id}/stops/{stopId}/corrections` (PLANNER/ADMIN; the previous values are
+retained), UC19 by `GET /api/tours/history` plus the read-only tour detail, and UC25 by
+`GET /api/admin/audit-events` (ADMIN only). The audit events of §4 are recorded by one
+service-level component for every sign-in and data change (D-049).
+
 ## 4. Cross-cutting rules
 
 - Every protected use case includes server-side authentication and authorization; hiding a UI
