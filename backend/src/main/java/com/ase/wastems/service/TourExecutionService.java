@@ -34,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Execution of tours by their assigned crew (S7, D-027, D-031): the crew's own tours, start,
  * stop outcomes and completion. A caller is a crew member iff its account is linked to the
- * tour's driver or one of its collectors; drafts are invisible to the crew.
+ * tour's driver or one of its collectors; drafts and cancelled drafts are invisible to the crew.
  */
 @Service
 public class TourExecutionService {
@@ -70,7 +70,7 @@ public class TourExecutionService {
         };
     }
 
-    /** Tours whose crew contains the caller's linked agent, excluding drafts; empty when unlinked. */
+    /** Tours whose crew contains the caller's linked agent, excluding drafts and cancelled drafts; empty when unlinked. */
     @Transactional(readOnly = true)
     public List<Tour> listAssigned(String username, TourStatus status) {
         Optional<Agent> agent = users.findByUsername(username).flatMap(agents::findByUserAccount);
@@ -243,7 +243,7 @@ public class TourExecutionService {
     Tour visibleTour(Tour tour, String username) {
         Agent agent = agents.findByUserAccount(caller(username))
                 .orElseThrow(() -> new ForbiddenException(NOT_LINKED));
-        if (tour.isDraft() || !tour.isCrewMember(agent.getId())) {
+        if (!tour.isVisibleToCrew() || !tour.isCrewMember(agent.getId())) {
             throw new ForbiddenException(NOT_ASSIGNED);
         }
         return tour;

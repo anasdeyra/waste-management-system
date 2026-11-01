@@ -5,6 +5,7 @@ import com.ase.wastems.domain.TourStatus;
 import com.ase.wastems.domain.TourStop;
 import com.ase.wastems.service.TourService;
 import com.ase.wastems.web.dto.AddTourStopRequest;
+import com.ase.wastems.web.dto.CancelTourRequest;
 import com.ase.wastems.web.dto.ProposalDecisionRequest;
 import com.ase.wastems.web.dto.ReorderTourStopsRequest;
 import com.ase.wastems.web.dto.TourAssignmentRequest;
@@ -102,6 +103,12 @@ public class TourController {
     @PostMapping("/{id}/confirmation")
     public TourResponse confirm(@PathVariable UUID id) {
         return respond(service.confirm(id));
+    }
+
+    @PostMapping("/{id}/cancellation")
+    public TourResponse cancel(
+            @PathVariable UUID id, @Valid @RequestBody CancelTourRequest req, Authentication auth) {
+        return respond(service.cancel(id, req.reason(), auth.getName()));
     }
 
     @PostMapping("/{id}/proposal-acceptances")

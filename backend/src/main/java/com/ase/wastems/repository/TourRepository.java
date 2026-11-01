@@ -34,6 +34,8 @@ public interface TourRepository extends JpaRepository<Tour, UUID> {
               left join t.driver d
               left join t.collectors c
             where t.status <> com.ase.wastems.domain.TourStatus.DRAFT
+              and (t.cancelledFromStatus is null
+                   or t.cancelledFromStatus <> com.ase.wastems.domain.TourStatus.DRAFT)
               and (d.id = :agentId or c.id = :agentId)""")
     List<Tour> findAssignedTo(@Param("agentId") UUID agentId);
 }

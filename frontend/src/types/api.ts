@@ -342,6 +342,17 @@ export interface Tour {
   startIssues: TourIssue[]
   readyToStart: boolean
   readyToComplete: boolean
+  cancellationReason?: string
+  cancelledAt?: string
+  cancelledBy?: string
+  cancelledFromStatus?: TourStatus
+  cancellable: boolean
+  correctable: boolean
+}
+
+/** web.dto.CancelTourRequest */
+export interface CancelTourRequest {
+  reason: string
 }
 
 /** web.dto.CollectedQuantityRequest */

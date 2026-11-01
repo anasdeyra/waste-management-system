@@ -504,6 +504,29 @@ public class TourService {
         return Math.abs(lon1 - lon2) > 1e-9 || Math.abs(lat1 - lat2) > 1e-9;
     }
 
+    /** DRAFT/PLANNED/IN_PROGRESS -> CANCELLED with a reason (US-30); the record is kept. */
+    @Transactional
+    public Tour cancel(UUID tourId, String reason, String username) {
+        Tour tour = findForUpdate(tourId);
+        initialized(tour);
+        if (!tour.isCancellable()) {
+            throw new ConflictException(
+                    "Only a DRAFT, PLANNED or IN_PROGRESS tour can be cancelled; this tour is "
+                            + tour.getStatus() + ".");
+        }
+        int resolved = tour.terminalStopCount();
+        TourStatus from = tour.getStatus();
+        tour.cancel(reason, Instant.now().truncatedTo(ChronoUnit.MILLIS), username);
+        tour.touch();
+        audit.record(
+                AuditAction.TOUR_CANCELLED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "from " + from + "; " + resolved + " of " + tour.getStops().size()
+                        + " stops resolved; reason: " + AuditService.brief(tour.getCancellationReason()));
+        return initialized(tour);
+    }
+
     /** DRAFT -> PLANNED after full revalidation (US-25, D-025); 422 lists every blocking issue. */
     @Transactional
     public Tour confirm(UUID tourId) {
