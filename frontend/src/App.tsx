@@ -9,6 +9,8 @@ import DataImportPage from '@/pages/data-import-page'
 import HomePage from '@/pages/home-page'
 import LoginPage from '@/pages/login-page'
 import NotFoundPage from '@/pages/not-found-page'
+import TourPlannerPage from '@/pages/tour-planner-page'
+import ToursPage from '@/pages/tours-page'
 import UsersAdminPage from '@/pages/users-admin-page'
 import VehiclesPage from '@/pages/vehicles-page'
 
@@ -30,6 +32,22 @@ export default function App() {
           element={
             <RequireRole role="PLANNER">
               <CollectionPointsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="tours"
+          element={
+            <RequireRole role="PLANNER">
+              <ToursPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="tours/:id"
+          element={
+            <RequireRole role="PLANNER">
+              <TourPlannerPage />
             </RequireRole>
           }
         />

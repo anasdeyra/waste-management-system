@@ -234,3 +234,128 @@ export interface ImportReport {
   warnings: string[]
   snapshots: SourceSnapshot[]
 }
+
+// ---------------------------------------------------------------------------
+// Tours (S4)
+// ---------------------------------------------------------------------------
+
+/** domain.TourStatus */
+export type TourStatus = 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+
+/** domain.TourStopStatus */
+export type TourStopStatus = 'PENDING' | 'COLLECTED' | 'NOT_COLLECTED'
+
+/** domain.TourIssueCode */
+export type TourIssueCode =
+  | 'NO_STOPS'
+  | 'NO_VEHICLE'
+  | 'NO_DRIVER'
+  | 'VEHICLE_UNAVAILABLE'
+  | 'DRIVER_UNAVAILABLE'
+  | 'COLLECTOR_UNAVAILABLE'
+  | 'INACTIVE_STOP'
+  | 'INELIGIBLE_STOP'
+  | 'OVER_CAPACITY'
+
+/** web.dto.StopDemandResponse */
+export interface StopDemand {
+  id: string
+  categoryId: string
+  categoryName: string
+  plannedQuantityKg: number
+}
+
+/** web.dto.TourStopResponse (source fields are omitted when null) */
+export interface TourStop {
+  id: string
+  visitOrder: number
+  status: TourStopStatus
+  collectionPointId: string
+  name: string
+  longitude: number
+  latitude: number
+  pointStatus: CollectionPointStatus
+  optimizationEligible: boolean
+  sourceDataset?: string
+  sourceIdentifier?: string
+  sourceOwnershipType?: string
+  plannedDemands: StopDemand[]
+  plannedTotalKg: number
+}
+
+/** web.dto.TourCapacityResponse (vehicle fields are omitted when no vehicle is assigned) */
+export interface TourCapacity {
+  totalPlannedDemandKg: number
+  vehicleCapacityKg?: number
+  remainingKg?: number
+  overCapacity: boolean
+}
+
+/** web.dto.TourIssueResponse */
+export interface TourIssue {
+  code: TourIssueCode
+  message: string
+}
+
+/** web.dto.TourResponse (vehicle and driver are omitted when unassigned) */
+export interface Tour {
+  id: string
+  planningDate: string
+  status: TourStatus
+  origin: DataOrigin
+  revision: number
+  createdAt: string
+  updatedAt: string
+  depot: Depot
+  vehicle?: Vehicle
+  driver?: Agent
+  collectors: Agent[]
+  stops: TourStop[]
+  capacity: TourCapacity
+  structurallyValid: boolean
+  validationIssues: TourIssue[]
+}
+
+/** web.dto.TourSummaryResponse */
+export interface TourSummary {
+  id: string
+  planningDate: string
+  status: TourStatus
+  depotId: string
+  depotName: string
+  stopCount: number
+  totalPlannedDemandKg: number
+  vehicleId?: string
+  vehicleRegistration?: string
+  vehicleCapacityKg?: number
+  driverId?: string
+  driverName?: string
+  collectorCount: number
+  overCapacity: boolean
+  structurallyValid: boolean
+  issueCount: number
+  updatedAt: string
+}
+
+/** web.dto.TourRequest */
+export interface TourRequest {
+  planningDate: string
+  depotId: string
+}
+
+/** web.dto.AddTourStopRequest */
+export interface AddTourStopRequest {
+  collectionPointId: string
+}
+
+/** web.dto.ReorderTourStopsRequest */
+export interface ReorderTourStopsRequest {
+  stopIds: string[]
+}
+
+/** web.dto.TourAssignmentRequest */
+export interface TourAssignmentRequest {
+  vehicleId?: string
+  driverId?: string
+  collectorIds: string[]
+}
