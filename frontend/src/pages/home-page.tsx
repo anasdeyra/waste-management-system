@@ -4,8 +4,10 @@ import { useCurrentUser } from '@/hooks/use-auth'
 import type { AppRole } from '@/types/api'
 
 const roleText: Record<AppRole, string> = {
-  ADMIN: 'You can manage user accounts and waste categories.',
-  PLANNER: 'Planning features arrive in later sprints. You can browse waste categories.',
+  ADMIN:
+    'You can manage user accounts, waste categories, collection points, vehicles and agents, and run the MN01 data import.',
+  PLANNER:
+    'You can manage collection points, vehicles and agents. Tour planning arrives in a later sprint.',
   AGENT: 'Your assigned tours will appear here in a later sprint.',
 }
 

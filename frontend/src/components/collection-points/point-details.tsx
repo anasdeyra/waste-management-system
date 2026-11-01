@@ -47,6 +47,8 @@ export function PointDetails({
           <dd>{point.sourceIdentifier ?? '—'}</dd>
           <dt className="text-muted-foreground">Source ownership type</dt>
           <dd>{point.sourceOwnershipType ?? '—'}</dd>
+          <dt className="text-muted-foreground">Optimization eligible</dt>
+          <dd>{point.optimizationEligible ? 'Yes' : 'No (non-DSNY source type or inactive)'}</dd>
           <dt className="text-muted-foreground">Longitude</dt>
           <dd>{point.longitude.toFixed(6)}</dd>
           <dt className="text-muted-foreground">Latitude</dt>

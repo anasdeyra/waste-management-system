@@ -61,6 +61,24 @@ export function PointFiltersBar({
           </SelectContent>
         </Select>
       </div>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="filter-eligibility">Planning eligibility</Label>
+        <Select
+          value={filters.eligible === undefined ? ALL : String(filters.eligible)}
+          onValueChange={(v) =>
+            onChange({ ...filters, eligible: v === ALL ? undefined : v === 'true' })
+          }
+        >
+          <SelectTrigger id="filter-eligibility" className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All</SelectItem>
+            <SelectItem value="true">Eligible</SelectItem>
+            <SelectItem value="false">Not eligible</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   )
 }
