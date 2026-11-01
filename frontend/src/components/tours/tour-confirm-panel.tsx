@@ -32,8 +32,7 @@ export function TourConfirmPanel({ tour }: { tour: Tour }) {
         <Alert>
           <AlertTitle>{STATUS_LABELS[tour.status]}</AlertTitle>
           <AlertDescription>
-            Stops, order and crew are locked (US-25). Cancellation arrives with history in a later
-            sprint.
+            Stops, order and crew are locked. Cancellation and corrections arrive with history in a later sprint.
           </AlertDescription>
         </Alert>
         {route && (

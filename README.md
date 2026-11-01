@@ -11,7 +11,7 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
 completed artifacts from planned work.
 
-> **Current state: Sprint S6 delivered.** Session authentication with CSRF protection, the
+> **Current state: Sprint S7 delivered.** Session authentication with CSRF protection, the
 > ADMIN / PLANNER / AGENT roles, user administration, waste categories, collection points with
 > demand entries on a Leaflet/OpenStreetMap map (S2), and (S3) vehicles and operational agents
 > with availability, the ADMIN-only agent to AGENT-account link, and the idempotent import of
@@ -28,7 +28,11 @@ completed artifacts from planned work.
 > indicator table. The planner accepts the NN + 2-opt proposal or keeps the input order, which
 > is refused when stale, and confirms a fully revalidated draft as `PLANNED`, which locks its
 > structure.
-> Tour execution is not implemented yet. The real MN01 source extracts are under
+> **Execution and demonstration (S7):** an assigned agent sees only their own planned,
+> in-progress and completed tours, starts a planned tour after a revalidation (availability,
+> active points, current route), records each stop as collected (quantities by category) or not
+> collected (reason), and completes the tour once every stop is resolved. A `dev` start loads a
+> reproducible MN01 demonstration (see §4.6). The real MN01 source extracts are under
 > `backend/src/main/resources/data/`.
 
 The real-city sources, included snapshots, map interactions, routing rules, and attribution
@@ -138,6 +142,11 @@ The API listens on <http://localhost:8080>. It starts with the `dev` Spring prof
 | `admin` | `admin123` | ADMIN |
 | `planner` | `planner123` | PLANNER |
 | `agent` | `agent123` | AGENT |
+| `collector` | `collector123` | AGENT (demo) |
+| `agent2` | `agent2123` | AGENT (demo) |
+
+`collector` and `agent2` are created by the demonstration load (§4.6); `agent` is linked to the
+demo agent *Alex Rivera (demo)*.
 
 These are **development credentials only: change or remove them for any shared deployment.**
 The `dev` profile also seeds a small map sample, idempotently: two demo waste categories
@@ -239,6 +248,20 @@ curl -s -b $J "${H[@]}" -d "{\"evaluationRunId\":\"$RUN_ID\"}" $B/api/tours/$TOU
 curl -s -b $J -X POST "${H[@]}" $B/api/tours/$TOUR_ID/confirmation
 ```
 
+Execution by the assigned crew (AGENT):
+
+```bash
+# as an AGENT (log in as agent/agent123 first): assigned tours, detail, start, outcome, completion
+curl -s -b $J $B/api/tours/mine
+curl -s -b $J $B/api/tours/mine/$TOUR_ID
+curl -s -b $J -X POST "${H[@]}" $B/api/tours/$TOUR_ID/start                 # 422 lists start issues
+curl -s -b $J "${H[@]}" -d "{\"status\":\"COLLECTED\",\"quantities\":[{\"categoryId\":\"$CATEGORY_ID\",\"actualQuantityKg\":12.5}]}" \
+     $B/api/tours/$TOUR_ID/stops/$STOP_ID/outcome
+curl -s -b $J "${H[@]}" -d '{"status":"NOT_COLLECTED","incidentReason":"Blocked by a parked truck"}' \
+     $B/api/tours/$TOUR_ID/stops/$STOP_ID/outcome
+curl -s -b $J -X POST "${H[@]}" $B/api/tours/$TOUR_ID/completion            # 422 STOP_PENDING while a stop is pending
+```
+
 A draft that is not ready answers 422 (e.g. `OVER_CAPACITY`, `NO_VEHICLE`); an unroutable point or
 missing directed leg answers 201 with a retained run of status `ROUTING_FAILED`; a missing or
 corrupt road snapshot answers 503. Evaluation never
@@ -248,7 +271,8 @@ Over-capacity is reported (`capacity.overCapacity`, issue `OVER_CAPACITY`), not 
 draft. There is no `DELETE /api/tours/{id}`.
 
 Collection points, depots, vehicles, agents and tours are available to PLANNER and ADMIN only; AGENT
-receives 403. Linking agents to accounts (`/api/agents/{id}/user-account`) and the data import
+receives 403 **except** `/api/tours/mine…` and the start/outcome/completion endpoints, which are
+AGENT only and restricted to the tour's crew (403 otherwise). Linking agents to accounts (`/api/agents/{id}/user-account`) and the data import
 (`/api/admin/**`) are ADMIN only.
 
 ### 4.5 Map attribution
@@ -257,6 +281,61 @@ Base-map tiles come from OpenStreetMap and are shown with the required
 "© OpenStreetMap contributors" attribution. Depot and basket locations come from NYC Open Data
 (DSNY); see [`docs/geospatial-data.md`](docs/geospatial-data.md). Road routing uses an
 OpenStreetMap extract (© OpenStreetMap contributors, ODbL).
+
+### 4.6 Try the demo
+
+**What is loaded and how.** The `dev` start (the default) loads the demonstration automatically
+after the MN01 import. An ADMIN can reload it from *Data import → Demonstration data → Load
+demonstration data* or with `curl -s -b $J -X POST -H "X-XSRF-TOKEN: $X" $B/api/admin/demo`
+(report: `GET /api/admin/demo/report`). Loading again never duplicates anything and never resets
+progress made in the UI. `--wastems.demo.enabled=false` skips it. Delete `backend/data/` to
+start from scratch (stop the backend first).
+
+**Real versus synthetic.**
+
+| Real | Synthetic (`origin` `SYNTHETIC`) |
+|---|---|
+| The 449 MN01 basket locations and the MN01G garage (NYC Open Data, source ids kept) | Every demand quantity, the categories `Recyclables` and `Organics`, vehicles `DEMO-01…03`, the five agents named `… (demo)`, the demo accounts, the four tours and every collection outcome (reasons end with "(synthetic demo outcome)") |
+
+**Accounts.**
+
+| Username / password | Role | Linked agent |
+|---|---|---|
+| `admin` / `admin123` | ADMIN | |
+| `planner` / `planner123` | PLANNER | |
+| `agent` / `agent123` | AGENT | Alex Rivera (demo), driver |
+| `collector` / `collector123` | AGENT | Blair Chen (demo) |
+| `agent2` / `agent2123` | AGENT | Casey Morgan (demo) |
+
+Dana Lopez (demo) has no login. Eli Novak (demo) and `DEMO-03` are unavailable.
+
+**Tours** (dates are the day of the first load):
+
+| Tour | State | Vehicle and crew | Stops | Road route |
+|---|---|---|---|---|
+| draft | `DRAFT` | DEMO-01, Alex + Blair | 8 baskets | evaluated (input order 11.74 km, NN 10.21 km, NN + 2-opt 7.47 km), not yet decided |
+| planned | `PLANNED` | DEMO-01, Alex + Blair | 5 baskets | NN + 2-opt, 2.39 km |
+| in-progress | `IN_PROGRESS` | DEMO-02, Alex + Casey + Dana | 5 baskets, stop 1 collected, stop 2 not collected | 2.75 km |
+| completed | `COMPLETED` | DEMO-02, Casey + Alex | 4 baskets, 3 collected and 1 not collected | 6.11 km |
+
+**What to click.**
+
+1. Sign in as `planner`, open *Tours*: four tours with the `Synthetic demo` badge, one per state.
+2. Open the draft, *Route evaluation*: compare the three routes; *Accept NN + 2-opt proposal*, then
+   *Confirm as planned*.
+3. Open the in-progress tour: the map colours stops by state and the *Execution* card shows the
+   progress.
+4. Sign out; sign in as `agent`, *My tours*: three tours (the draft is not visible).
+5. Open the planned tour, *Start tour*; for each stop *Record outcome* (Collected with quantities,
+   or Not collected with a reason); then *Complete tour*.
+6. Sign in as `agent2`, *My tours*: the planned tour is absent; its URL answers "You are not
+   assigned to this tour."
+7. (Optional) as `planner`, deactivate a basket of a planned tour: the agent's *Start tour* is
+   blocked with `INACTIVE_STOP` until it is reactivated.
+
+On a database that already holds other data, the loader reuses existing names and skips what it
+cannot do (for example an `agent` account linked to another agent); the warnings are in the report
+and the log (`Demo load warning:`).
 
 ## 5. Tests and metrics
 
@@ -275,8 +354,8 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
 | 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
 | 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
-| 4 — Prototype | `backend/`, `frontend/` | S1–S4: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts (stops, order, crew, capacity) |
-| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S4 executed, S5–S10 planned |
+| 4 — Prototype | `backend/`, `frontend/` | S1–S7: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, three-method evaluation, review and confirmation, crew execution, MN01 demonstration |
+| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S7 executed, S8–S10 planned |
 | 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
 | Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; point map implemented; routing to do |
 

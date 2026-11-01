@@ -137,6 +137,11 @@ flowchart LR
 | UC24 | **Export evaluation results CSV** — Planner | Export all retained scenario/method outcomes and the values needed to recalculate reported changes. | US-38; FR-20, FR-21, FR-29 |
 | UC25 | **Review audit log** — Administrator | Search sign-in and data-change events by time, actor, action, entity, and outcome without exposing credentials. | US-39; FR-01, FR-30 |
 
+**Implemented in S7.** UC13–UC16 are served by `GET /api/tours/mine`, `GET /api/tours/mine/{id}`,
+`POST /api/tours/{id}/start`, `POST /api/tours/{id}/stops/{stopId}/outcome` and
+`POST /api/tours/{id}/completion` (AGENT role, crew only, D-048). UC20 is served by the `dev`
+start-up load and `POST /api/admin/demo`.
+
 ## 4. Cross-cutting rules
 
 - Every protected use case includes server-side authentication and authorization; hiding a UI

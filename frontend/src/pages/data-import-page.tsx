@@ -14,8 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useDemoReport, useLoadDemo } from '@/hooks/use-demo-data'
 import { useImportReport, useRunImport } from '@/hooks/use-data-import'
-import type { DatasetImportResult } from '@/types/api'
+import { STATUS_LABELS } from '@/lib/tour-labels'
+import type { DatasetImportResult, DemoCount } from '@/types/api'
 
 function local(iso: string): string {
   return new Date(iso).toLocaleString()
@@ -32,6 +34,115 @@ function ResultRow({ label, r }: { label: string; r: DatasetImportResult }) {
       <TableCell>{r.updated}</TableCell>
       <TableCell>{r.skipped}</TableCell>
     </TableRow>
+  )
+}
+
+function CountRow({ label, c }: { label: string; c: DemoCount }) {
+  return (
+    <TableRow>
+      <TableCell className="font-medium">{label}</TableCell>
+      <TableCell>{c.created}</TableCell>
+      <TableCell>{c.existing}</TableCell>
+    </TableRow>
+  )
+}
+
+/** Demonstration load card (US-33): synthetic operations on the real MN01 locations. */
+function DemoCard() {
+  const report = useDemoReport()
+  const load = useLoadDemo()
+  const r = report.data
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Demonstration data</CardTitle>
+        <CardDescription>
+          Synthetic vehicles, agents, accounts, demand entries and tours on the real MN01 locations
+          (US-33). Loading again never duplicates them.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div>
+          <Button
+            disabled={load.isPending}
+            onClick={() =>
+              load.mutate(undefined, {
+                onSuccess: (d) =>
+                  toast.success(`Demo loaded: tours created ${d.tours.created}, existing ${d.tours.existing}`),
+                onError: (err) => toast.error(err.message),
+              })
+            }
+          >
+            Load demonstration data
+          </Button>
+        </div>
+        {report.isError && (
+          <Alert variant="destructive">
+            <AlertTitle>Could not load the demonstration report</AlertTitle>
+            <AlertDescription>{report.error.message}</AlertDescription>
+          </Alert>
+        )}
+        {r === null && (
+          <p className="text-sm text-muted-foreground">
+            No demonstration load has run since the backend started.
+          </p>
+        )}
+        {r && (
+          <>
+            <p className="text-sm">
+              Trigger {r.trigger}; loaded {local(r.loadedAt)}.
+            </p>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Records</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Existing</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <CountRow label="Categories" c={r.categories} />
+                <CountRow label="Demand entries" c={r.demandEntries} />
+                <CountRow label="Vehicles" c={r.vehicles} />
+                <CountRow label="Accounts" c={r.accounts} />
+                <CountRow label="Agents" c={r.agents} />
+                <CountRow label="Tours" c={r.tours} />
+              </TableBody>
+            </Table>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tour</TableHead>
+                  <TableHead>Target</TableHead>
+                  <TableHead>Current status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {r.tourStates.map((s) => (
+                  <TableRow key={s.key}>
+                    <TableCell className="font-medium">{s.key}</TableCell>
+                    <TableCell>{STATUS_LABELS[s.targetStatus]}</TableCell>
+                    <TableCell>{STATUS_LABELS[s.status]}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="text-sm">
+              <h2 className="font-medium">Warnings</h2>
+              {r.warnings.length === 0 ? (
+                <p className="text-muted-foreground">No warnings</p>
+              ) : (
+                <ul className="list-disc pl-5">
+                  {r.warnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -166,6 +277,7 @@ export default function DataImportPage() {
           </Card>
         </>
       )}
+      <DemoCard />
     </div>
   )
 }

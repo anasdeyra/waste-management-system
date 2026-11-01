@@ -260,6 +260,7 @@ export type TourIssueCode =
   | 'PLANNING_DATE_PAST'
   | 'ROUTE_MISSING'
   | 'ROUTE_OUTDATED'
+  | 'STOP_PENDING'
 
 /** web.dto.StopDemandResponse */
 export interface StopDemand {
@@ -267,6 +268,14 @@ export interface StopDemand {
   categoryId: string
   categoryName: string
   plannedQuantityKg: number
+}
+
+/** web.dto.CollectedQuantityResponse */
+export interface CollectedQuantity {
+  id: string
+  categoryId: string
+  categoryName: string
+  actualQuantityKg: number
 }
 
 /** web.dto.TourStopResponse (source fields are omitted when null) */
@@ -285,6 +294,11 @@ export interface TourStop {
   sourceOwnershipType?: string
   plannedDemands: StopDemand[]
   plannedTotalKg: number
+  incidentReason?: string
+  outcomeRecordedAt?: string
+  outcomeRecordedBy?: string
+  actualQuantities: CollectedQuantity[]
+  actualTotalKg?: number
 }
 
 /** web.dto.TourCapacityResponse (vehicle fields are omitted when no vehicle is assigned) */
@@ -321,6 +335,26 @@ export interface Tour {
   route?: TourRoute
   confirmationIssues: TourIssue[]
   readyToConfirm: boolean
+  startedAt?: string
+  startedBy?: string
+  completedAt?: string
+  completedBy?: string
+  startIssues: TourIssue[]
+  readyToStart: boolean
+  readyToComplete: boolean
+}
+
+/** web.dto.CollectedQuantityRequest */
+export interface CollectedQuantityRequest {
+  categoryId: string
+  actualQuantityKg: number
+}
+
+/** web.dto.StopOutcomeRequest */
+export interface StopOutcomeRequest {
+  status: Exclude<TourStopStatus, 'PENDING'>
+  quantities?: CollectedQuantityRequest[]
+  incidentReason?: string
 }
 
 /** web.dto.TourSummaryResponse */
@@ -328,9 +362,11 @@ export interface TourSummary {
   id: string
   planningDate: string
   status: TourStatus
+  origin: DataOrigin
   depotId: string
   depotName: string
   stopCount: number
+  terminalStopCount: number
   totalPlannedDemandKg: number
   vehicleId?: string
   vehicleRegistration?: string
@@ -515,4 +551,32 @@ export interface EvaluationMatrix {
   nodeLabels: string[]
   distanceM: number[][]
   travelTimeS: number[][]
+}
+
+/** web.dto.DemoLoadReportResponse.DemoCountResponse */
+export interface DemoCount {
+  created: number
+  existing: number
+}
+
+/** web.dto.DemoLoadReportResponse.DemoTourStateResponse */
+export interface DemoTourState {
+  key: string
+  tourId: string
+  targetStatus: TourStatus
+  status: TourStatus
+}
+
+/** web.dto.DemoLoadReportResponse (US-33) */
+export interface DemoLoadReport {
+  trigger: 'STARTUP' | 'MANUAL'
+  loadedAt: string
+  categories: DemoCount
+  demandEntries: DemoCount
+  vehicles: DemoCount
+  accounts: DemoCount
+  agents: DemoCount
+  tours: DemoCount
+  tourStates: DemoTourState[]
+  warnings: string[]
 }

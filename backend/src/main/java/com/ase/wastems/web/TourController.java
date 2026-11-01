@@ -46,7 +46,7 @@ public class TourController {
     }
 
     private TourResponse respond(Tour t) {
-        return TourResponse.from(t, service.confirmationIssues(t));
+        return TourResponse.from(t, service.confirmationIssues(t), service.startIssues(t));
     }
 
     @GetMapping

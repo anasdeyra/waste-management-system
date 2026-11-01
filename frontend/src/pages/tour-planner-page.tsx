@@ -28,6 +28,7 @@ import {
 } from '@/hooks/use-tours'
 import { useVehicles } from '@/hooks/use-vehicles'
 import { METHOD_LABELS } from '@/lib/evaluation-labels'
+import { STOP_STATUS_LEGEND } from '@/lib/execution-labels'
 import { STATUS_LABELS } from '@/lib/tour-labels'
 
 /** Tour planner: map and list stop selection, input order, crew, capacity and validation. */
@@ -122,6 +123,7 @@ export default function TourPlannerPage() {
             {t.route &&
               ` The solid line is the attached road route (${METHOD_LABELS[t.route.method]}) on road graph ${t.route.roadGraphVersion}.`}
           </p>
+          {!editable && <p className="text-xs text-muted-foreground">{STOP_STATUS_LEGEND}</p>}
           <p className="text-xs text-muted-foreground">
             Basket and depot locations: NYC Open Data (DSNY). Demand values marked Synthetic are
             demonstration data.
@@ -136,6 +138,43 @@ export default function TourPlannerPage() {
               <TourConfirmPanel tour={t} />
             </CardContent>
           </Card>
+          {t.status !== 'DRAFT' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Execution</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 text-sm">
+                <p>Status: {STATUS_LABELS[t.status]}</p>
+                {t.startedBy && t.startedAt && (
+                  <p>
+                    Started by {t.startedBy} at {new Date(t.startedAt).toLocaleString()}
+                  </p>
+                )}
+                <p>
+                  {t.stops.filter((s) => s.status !== 'PENDING').length} of {t.stops.length} stops
+                  resolved
+                </p>
+                {t.completedBy && t.completedAt && (
+                  <p>
+                    Completed by {t.completedBy} at {new Date(t.completedAt).toLocaleString()}
+                  </p>
+                )}
+                {t.status === 'PLANNED' && t.startIssues.length > 0 && (
+                  <Alert variant="destructive">
+                    <AlertTitle>Start blocked</AlertTitle>
+                    <AlertDescription>
+                      <ul className="list-disc pl-4">
+                        {t.startIssues.map((i, idx) => (
+                          <li key={`${i.code}-${idx}`}>{i.message}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <p className="text-muted-foreground">Execution updates are made by the assigned crew.</p>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Capacity</CardTitle>
@@ -176,6 +215,7 @@ export default function TourPlannerPage() {
           <CardContent>
             <TourStopList
               stops={t.stops}
+              tourStatus={t.status}
               selectedStopId={selectedStopId}
               editable={editable}
               busy={busy}

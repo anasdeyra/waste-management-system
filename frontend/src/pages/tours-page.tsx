@@ -113,6 +113,7 @@ export default function ToursPage() {
                 <TableHead>Status</TableHead>
                 <TableHead>Depot</TableHead>
                 <TableHead>Stops</TableHead>
+                <TableHead>Progress</TableHead>
                 <TableHead>Planned demand</TableHead>
                 <TableHead>Vehicle</TableHead>
                 <TableHead>Driver</TableHead>
@@ -131,9 +132,17 @@ export default function ToursPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{STATUS_LABELS[t.status]}</Badge>
+                    {t.origin === 'SYNTHETIC' && (
+                      <Badge variant="outline" className="ml-2">
+                        Synthetic demo
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>{t.depotName}</TableCell>
                   <TableCell>{t.stopCount}</TableCell>
+                  <TableCell>
+                    {t.status === 'DRAFT' ? '—' : `${t.terminalStopCount}/${t.stopCount}`}
+                  </TableCell>
                   <TableCell>{t.totalPlannedDemandKg} kg</TableCell>
                   <TableCell>{t.vehicleRegistration ?? '—'}</TableCell>
                   <TableCell>{t.driverName ?? '—'}</TableCell>

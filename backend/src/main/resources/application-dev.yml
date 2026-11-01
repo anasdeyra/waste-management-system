@@ -1,0 +1,4 @@
+# dev profile (the default profile): load the MN01 demonstration at start-up (US-33, D-048).
+wastems:
+  demo:
+    enabled: true

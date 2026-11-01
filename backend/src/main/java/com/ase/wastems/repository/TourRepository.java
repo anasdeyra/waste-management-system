@@ -27,4 +27,13 @@ public interface TourRepository extends JpaRepository<Tour, UUID> {
             order by t.planningDate desc, t.createdAt desc""")
     List<Tour> search(
             @Param("status") TourStatus status, @Param("planningDate") LocalDate planningDate);
+
+    @Query(
+            """
+            select distinct t from Tour t
+              left join t.driver d
+              left join t.collectors c
+            where t.status <> com.ase.wastems.domain.TourStatus.DRAFT
+              and (d.id = :agentId or c.id = :agentId)""")
+    List<Tour> findAssignedTo(@Param("agentId") UUID agentId);
 }

@@ -1,5 +1,6 @@
 import { CircleMarker, LayerGroup, LayersControl, Polyline, Popup, Tooltip } from 'react-leaflet'
 
+import { STOP_STATUS_COLORS, STOP_STATUS_LABELS } from '@/lib/execution-labels'
 import type { CollectionPoint, Tour } from '@/types/api'
 
 import { toLatLng } from './geo'
@@ -85,14 +86,15 @@ export function TourStopsLayer({
           {tour.stops.map((s) => {
             const flagged = s.pointStatus !== 'ACTIVE' || !s.optimizationEligible
             const selected = s.id === selectedStopId
+            const executionColor = tour.status === 'DRAFT' ? null : STOP_STATUS_COLORS[s.status]
             return (
               <CircleMarker
                 key={s.id}
                 center={toLatLng(s)}
                 radius={9}
                 pathOptions={{
-                  color: flagged ? '#dc2626' : '#1d4ed8',
-                  fillColor: '#3b82f6',
+                  color: flagged ? '#dc2626' : (executionColor ?? '#1d4ed8'),
+                  fillColor: executionColor ?? '#3b82f6',
                   fillOpacity: 0.9,
                   weight: selected ? 4 : 2,
                   dashArray: flagged ? '4 3' : undefined,
@@ -115,6 +117,13 @@ export function TourStopsLayer({
                       ))}
                     </ul>
                     <div>Planned total: {s.plannedTotalKg} kg</div>
+                    {tour.status !== 'DRAFT' && <div>{STOP_STATUS_LABELS[s.status]}</div>}
+                    {s.actualQuantities.map((q) => (
+                      <div key={q.id}>
+                        Collected {q.categoryName}: {q.actualQuantityKg} kg
+                      </div>
+                    ))}
+                    {s.incidentReason && <div>{s.incidentReason}</div>}
                     {editable && (
                       <button
                         type="button"

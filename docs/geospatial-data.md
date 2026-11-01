@@ -135,8 +135,13 @@ Implemented in S6 on the tour planner page. A comparison map draws one toggleabl
 road-following layer per method from the retained run's leg GeoJSON, numbers the stops in a
 selected method's order, and sits beside an indicator table (distance, duration, changes from
 input order, execution time, checks) with accessible visit-order lists. The planner map draws the
-attached road route of the tour (item 5, planned side; execution states follow in S7). Traffic is
+attached road route of the tour (item 5, planned side; execution states added in S7). Traffic is
 not shown and is not an optimizer input (D-021).
+
+Implemented in S7: the agent's tour page draws the depot, the stops numbered in visit order and
+coloured by execution state (pending, collected, not collected) and the attached road route; the
+same states colour the planner map of a non-draft tour. The ordered stop list carries the same
+information without the map (NFR-03). There is no live vehicle position (D-020).
 
 The map is not merely a static illustration: selection, editing, planning, execution, and
 comparison workflows must remain synchronized with the underlying REST resources.

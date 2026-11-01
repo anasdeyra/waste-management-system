@@ -28,9 +28,17 @@ public record TourResponse(
         List<TourIssueResponse> validationIssues,
         TourRouteResponse route,
         List<TourIssueResponse> confirmationIssues,
-        boolean readyToConfirm) {
+        boolean readyToConfirm,
+        Instant startedAt,
+        String startedBy,
+        Instant completedAt,
+        String completedBy,
+        List<TourIssueResponse> startIssues,
+        boolean readyToStart,
+        boolean readyToComplete) {
 
-    public static TourResponse from(Tour t, List<TourIssue> confirmationIssues) {
+    public static TourResponse from(
+            Tour t, List<TourIssue> confirmationIssues, List<TourIssue> startIssues) {
         List<TourIssue> issues = t.structuralIssues();
         return new TourResponse(
                 t.getId(),
@@ -50,6 +58,15 @@ public record TourResponse(
                 issues.stream().map(TourIssueResponse::from).toList(),
                 TourRouteResponse.from(t),
                 confirmationIssues.stream().map(TourIssueResponse::from).toList(),
-                t.isDraft() && confirmationIssues.isEmpty());
+                t.isDraft() && confirmationIssues.isEmpty(),
+                t.getStartedAt(),
+                t.getStartedBy(),
+                t.getCompletedAt(),
+                t.getCompletedBy(),
+                startIssues.stream().map(TourIssueResponse::from).toList(),
+                t.getStatus() == TourStatus.PLANNED && startIssues.isEmpty(),
+                t.getStatus() == TourStatus.IN_PROGRESS
+                        && !t.getStops().isEmpty()
+                        && t.completionIssues().isEmpty());
     }
 }

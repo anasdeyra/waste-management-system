@@ -8,8 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import com.ase.wastems.optimization.PlanningMethod;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -273,5 +276,159 @@ class TourTest {
         Tour t = readyTour(false);
         assertThrows(IllegalStateException.class, t::confirm);
         assertEquals(TourStatus.DRAFT, t.getStatus());
+    }
+
+    private CollectionPoint pointA;
+    private Agent dana;
+    private Agent eli;
+    private final AppUser actor = new AppUser("agent1", "x", AppRole.AGENT);
+    private final Instant now = Instant.now();
+
+    private Tour plannedTour() {
+        Tour t = newTour();
+        pointA = point("A", "10", "5");
+        t.addStop(pointA);
+        t.addStop(point("B", "7"));
+        dana = agent("Dana");
+        eli = agent("Eli");
+        ReflectionTestUtils.setField(dana, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(eli, "id", UUID.randomUUID());
+        t.assign(vehicle("1000"), dana, List.of(eli));
+        for (TourStop s : t.getStops()) {
+            ReflectionTestUtils.setField(s, "id", UUID.randomUUID());
+        }
+        attach(t);
+        t.confirm();
+        return t;
+    }
+
+    private Tour startedTour() {
+        Tour t = plannedTour();
+        t.start(now, "agent1");
+        return t;
+    }
+
+    private List<TourIssueCode> startCodes(Tour t) {
+        return t.startIssues().stream().map(TourIssue::code).toList();
+    }
+
+    @Test
+    void startIssuesEmptyUnlessPlanned() {
+        assertTrue(readyTour(true).startIssues().isEmpty());
+        Tour t = plannedTour();
+        assertTrue(t.startIssues().isEmpty());
+        t.start(now, "agent1");
+        assertTrue(t.startIssues().isEmpty());
+    }
+
+    @Test
+    void startIssuesReportStructuralProblemsThenRoute() {
+        Tour t = plannedTour();
+        t.getVehicle().setStatus(ResourceStatus.UNAVAILABLE);
+        assertEquals(List.of(TourIssueCode.VEHICLE_UNAVAILABLE), startCodes(t));
+        pointA.setStatus(CollectionPointStatus.INACTIVE);
+        assertEquals(List.of(TourIssueCode.VEHICLE_UNAVAILABLE, TourIssueCode.INACTIVE_STOP), startCodes(t));
+        t.clearRoute();
+        List<TourIssueCode> codes = startCodes(t);
+        assertEquals(TourIssueCode.ROUTE_MISSING, codes.get(codes.size() - 1));
+    }
+
+    @Test
+    void startMovesPlannedToInProgress() {
+        Tour t = plannedTour();
+        t.start(now, "agent1");
+        assertEquals(TourStatus.IN_PROGRESS, t.getStatus());
+        assertEquals(now, t.getStartedAt());
+        assertEquals("agent1", t.getStartedBy());
+        assertTrue(t.getStops().stream().allMatch(s -> s.getStatus() == TourStopStatus.PENDING));
+        assertTrue(t.hasRoute());
+        assertThrows(IllegalStateException.class, () -> t.start(now, "agent1"));
+        assertThrows(IllegalStateException.class, () -> readyTour(true).start(now, "agent1"));
+    }
+
+    @Test
+    void isCrewMemberMatchesDriverAndCollectors() {
+        Tour t = plannedTour();
+        assertTrue(t.isCrewMember(dana.getId()));
+        assertTrue(t.isCrewMember(eli.getId()));
+        assertFalse(t.isCrewMember(UUID.randomUUID()));
+        assertFalse(t.isCrewMember(null));
+    }
+
+    @Test
+    void recordCollectedStoresQuantitiesActorAndTime() {
+        Tour t = startedTour();
+        Map<WasteCategory, BigDecimal> q = new LinkedHashMap<>();
+        q.put(paper, new BigDecimal("10.00"));
+        q.put(glass, new BigDecimal("0.00"));
+        TourStop s = t.getStops().get(0);
+        s.recordCollected(q, "  lid broken ", actor, now);
+        assertEquals(TourStopStatus.COLLECTED, s.getStatus());
+        assertEquals(2, s.getActualQuantities().size());
+        assertEquals(paper, s.getActualQuantities().get(0).getCategory());
+        assertEquals(glass, s.getActualQuantities().get(1).getCategory());
+        assertEquals(0, s.actualTotalKg().compareTo(new BigDecimal("10.00")));
+        assertEquals("lid broken", s.getIncidentReason());
+        assertEquals(actor, s.getOutcomeRecordedBy());
+        assertEquals(now, s.getOutcomeRecordedAt());
+        assertTrue(s.isTerminal());
+    }
+
+    @Test
+    void recordNotCollectedRequiresReason() {
+        Tour t = startedTour();
+        TourStop s = t.getStops().get(0);
+        assertThrows(IllegalArgumentException.class, () -> s.recordNotCollected("  ", actor, now));
+        assertEquals(TourStopStatus.PENDING, s.getStatus());
+        s.recordNotCollected("Blocked", actor, now);
+        assertEquals(TourStopStatus.NOT_COLLECTED, s.getStatus());
+        assertTrue(s.getActualQuantities().isEmpty());
+        assertEquals("Blocked", s.getIncidentReason());
+    }
+
+    @Test
+    void outcomeGuards() {
+        Map<WasteCategory, BigDecimal> ok = Map.of(paper, new BigDecimal("1"));
+        Tour planned = plannedTour();
+        TourStop onPlanned = planned.getStops().get(0);
+        assertThrows(IllegalStateException.class, () -> onPlanned.recordCollected(ok, null, actor, now));
+        Tour t = startedTour();
+        TourStop s = t.getStops().get(0);
+        s.recordCollected(ok, null, actor, now);
+        assertThrows(IllegalStateException.class, () -> s.recordCollected(ok, null, actor, now));
+        TourStop s2 = t.getStops().get(1);
+        assertThrows(IllegalArgumentException.class,
+                () -> s2.recordCollected(Map.of(paper, new BigDecimal("-1")), null, actor, now));
+        assertThrows(IllegalArgumentException.class, () -> s2.recordCollected(Map.of(), null, actor, now));
+    }
+
+    @Test
+    void completionIssuesListPendingStops() {
+        Tour t = startedTour();
+        Map<WasteCategory, BigDecimal> ok = Map.of(paper, new BigDecimal("3"));
+        t.getStops().get(0).recordCollected(ok, null, actor, now);
+        List<TourIssue> issues = t.completionIssues();
+        assertEquals(1, issues.size());
+        assertEquals(TourIssueCode.STOP_PENDING, issues.get(0).code());
+        assertTrue(issues.get(0).message().contains("Stop 2 (B)"));
+        assertThrows(IllegalStateException.class, () -> t.complete(now, "agent2"));
+        t.getStops().get(1).recordNotCollected("Blocked", actor, now);
+        assertTrue(t.completionIssues().isEmpty());
+        t.complete(now, "agent2");
+        assertEquals(TourStatus.COMPLETED, t.getStatus());
+        assertEquals("agent2", t.getCompletedBy());
+        assertEquals(now, t.getCompletedAt());
+        assertTrue(t.hasRoute());
+        assertTrue(t.isCrewMember(dana.getId()));
+        assertEquals(2, t.terminalStopCount());
+        assertThrows(IllegalStateException.class, () -> t.complete(now, "agent2"));
+    }
+
+    @Test
+    void terminalStopCountCountsOutcomes() {
+        Tour t = startedTour();
+        assertEquals(0, t.terminalStopCount());
+        t.getStops().get(0).recordNotCollected("Blocked", actor, now);
+        assertEquals(1, t.terminalStopCount());
     }
 }

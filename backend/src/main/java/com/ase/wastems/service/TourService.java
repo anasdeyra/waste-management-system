@@ -74,10 +74,11 @@ public class TourService {
         this.runs = runs;
     }
 
-    private static Tour initialized(Tour t) {
+    static Tour initialized(Tour t) {
         t.getCollectors().size();
         for (TourStop s : t.getStops()) {
             s.getStopDemands().size();
+            s.getActualQuantities().size();
         }
         return t;
     }
@@ -162,9 +163,14 @@ public class TourService {
 
     @Transactional
     public Tour create(LocalDate planningDate, UUID depotId) {
+        return create(planningDate, depotId, DataOrigin.USER_ENTERED);
+    }
+
+    @Transactional
+    public Tour create(LocalDate planningDate, UUID depotId, DataOrigin origin) {
         requireNotPast(planningDate);
         Depot depot = findDepot(depotId);
-        return initialized(tours.save(new Tour(planningDate, depot, DataOrigin.USER_ENTERED)));
+        return initialized(tours.save(new Tour(planningDate, depot, origin)));
     }
 
     @Transactional
@@ -383,6 +389,16 @@ public class TourService {
     public List<TourIssue> confirmationIssues(Tour tour) {
         List<TourIssue> issues = new ArrayList<>(tour.confirmationIssues(LocalDate.now()));
         if (tour.isDraft() && tour.hasRoute()) {
+            routeOutdated(tour).ifPresent(issues::add);
+        }
+        return issues;
+    }
+
+    /** Start issues of a PLANNED tour: the domain issues plus ROUTE_OUTDATED (S6 semantics). */
+    @Transactional(readOnly = true)
+    public List<TourIssue> startIssues(Tour tour) {
+        List<TourIssue> issues = new ArrayList<>(tour.startIssues());
+        if (tour.getStatus() == TourStatus.PLANNED && tour.hasRoute()) {
             routeOutdated(tour).ifPresent(issues::add);
         }
         return issues;

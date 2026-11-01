@@ -32,4 +32,10 @@ public interface CollectionPointRepository extends JpaRepository<CollectionPoint
     List<CollectionPoint> findBySourceDataset(String dataset);
 
     boolean existsBySourceDatasetAndSourceIdentifier(String dataset, String identifier);
+
+    @EntityGraph(attributePaths = {"demands", "demands.category"})
+    Optional<CollectionPoint> findWithDemandsBySourceDatasetAndSourceIdentifier(
+            String dataset, String identifier);
+
+    boolean existsBySourceDataset(String dataset);
 }

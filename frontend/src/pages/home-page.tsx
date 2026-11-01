@@ -5,10 +5,11 @@ import type { AppRole } from '@/types/api'
 
 const roleText: Record<AppRole, string> = {
   ADMIN:
-    'You can manage user accounts, waste categories, collection points, vehicles and agents, plan tour drafts, and run the MN01 data import.',
+    'You can manage user accounts, waste categories, collection points, vehicles and agents, plan tour drafts, run the MN01 data import and load the demonstration data.',
   PLANNER:
-    'You can manage collection points, vehicles and agents, and plan tour drafts. Optimization and execution arrive in later sprints.',
-  AGENT: 'Your assigned tours will appear here in a later sprint.',
+    'You can manage collection points, vehicles and agents, plan and evaluate tour drafts, confirm them as planned, and follow their execution.',
+  AGENT:
+    'Open My tours to consult your assigned tours, start a planned tour, record each stop outcome and complete the tour.',
 }
 
 /** Landing page after sign-in. */
