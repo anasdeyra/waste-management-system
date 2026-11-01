@@ -8,6 +8,8 @@ import CategoriesPage from '@/pages/waste-categories-page'
 import DataImportPage from '@/pages/data-import-page'
 import HomePage from '@/pages/home-page'
 import LoginPage from '@/pages/login-page'
+import MyTourPage from '@/pages/my-tour-page'
+import MyToursPage from '@/pages/my-tours-page'
 import NotFoundPage from '@/pages/not-found-page'
 import TourPlannerPage from '@/pages/tour-planner-page'
 import ToursPage from '@/pages/tours-page'
@@ -27,6 +29,22 @@ export default function App() {
         }
       >
         <Route index element={<HomePage />} />
+        <Route
+          path="my-tours"
+          element={
+            <RequireRole role="AGENT">
+              <MyToursPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="my-tours/:id"
+          element={
+            <RequireRole role="AGENT">
+              <MyTourPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="collection-points"
           element={
