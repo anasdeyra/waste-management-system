@@ -463,3 +463,29 @@ artifacts, metrics, and presentation remain consistent.
   `presentation/index.html`, versioned in git and opened in any browser. No presentation date is
   fixed. The deck is produced in S10.
 - **Rationale:** Chosen by the project owner.
+
+## D-042 — S1 implementation conventions
+
+- **Date:** 2026-11-01
+- **Decision:**
+  - API status convention: 200 read/update, 201 create with `Location`, 204 logout; 400
+    validation, malformed JSON, unknown enum, bad UUID; 401 unauthenticated, bad credentials or
+    deactivated account; 403 role denial or CSRF failure; 404 unknown id; 409 duplicate or state
+    conflict (including self-deactivation); 422 domain-rule violation (for example an inactive
+    category). Every error body is `ApiError{status, error, message, fieldErrors?}`.
+  - CSRF: cookie `XSRF-TOKEN`, header `X-XSRF-TOKEN`, plain (non-XOR) token handler, token
+    delivered by `GET /api/auth/csrf`. The cookie is cleared on logout, so clients fetch a new
+    token afterwards.
+  - Usernames are trimmed and lower-cased before storage and lookup.
+  - Every authenticated request re-checks that the account still exists and is active
+    (`ActiveAccountFilter`), so deactivation is immediate.
+  - `dev` is the default Spring profile and seeds `admin`, `planner` and `agent` development
+    accounts; tests run with the `test` profile and an in-memory database.
+  - An administrator cannot deactivate their own account. No user or category delete endpoint
+    exists; only deactivation.
+  - `PUT /api/waste-categories/{id}` replaces name and description (an omitted description
+    clears it).
+- **Deviations from the S1 plan:** the CSRF endpoint returns the constant header name
+  `X-XSRF-TOKEN` instead of `CsrfToken.getHeaderName()` (MockMvc test infrastructure could swap
+  the repository); the real cookie flow is tested in its own `@DirtiesContext` class.
+- **Rationale:** Conventional choices made during S1 so later sprints reuse them.

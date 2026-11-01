@@ -38,6 +38,7 @@ allowed for my role.**
 - A deactivated account cannot authenticate, and passwords are never returned by the API.
 
 **Traceability:** FR-01, FR-27; NFR-01, NFR-11.
+**Status:** Done in S1.
 
 #### US-02 — Sign out — P0
 
@@ -51,6 +52,7 @@ session.**
 - The interface returns to the sign-in view without exposing protected operational data.
 
 **Traceability:** FR-01; NFR-01.
+**Status:** Done in S1.
 
 #### US-03 — Enforce role permissions — P0
 
@@ -67,6 +69,7 @@ operational and administrative data remain protected.**
 - Authorization is enforced by the backend, not merely by hiding frontend controls.
 
 **Traceability:** FR-02, FR-12, FR-27, FR-30; NFR-01.
+**Status:** Partially done in S1 (admin/category enforcement and role hierarchy); planning and tour scoping verified in S2–S7.
 
 #### US-04 — Create a user account — P0
 
@@ -83,6 +86,7 @@ access the system with the appropriate permissions.**
 - Public self-registration is not available.
 
 **Traceability:** FR-01, FR-09, FR-27; NFR-01, NFR-11.
+**Status:** Done in S1 except the agent link, delivered with US-16 in S3.
 
 #### US-05 — Activate or deactivate a user account — P1
 
@@ -98,6 +102,7 @@ without deleting operational history.**
   history.
 
 **Traceability:** FR-27; NFR-01, NFR-02.
+**Status:** Done in S1.
 
 #### US-06 — Create and edit a waste category — P0
 
@@ -112,6 +117,7 @@ results use a controlled classification.**
 - Demand and actual-quantity values associated with a category are expressed in kilograms.
 
 **Traceability:** FR-03, FR-06; NFR-02.
+**Status:** Done in S1.
 
 #### US-07 — Deactivate a waste category — P1
 
@@ -125,6 +131,7 @@ for new demand while historical records remain understandable.**
 - Deactivation does not delete the category or rewrite historical data.
 
 **Traceability:** FR-03, FR-06, FR-14; NFR-02.
+**Status:** Done in S1.
 
 ### 1.3 Epic E02 — Collection points and demand
 
@@ -662,7 +669,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **No sprint has been executed yet.** Every sprint is planned, with review and retrospective slots left empty until the sprint actually closes. |
+| Status | **S1 executed; S2–S10 planned.** Review and retrospective slots of S2–S10 stay empty until each sprint actually closes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -706,7 +713,7 @@ Differences from a human-team sprint backlog, and why:
 
 | Sprint | Theme | Story selection | Status |
 |---|---|---|---|
-| S1 | Secure foundation: identities, roles, waste categories | US-01…US-07 | Not started |
+| S1 | Secure foundation: identities, roles, waste categories | US-01…US-07 | Done (frontend verified by build and proxy checks only, no browser walkthrough) |
 | S2 | Collection points and demand on the real map | US-08…US-12 | Not started |
 | S3 | Fleet, crew, and MN01 import groundwork | US-13…US-17 (+ US-33 groundwork) | Not started |
 | S4 | Tour drafts: stops, order, crew, capacity | US-18…US-20 | Not started |
@@ -793,9 +800,71 @@ configured (D-013).
   403; a deactivated user's session and new logins → 401; category create/edit/deactivate as
   `ADMIN`, and 403 for `PLANNER`; logout → guarded endpoint returns 401.
 
-**Review.** *To be filled at sprint close.*
+**Review.** 2026-11-01.
 
-**Retrospective.** *To be filled at sprint close.*
+- `cd backend && ./mvnw test`: `Tests run: 46, Failures: 0, Errors: 0, Skipped: 0` (repository,
+  authentication, CSRF, role-matrix, user-administration, category and seed tests).
+- `cd frontend && npm run build`: exit 0 (strict TypeScript, Vite). `npm run lint`: no findings in
+  own code (three fast-refresh warnings in vendored `components/ui`).
+- Scripted HTTP done-check against a freshly started backend (fresh H2 file, `dev` profile).
+  Ports 8080 and 5173 were already held by foreign, older dev servers, so the check ran the
+  backend on 8081 with a scratch database and a second Vite on 5174 proxying to it; the Vite
+  proxy configuration is otherwise the committed one.
+
+| Check | Observed |
+|---|---|
+| CSRF endpoint and cookie | 200, `{"headerName":"X-XSRF-TOKEN",...}`, cookie `XSRF-TOKEN` set |
+| Login `admin` | 200 `{"id","username":"admin","role":"ADMIN"}`, `JSESSIONID` set, no password in body |
+| `GET /api/auth/me` with session | 200 |
+| Login without CSRF token | 403 |
+| Wrong password / unknown user | both 401, identical body `Invalid username or password.` |
+| `GET /api/users` anonymous / `PLANNER` / `AGENT` | 401 / 403 / 403 |
+| `GET /api/users` as `ADMIN` | 200, 3 users, no `passwordHash` |
+| Create user / duplicate / invalid | 201 / 409 / 400 with `fieldErrors` |
+| New user logs in | 200 |
+| Deactivate user, then existing session / new login | 200, then 401 / 401 |
+| Reactivate, login | 200, role `PLANNER` kept |
+| Admin deactivates self | 409 |
+| Category create / duplicate (case-insensitive) / blank | 201 / 409 / 400 |
+| Category rename | 200, same id |
+| Category write as `PLANNER`, `AGENT` | 403, 403 |
+| Category read as `PLANNER`, `AGENT` | 200, 200 |
+| Deactivate category; `?active=true` excludes it, plain list includes it | 200; 0 / 1 matches |
+| Unknown category id | 404 |
+| Logout, then `/me` and `/api/users` with old cookie | 204, 401, 401 |
+| Seed passwords in backend log | 0 matches |
+| Same flow through the Vite proxy (csrf, login, me, logout, 401s) | identical results; `/login` serves the SPA root element |
+
+Acceptance criteria: US-01, US-02, US-05, US-06, US-07 are met as far as the API and the build
+can show. US-03 is met for the user and category endpoints (role matrix) and the
+`ADMIN > PLANNER` hierarchy. US-04 is met except the optional agent link.
+
+Deferred: US-03 checks that `AGENT` is refused planning endpoints and sees only its own tours
+(S2–S7, when those endpoints exist); US-04 agent link (S3 with US-16); US-06 kilogram unit is
+enforced by the demand model in S2 (the UI only states it); FR-30 sign-in audit events (S8).
+
+Known gaps: the React pages were verified by the strict build and by serving the SPA through
+the proxy, not by clicking through them in a browser (D-040). A browser walkthrough of login,
+user creation, deactivation and category editing remains for the reviewer. Passwords of dev
+accounts are documented development credentials.
+
+**Retrospective.**
+
+- *Went well.* The plan's security design worked with few changes: explicit
+  `SecurityContextRepository.saveContext` in the login controller, `PathPatternRequestMatcher`
+  bean (no matcher ambiguity appeared), and a per-request active-account filter made
+  deactivation immediate. Backend tests passed on the first full run of T3 and T4. The frontend
+  built on the first attempt.
+- *Went badly.* (1) The `csrf()` test post-processor permanently swaps the token repository of
+  the shared `CsrfFilter`, so a cookie-flow test failed depending on test order (header name
+  `X-CSRF-TOKEN`, no cookie); it needed its own class with `@DirtiesContext(BEFORE_CLASS)`.
+  (2) Some test helper names clashed with static imports (`status`, `put`, `post`) and cost
+  three compile rounds. (3) The done-check could not use the planned ports because foreign dev
+  servers occupied 8080/5173; this was only noticed after the first start failed.
+- *Process changes for S2.* Check `ss -ltnp` for ports 8080/5173 before starting servers and
+  prefer an alternate port plus scratch database over killing processes that are not ours; name
+  test helpers with a verb prefix that cannot collide with static imports; keep any test that
+  depends on the real CSRF cookie flow isolated in its own `@DirtiesContext` class.
 
 ### 3.5 Sprint S2 — Collection points and demand on the real map
 
