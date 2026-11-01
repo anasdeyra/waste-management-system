@@ -1019,41 +1019,76 @@ and Save.
 
 ### 3.6 Sprint S3 — Fleet, crew, and MN01 import groundwork
 
-**Sprint goal.** Vehicles, agents, and agent–account links are managed with availability and
-link-uniqueness rules; the MN01 basket/depot import runs idempotently from the included
-snapshots with recorded snapshot identity — ready to feed later sprints.
+**Sprint goal.** A `PLANNER` manages vehicles and operational agents with availability rules, an
+`ADMIN` controls the one-to-one agent ↔ `AGENT`-account link, and the included MN01 basket and
+depot snapshots are imported idempotently with a recorded snapshot identity, ready to feed tour
+planning (S4) and the evaluation scenarios (S5).
 
-**Entrance criteria.** S2 done; categories exist.
+**Entrance criteria.** S2 done (green baseline: 70 backend tests, frontend build); categories,
+collection points with demand, and the `dev` map sample exist.
+
+**Scope notes.**
+
+- Names follow the class diagram: `Vehicle` (`registration`, `capacityKg`, `status`, `origin`),
+  `Agent` (`displayName`, `status`, `origin`), `ResourceStatus {AVAILABLE, UNAVAILABLE}`. The
+  login link is the optional one-to-one `AppUser`–`Agent` association (D-030); its foreign key
+  lives on `Agent`. The `UUID` is the unique identity required by US-13/US-15; the vehicle
+  registration is also unique.
+- Vehicles and agents are `PLANNER`/`ADMIN` resources (`AGENT` 403). Linking and unlinking an
+  account is `ADMIN` only (US-16). Resources are never deleted, only made unavailable, so
+  identities stay stable for the tour assignments that arrive in S4.
+- The US-04 agent link deferred from S1 lands here: account creation accepts an optional agent
+  to link, and `/api/users` and `/api/auth/me` expose the link.
+- **Import semantics (US-33 groundwork).** All 449 basket rows are imported with their source
+  ownership label (D-019, `docs/geospatial-data.md` §3). Only rows whose type starts with
+  `DSNY ` (238 in the snapshot) are *optimization-eligible*; the eligible-for-planning query and a
+  new `optimizationEligible` response flag exclude non-DSNY imported points, so they never
+  silently become DSNY service obligations. The natural key is source dataset + source
+  identifier (`8znf-7b2c` + basket id, `xw3j-2yxf` + `MN01G`). The import is
+  *insert-if-absent*: existing rows, including the five S2 `dev` baskets and any planner edits
+  (name, coordinates, status, demand), are kept unchanged. Every newly imported point receives
+  exactly one deterministic `SYNTHETIC` demand entry in the `Mixed litter` category, so the
+  `HasCurrentDemand` rule holds and real locations stay distinguishable from synthetic demand.
+- Snapshot identity = source dataset + row count + SHA-256 of the included file, persisted per
+  dataset so that S5 scenarios can cite it. Demo vehicles, agents, users, richer demands and
+  tours are **deferred to S7** (complete US-33 demonstration), because tours do not exist yet.
 
 **Task backlog**
 
-1. (M) `Vehicle` (registration, positive kg capacity, availability) and `Agent` (identifier,
-   display name, availability) domain + APIs (US-13…US-15, US-17). **Tests:** non-positive
-   capacity rejected; unavailable vehicle/agent excluded from usable-resource queries;
-   deactivation preserves existing assignments (assignment model arrives in S4 — resources
-   only need identity preservation here).
-2. (S) Agent↔`AGENT`-account one-to-one link endpoints, `ADMIN` only (US-16, D-030).
-   **Tests:** double linking rejected; non-`AGENT` account rejected; unlink preserves both
-   records.
-3. (M) **US-33 groundwork:** `data-importer` service reading classpath snapshots
-   `backend/src/main/resources/data/nyc-mn01-baskets.csv` and `nyc-mn01-depot.csv` (per
-   `docs/geospatial-data.md` §3): parse into `Depot`/`CollectionPoint`, preserve source IDs
-   and DSNY/other ownership labels (real provenance), compute a row count + checksum snapshot
-   identifier, upsert idempotently (natural key = source dataset + source ID, which also
-   absorbs the five S2 `dev` sample baskets). Every point needs ≥1 demand entry (S2 rule), so
-   each imported point gets one deterministic `SYNTHETIC` demand entry. Demo vehicles, agents,
-   users, richer demands, and tours are **deferred to S7** because tours do not exist yet.
-   **Tests:** re-run import produces no duplicates and a stable report; snapshot identifier
-   retrievable via `GET /api/admin/import/report`.
-4. (M) Frontend: fleet and agents pages (tables, forms, availability toggles, link dialog);
-   API contract sync.
-5. (S) Test/build pass; README notes.
+1. (M) `Vehicle`, `Agent`, `ResourceStatus` domain + repositories + APIs `/api/vehicles` and
+   `/api/agents` (create, edit preserving identity, availability change, `status` filter)
+   (US-13, US-14, US-15, US-17). **Tests:** non-positive or missing capacity → 400; duplicate
+   registration (case-insensitive) → 409; edit keeps the id; unavailable vehicles/agents are
+   excluded from the usable-resource queries; role matrix incl. `AGENT` 403; no delete endpoint.
+2. (S) Agent ↔ `AGENT`-account link, `ADMIN` only (US-16, US-04 remainder, D-030):
+   `PUT`/`DELETE /api/agents/{id}/user-account`, optional `agentId` on account creation, link
+   shown in user and current-user responses. **Tests:** double linking of either side → 409;
+   non-`AGENT` account → 422; unlink preserves both records; `PLANNER` 403.
+3. (M) **US-33 groundwork:** an MN01 import service reading the classpath snapshots
+   `data/nyc-mn01-baskets.csv` and `data/nyc-mn01-depot.csv` per the import semantics above; it
+   runs at `dev` startup after the map seed and on demand through `POST /api/admin/import`; the
+   last report and the persisted snapshot identities are returned by
+   `GET /api/admin/import/report` (`ADMIN` only). **Tests:** the SHA-256 values match
+   `docs/geospatial-data.md`; a first import yields 449 points, 238 of them optimization-eligible,
+   1 depot; a second import creates nothing; the five `dev` baskets are absorbed with their
+   demand and status intact; non-DSNY labels are preserved and not eligible.
+4. (M) Frontend: Vehicles and Agents pages (tables, create/edit dialogs, availability switches,
+   `ADMIN` link dialog), the agent link on the Users page, an `ADMIN` Data import page (report +
+   re-run), and the eligibility flag/filter on the collection-points page; contract sync in
+   `src/types/api.ts`.
+5. (S) README notes; test/build pass.
 
 **Automated done checks**
 
 - `./mvnw test` green incl. the rules above.
-- `npm run build` green.
-- Startup import (dev profile) ingests 449 baskets + depot without duplicates on second run.
+- `npm run build` and `npm run lint` green (no findings in own code).
+- Scripted HTTP checks on a spare port with a scratch database: the `dev` startup import yields
+  as many `8znf-7b2c` points as the CSV has rows and as many `DSNY ` points as the CSV has DSNY
+  rows (expected values computed from the file by the script); every new point carries one
+  synthetic demand; a manual re-import and a restart create no duplicates and keep the snapshot
+  identifier; vehicle/agent validation and role matrix; link rules; same calls through a Vite
+  proxy.
+- Not machine-checked: the visual behaviour of the new pages (D-040).
 
 **Review.** *To be filled at sprint close.*
 
