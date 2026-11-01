@@ -16,17 +16,22 @@ import type {
 export interface PointFilters {
   status?: CollectionPointStatus
   categoryId?: string
+  eligible?: boolean
 }
 
 const pointsKey = ['collection-points'] as const
 
 export function useCollectionPoints(filters: PointFilters) {
   return useQuery({
-    queryKey: [...pointsKey, { status: filters.status, categoryId: filters.categoryId }],
+    queryKey: [
+      ...pointsKey,
+      { status: filters.status, categoryId: filters.categoryId, eligible: filters.eligible },
+    ],
     queryFn: () => {
       const params = new URLSearchParams()
       if (filters.status) params.set('status', filters.status)
       if (filters.categoryId) params.set('categoryId', filters.categoryId)
+      if (filters.eligible !== undefined) params.set('eligible', String(filters.eligible))
       const qs = params.toString()
       return apiFetch<CollectionPoint[]>(`/api/collection-points${qs ? `?${qs}` : ''}`)
     },

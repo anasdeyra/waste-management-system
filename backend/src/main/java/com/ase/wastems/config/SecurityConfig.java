@@ -128,6 +128,16 @@ public class SecurityConfig {
                                                 "/api/depots",
                                                 "/api/depots/**")
                                         .hasRole("PLANNER")
+                                        .requestMatchers("/api/admin/**")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers("/api/agents/*/user-account")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers(
+                                                "/api/vehicles",
+                                                "/api/vehicles/**",
+                                                "/api/agents",
+                                                "/api/agents/**")
+                                        .hasRole("PLANNER")
                                         .anyRequest()
                                         .authenticated())
                 .headers(h -> h.frameOptions(f -> f.sameOrigin()));

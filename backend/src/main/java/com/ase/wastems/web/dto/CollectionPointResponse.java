@@ -19,6 +19,7 @@ public record CollectionPointResponse(
         String sourceDataset,
         String sourceIdentifier,
         String sourceOwnershipType,
+        boolean optimizationEligible,
         List<DemandEntryResponse> demands,
         BigDecimal totalDemandKg) {
 
@@ -41,6 +42,7 @@ public record CollectionPointResponse(
                 p.getSourceDataset(),
                 p.getSourceIdentifier(),
                 p.getSourceOwnershipType(),
+                p.isOptimizationEligible(),
                 demands,
                 p.totalDemandKg());
     }

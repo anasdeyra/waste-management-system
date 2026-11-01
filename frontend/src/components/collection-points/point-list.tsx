@@ -46,9 +46,12 @@ export function PointList({
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">{p.name}</span>
-              <Badge variant={p.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                {p.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-              </Badge>
+              <span className="flex items-center gap-1">
+                {!p.optimizationEligible && <Badge variant="outline">Not eligible</Badge>}
+                <Badge variant={p.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                  {p.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                </Badge>
+              </span>
             </div>
             <div className="flex justify-between text-muted-foreground">
               <span>{originLabel(p.origin)}</span>

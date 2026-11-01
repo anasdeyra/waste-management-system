@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
  * with real locations copied verbatim from the included NYC Open Data snapshots, and synthetic
  * demand (two demo categories). Idempotent: rows are keyed by source dataset + identifier.
  *
- * <p>The full 449-row MN01 import is S3 (US-33 groundwork) and will upsert these rows by their
- * source key instead of duplicating them. Never active outside {@code dev}.
+ * <p>The full 449-row MN01 import is S3 (US-33 groundwork) and upserts these rows by their
+ * source key instead of duplicating them (see Mn01ImportService). Never active outside {@code dev}.
  */
 @Component
 @Profile("dev")
+@Order(20)
 public class DevMapDataSeeder implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(DevMapDataSeeder.class);

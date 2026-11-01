@@ -16,10 +16,13 @@ public class UserAdminService {
 
     private final AppUserRepository users;
     private final PasswordEncoder encoder;
+    private final AgentService agents;
 
-    public UserAdminService(AppUserRepository users, PasswordEncoder encoder) {
+    public UserAdminService(
+            AppUserRepository users, PasswordEncoder encoder, AgentService agents) {
         this.users = users;
         this.encoder = encoder;
+        this.agents = agents;
     }
 
     @Transactional(readOnly = true)
@@ -33,12 +36,20 @@ public class UserAdminService {
     }
 
     @Transactional
-    public AppUser create(String username, String rawPassword, AppRole role) {
+    public AppUser create(String username, String rawPassword, AppRole role, UUID agentId) {
         String normalized = username.trim().toLowerCase(Locale.ROOT);
         if (users.existsByUsername(normalized)) {
             throw new ConflictException("Username already exists: " + normalized);
         }
-        return users.save(new AppUser(normalized, encoder.encode(rawPassword), role));
+        if (agentId != null && role != AppRole.AGENT) {
+            throw new BusinessRuleException(
+                    "Only an AGENT account can be linked to an operational agent.");
+        }
+        AppUser saved = users.save(new AppUser(normalized, encoder.encode(rawPassword), role));
+        if (agentId != null) {
+            agents.linkUserAccount(agentId, saved.getId());
+        }
+        return saved;
     }
 
     @Transactional

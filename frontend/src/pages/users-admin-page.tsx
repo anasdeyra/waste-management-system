@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -37,6 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useAgents } from '@/hooks/use-agents'
 import { useCurrentUser } from '@/hooks/use-auth'
 import { apiFetch, ApiRequestError } from '@/lib/api-client'
 import type { ActiveStatusRequest, CreateUserRequest, UserSummary } from '@/types/api'
@@ -49,16 +50,20 @@ const schema = z.object({
     .regex(/^[A-Za-z0-9._-]+$/, "Only letters, digits, '.', '_' and '-'"),
   password: z.string().min(8, 'At least 8 characters').max(72, 'At most 72 characters'),
   role: z.enum(['ADMIN', 'PLANNER', 'AGENT']),
+  agentId: z.string().optional(),
 })
 type FormValues = z.infer<typeof schema>
 
 const usersKey = ['users'] as const
+const NONE = 'NONE'
 
 /** Administrator page: list accounts, create accounts, activate or deactivate them. */
 export default function UsersAdminPage() {
   const queryClient = useQueryClient()
   const { data: me } = useCurrentUser()
   const [open, setOpen] = useState(false)
+  const agents = useAgents()
+  const freeAgents = (agents.data ?? []).filter((a) => !a.linkedUser)
   const users = useQuery({
     queryKey: usersKey,
     queryFn: () => apiFetch<UserSummary[]>('/api/users'),
@@ -86,8 +91,9 @@ export default function UsersAdminPage() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { username: '', password: '', role: 'AGENT' },
+    defaultValues: { username: '', password: '', role: 'AGENT', agentId: NONE },
   })
+  const selectedRole = useWatch({ control, name: 'role' })
 
   const create = useMutation({
     mutationFn: (v: CreateUserRequest) =>
@@ -97,9 +103,10 @@ export default function UsersAdminPage() {
       setOpen(false)
       reset()
       void queryClient.invalidateQueries({ queryKey: usersKey })
+      void queryClient.invalidateQueries({ queryKey: ['agents'] })
     },
     onError: (err: Error) => {
-      if (err instanceof ApiRequestError && err.status === 409) {
+      if (err instanceof ApiRequestError && err.status === 409 && /username/i.test(err.message)) {
         setError('username', { message: err.message })
       } else if (err instanceof ApiRequestError && err.status === 400 && err.body?.fieldErrors) {
         for (const fe of err.body.fieldErrors) {
@@ -148,6 +155,7 @@ export default function UsersAdminPage() {
               <TableRow>
                 <TableHead>Username</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Linked agent</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Access</TableHead>
               </TableRow>
@@ -159,6 +167,7 @@ export default function UsersAdminPage() {
                   <TableCell>
                     <Badge variant="outline">{u.role}</Badge>
                   </TableCell>
+                  <TableCell>{u.linkedAgentName ?? '—'}</TableCell>
                   <TableCell>
                     <Badge variant={u.active ? 'default' : 'secondary'}>
                       {u.active ? 'Active' : 'Inactive'}
@@ -195,7 +204,14 @@ export default function UsersAdminPage() {
           </DialogHeader>
           <form
             id="create-user-form"
-            onSubmit={handleSubmit((v) => create.mutate(v))}
+            onSubmit={handleSubmit((v) =>
+              create.mutate({
+                username: v.username,
+                password: v.password,
+                role: v.role,
+                agentId: v.role === 'AGENT' && v.agentId && v.agentId !== NONE ? v.agentId : undefined,
+              }),
+            )}
             className="flex flex-col gap-4"
             noValidate
           >
@@ -238,6 +254,30 @@ export default function UsersAdminPage() {
               />
               {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
             </div>
+            {selectedRole === 'AGENT' && (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="new-agent">Link to agent (optional)</Label>
+                <Controller
+                  control={control}
+                  name="agentId"
+                  render={({ field }) => (
+                    <Select value={field.value ?? NONE} onValueChange={field.onChange}>
+                      <SelectTrigger id="new-agent" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>None</SelectItem>
+                        {freeAgents.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.displayName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            )}
           </form>
           <DialogFooter>
             <Button type="submit" form="create-user-form" disabled={create.isPending}>

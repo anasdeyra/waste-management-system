@@ -527,3 +527,54 @@ artifacts, metrics, and presentation remain consistent.
     instructions, `Claude Sonnet 5.5`.
 - **Rationale:** Conventional choices made during S2 so later sprints (importer, tour drafts,
   evaluation scenarios) reuse them.
+
+## D-044 — S3 implementation conventions
+
+- **Date:** 2026-11-01
+- **Decision:**
+  - `Vehicle.registration` is trimmed, whitespace-collapsed and upper-cased, unique (409), at most
+    20 characters. Capacity is positive with at most 2 decimals (400); a service-level backstop
+    throws 422 (OCL `PositiveCapacity`) and is unit-tested only.
+  - Agent display names are not unique; the UUID is the identity. Vehicles and agents have no
+    `DELETE` (405); they are made unavailable instead.
+  - Availability changes use `PATCH /{id}/status {"status":"AVAILABLE|UNAVAILABLE"}`;
+    `?status=` filters the lists. `VehicleService.findUsable()` and `AgentService.findUsable()`
+    are the usable-resource queries for S4.
+  - Account link: the foreign key is `operational_agent.user_account_id` (unique).
+    `PUT`/`DELETE /api/agents/{id}/user-account` is ADMIN only (rule placed above the
+    PLANNER rule in `SecurityConfig`). Rule order: 404 (agent, then user), 422 (non-AGENT
+    account), idempotent for the same pair, 409 for either side already linked. Unlink is
+    idempotent (204) and deletes nothing. Activation is independent of the link. The optional
+    `agentId` on user creation is atomic (any failure rolls the user back).
+    `UserResponse.linkedAgentId/linkedAgentName` and `CurrentUserResponse.agentId` expose it.
+  - The MN01 import upserts on dataset + id and refreshes only `sourceOwnershipType`; the
+    name, coordinates, status and demand of an existing point are kept.
+  - Synthetic demand is the category `Mixed litter` with `10 + floorMod(hash(basketId), 21)` kg,
+    origin `SYNTHETIC`. An existing (even inactive) `Mixed litter` category is reused, with a
+    warning when inactive.
+  - Name rule: `STREET1 & STREET2`, otherwise the non-blank street, otherwise `Basket <id>`
+    (at most 120 characters).
+  - Skip rules: blank id, blank type, duplicate id in the file, unparsable or out-of-area
+    coordinates; each skipped row is a warning (at most 20, then `... more warnings omitted`).
+    `dsnyEligibleRowCount` counts every row with a `DSNY ` type, skipped or not.
+  - Snapshot id `dataset:rows:sha12` (SHA-256 over the classpath bytes) is stored in
+    `source_snapshot`, a provenance record outside the D-033 class diagram; `importedAt`
+    changes only when the checksum changes.
+  - The import runs at `dev` start (`@Order` 10 accounts, 20 map sample, 30 import) and through
+    `POST /api/admin/import` (ADMIN). The last report lives in memory;
+    `GET /api/admin/import/report` returns 404 before any run.
+  - `optimizationEligible` = ACTIVE and (no label or `DSNY ` label), exposed in
+    `CollectionPointResponse` and filterable with `?eligible=true|false`;
+    `findEligibleForPlanning()` applies it.
+- **Deviations from the S3 plan:**
+  - None in behaviour; the done-check script ran unmodified (138 checks, `FAILS=0`). The
+    `ApiExceptionHandler` needed no 405 handler (Spring's default already returned 405).
+  - On the Users page the 409 branch maps to the username field only when the message
+    mentions the username (link conflicts show a toast), to keep the existing mapping while
+    supporting the new 409 on the optional agent link.
+  - `useWatch` replaced `watch` for the role field (lint, same as S2). Mn01 helper types
+    (`Warnings`, `SourceFile`) are private nested types of `Mn01ImportService`.
+  - The trailer name `Claude Opus 5.5` of the plan was replaced by `Claude Sonnet 5.5` given
+    in the executor instructions.
+- **Rationale:** Conventions fixed during S3 so tour drafts (S4), the optimizer scenarios (S5)
+  and the S7 demonstration reuse the resource, link and import semantics.

@@ -41,9 +41,24 @@ export function AppShell() {
                 Waste categories
               </NavLink>
             )}
+            {hasRole(user, 'PLANNER') && (
+              <NavLink to="/vehicles" className={navClass}>
+                Vehicles
+              </NavLink>
+            )}
+            {hasRole(user, 'PLANNER') && (
+              <NavLink to="/agents" className={navClass}>
+                Agents
+              </NavLink>
+            )}
             {hasRole(user, 'ADMIN') && (
               <NavLink to="/admin/users" className={navClass}>
                 Users
+              </NavLink>
+            )}
+            {hasRole(user, 'ADMIN') && (
+              <NavLink to="/admin/data-import" className={navClass}>
+                Data import
               </NavLink>
             )}
           </nav>

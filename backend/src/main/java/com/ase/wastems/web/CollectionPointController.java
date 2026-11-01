@@ -41,8 +41,9 @@ public class CollectionPointController {
     @GetMapping
     public List<CollectionPointResponse> list(
             @RequestParam(required = false) CollectionPointStatus status,
-            @RequestParam(required = false) UUID categoryId) {
-        return service.search(status, categoryId).stream().map(CollectionPointResponse::from).toList();
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) Boolean eligible) {
+        return service.search(status, categoryId, eligible).stream().map(CollectionPointResponse::from).toList();
     }
 
     @GetMapping("/{id}")

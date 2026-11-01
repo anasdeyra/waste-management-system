@@ -3,10 +3,14 @@ package com.ase.wastems.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.ase.wastems.domain.CollectionPoint;
 import com.ase.wastems.domain.CollectionPointStatus;
+import com.ase.wastems.domain.DataOrigin;
+import com.ase.wastems.domain.DemandEntry;
 import com.ase.wastems.domain.WasteCategory;
+import com.ase.wastems.repository.AgentRepository;
 import com.ase.wastems.repository.AppUserRepository;
 import com.ase.wastems.repository.CollectionPointRepository;
 import com.ase.wastems.repository.DepotRepository;
@@ -29,6 +33,7 @@ class CollectionPointServiceTest {
     @Autowired private DepotRepository depots;
     @Autowired private WasteCategoryRepository categories;
     @Autowired private AppUserRepository users;
+    @Autowired private AgentRepository agents;
 
     private WasteCategory paper;
     private WasteCategory glass;
@@ -38,6 +43,7 @@ class CollectionPointServiceTest {
         points.deleteAll();
         depots.deleteAll();
         categories.deleteAll();
+        agents.deleteAll();
         users.deleteAll();
         paper = categories.save(new WasteCategory("Paper", null));
         glass = categories.save(new WasteCategory("Glass", null));
@@ -79,5 +85,25 @@ class CollectionPointServiceTest {
                                 new DemandInput(glass.getId(), new BigDecimal("4.25"))));
         CollectionPoint loaded = service.get(p.getId());
         assertEquals(0, loaded.totalDemandKg().compareTo(new BigDecimal("14.75")));
+    }
+
+    @Test
+    void eligibilityFollowsTheDsnyRule() {
+        CollectionPoint userEntered = make("User");
+        CollectionPoint dsny = importedPoint("Wire", "DSNY Wire");
+        importedPoint("Private", "Private High-end");
+        List<String> names =
+                service.findEligibleForPlanning().stream().map(CollectionPoint::getName).toList();
+        assertEquals(2, names.size());
+        assertTrue(names.contains(userEntered.getName()));
+        assertTrue(names.contains(dsny.getName()));
+        assertFalse(names.contains("Private"));
+    }
+
+    private CollectionPoint importedPoint(String name, String label) {
+        CollectionPoint p = new CollectionPoint(name, -74.0, 40.71, DataOrigin.IMPORTED_REAL);
+        p.setSource("8znf-7b2c", name, label);
+        p.addDemand(new DemandEntry(paper, BigDecimal.ONE, DataOrigin.SYNTHETIC));
+        return points.save(p);
     }
 }
