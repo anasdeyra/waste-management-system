@@ -38,7 +38,7 @@ allowed for my role.**
 - A deactivated account cannot authenticate, and passwords are never returned by the API.
 
 **Traceability:** FR-01, FR-27; NFR-01, NFR-11.
-**Status:** Done in S1.
+**Status:** Done in S1; sign-in attempts audited (S8).
 
 #### US-02 — Sign out — P0
 
@@ -69,7 +69,7 @@ operational and administrative data remain protected.**
 - Authorization is enforced by the backend, not merely by hiding frontend controls.
 
 **Traceability:** FR-02, FR-12, FR-27, FR-30; NFR-01.
-**Status:** Done for S1–S7 operations (admin/category, planning resources, tours; agents see only their crew's non-draft tours); audit administration in S8.
+**Status:** Done in S1–S8 (role matrix incl. ADMIN-only audit log; agents see only their crew's confirmed tours).
 
 #### US-04 — Create a user account — P0
 
@@ -413,7 +413,7 @@ algorithm cannot silently change operational work.**
 
 **Traceability:** FR-16, FR-17, FR-21; NFR-05, NFR-06, NFR-09.
 
-**Status:** Done in S6 (accept/keep input order with stale refusal; decision retained on the run; audit event in S8).
+**Status:** Done in S6 (accept/keep input order with stale refusal; decision retained on the run; audited (S8)).
 
 #### US-25 — Confirm a tour as planned — P1
 
@@ -499,7 +499,7 @@ that the finished work becomes operational history.**
   US-31.
 
 **Traceability:** FR-11, FR-13, FR-14; NFR-02, NFR-05.
-**Status:** Done in S7 (completion requires every stop terminal; record frozen; corrections in S8).
+**Status:** Done in S7 (completion requires every stop terminal; record frozen; planner corrections in S8).
 
 #### US-30 — Cancel a tour — P2
 
@@ -515,6 +515,7 @@ distinguished from completed collection.**
   delete.
 
 **Traceability:** FR-11, FR-14; NFR-02, NFR-05.
+**Status:** Done in S8 (cancellation with reason from DRAFT, PLANNED or IN_PROGRESS; record retained; audited).
 
 #### US-31 — Correct an execution result — P2
 
@@ -529,6 +530,7 @@ so that the operational record is accurate and the correction remains traceable.
 - The correction creates an audit event; ordinary agents cannot perform privileged corrections.
 
 **Traceability:** FR-13, FR-14, FR-30; NFR-01, NFR-02.
+**Status:** Done in S8 (dedicated PLANNER/ADMIN correction with reason; previous values retained; audited).
 
 #### US-32 — Consult operational history — P2
 
@@ -543,6 +545,7 @@ I can review past collection work.**
 - Historical tours cannot be reopened as new work or hard-deleted through this view.
 
 **Traceability:** FR-12, FR-14; NFR-03, NFR-09.
+**Status:** Done in S8 (history of completed and cancelled tours filtered by date, status, vehicle, agent and point; read-only detail).
 
 ### 1.7 Epic E06 — Real MN01 data and map context
 
@@ -670,6 +673,7 @@ that important system activity can be traced to an actor and time.**
   required.
 
 **Traceability:** FR-01, FR-30; NFR-01, NFR-11.
+**Status:** Done in S8 (sign-in and data-change audit through one service component; ADMIN search by time, actor, action, entity and outcome; append-only).
 
 ## 2. Scope and traceability checks
 
@@ -695,7 +699,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S7 executed; S8–S10 planned.** Review and retrospective slots of S8–S10 stay empty until each sprint actually closes. |
+| Status | **S1–S8 executed; S9–S10 planned.** Review and retrospective slots of S9–S10 stay empty until each sprint actually closes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -747,7 +751,7 @@ Differences from a human-team sprint backlog, and why:
 | S5 | Directed routing and the three-method optimizer | US-21, US-22 | Done (no UI by plan; verified by tests, scripted HTTP checks and an independent matrix-based verifier) |
 | S6 | Optimization review, comparison, planning gate | US-23…US-25 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
-| S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Not started |
+| S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Not started |
 | S10 | Metrics campaign and project closure | Part 6 execution + presentation content | Not started |
 
@@ -2005,9 +2009,83 @@ audit scope and the session model.
   working; a cancelled demo tour is not re-advanced by the demo loader after a restart.
 - No password, password hash or demo password appears in any audit event.
 
-**Review.** *To be filled at sprint close.*
+**Review.** 2026-11-01.
 
-**Retrospective.** *To be filled at sprint close.*
+- `./mvnw test`: **326 tests, 0 failures, 0 errors, 0 skipped** (271 from S1-S7 plus 55 new: audit
+  service 7, audit trail 10, import/demo audit 2, tour domain 8, cancellation 7, correction 8,
+  history 7, audit API 6). `npm run build` exits 0 (only the pre-existing >500 kB chunk warning);
+  `npm run lint` shows the three pre-existing warnings in vendored `src/components/ui/` and nothing
+  else.
+- Done-check `s8-done-check.sh`: 173 `PASS` lines (counted with `grep -c '^PASS'` on the saved
+  output), final line `FAILS=0` on the first run, no script change (no `s8-done-check.orig.sh`).
+  Backend on 8081 with scratch H2 databases and a scratch routing cache, Vite on 5174. The owner's
+  servers (8080, 5173), `backend/data/` and `backend/routing-cache/` were not touched. Phase A4 ran
+  (it did not `SKIP`): a copy of the owner's database file started with the S8 jar, logged no demo
+  failure and its audit log answered 200.
+- Mermaid: the use-case, class, sequence and activity diagrams render with
+  `@mermaid-js/mermaid-cli` 11 (session scratchpad, not a repo dependency): exit 0, SVG written, no
+  "syntax error", re-run inside the done-check. Each changed diagram was rendered right after its
+  edit.
+- Observed on the fresh database: the start-up run wrote one `DATA_IMPORTED` and one `DEMO_LOADED`
+  (4 tours), both with actor `system`, plus the demo tour steps by `system` (`TOUR_CONFIRMED` 3,
+  `TOUR_COMPLETED` 1, six `STOP_OUTCOME_RECORDED`); the whole audit log held 81 events at the end
+  of phase B1 and none contained a password, a hash or a demo password.
+
+| Check | Observed |
+|---|---|
+| Static / UML | no traffic or routing engine in `optimization/`; GraphHopper only in `routing/`; `AuditEventRepository` extends Spring Data `Repository` with no delete or update method; `AuditEvent` is `@Immutable`; 38 audit actions; no S8 matcher in `SecurityConfig`; only `AuthController` and `AuditEventController` use `AuditService` in `web/`; class diagram names `OutcomeCorrection`, `cancelledFromStatus`, `CorrectionRetained`; activity diagram names `privileged correction`; README names the S8 endpoints; four diagrams render |
+| S7 database upgraded (A1-A3) | S7 jar loads the demo (`DRAFT PLANNED IN_PROGRESS COMPLETED`); S8 jar starts on that database with `tours created=0` and no failure; the completed tour answers with `cancellable` false and `correctable` true; history lists it; cancelling the planned demo tour and correcting the not-collected stop both answer 200; the audit log holds the import and demo events by `system`, the planner sign-in, the cancellation and the correction; after a restart the tour stays `CANCELLED` and the correction is still there |
+| Owner DB copy (A4) | a copy of `backend/data/wastems.mv.db` starts with the S8 jar without demo failure; audit search 200 |
+| Start-up audit | one `DATA_IMPORTED` (entity `DATA_IMPORT`) and one `DEMO_LOADED` by `system`; 3 `TOUR_CONFIRMED`, 1 `TOUR_COMPLETED`, evaluation runs audited |
+| Sign-in audit | success with entity `USER`; wrong password 401 and a `FAILURE` row `invalid credentials`; unknown user 401, `FAILURE` row without entity id; deactivated account 401 and `account deactivated`; sign-out 204 and one `SIGN_OUT` |
+| No secrets | 81 events dumped over every page: no password, hash or `$2a$`; `USER_CREATED` details are `username auditee, role PLANNER`; dev and test passwords absent from the logs |
+| Data-change audit | vehicle create/status, agent create, one link and one unlink (repeats add none), category create by admin, point status changes, user status change; a refused edit of a planned tour (409) leaves no event |
+| Cancellation | agent 403; `{}` and blank reason 400 field `reason`; unknown tour 404; completed tour 409 with the documented message; planned demo tour cancelled (200, from `PLANNED`, pending stops stay `PENDING`); cancel again 409; frozen afterwards (start, edit, evaluate 409, delete 405); crew sees the cancelled planned tour (200) and never the cancelled draft (403); in-progress tour cancelled with its outcomes kept; three `TOUR_CANCELLED` events with from-status and reason |
+| Correction (history + audit) | crew member 403; missing reason and `PENDING` 400 with the field; unchanged outcome 422; pending stop 409; planner corrects demo stop 4 to Collected with Mixed litter 18.00; previous status, text and recorder retained; admin may correct; crew sees it; `correctionCount` 1 in the history; one `STOP_OUTCOME_CORRECTED` naming the correction id |
+| History | completed and cancelled only; filters by status, vehicle, agent (driver and collector), point and date range (inclusive); unknown agent empty; `status=PLANNED`, `from` after `to`, bad date and bad uuid 400; agent 403, admin 200, anonymous 401; the detail of a cancelled tour keeps cancellation facts |
+| Audit search | planner and agent 403, anonymous 401; paging; newest first; `outcome=FAILURE` only sign-ins; 400s for action, outcome, size, page and time; `from`/`to` boundaries; actor filter case-insensitive; single event 200/404/400; PUT, PATCH, DELETE and POST 405 and the event unchanged |
+| Restart (B2) | the demo creates nothing; the three cancelled tours stay `CANCELLED`; the correction and the audit rows persist |
+| Frontend / bundle / proxy | `api.ts`, hooks, routes `/history` (PLANNER) and `/admin/audit` (ADMIN); lat/lng flip only in `geo.ts`; build 0; no lint findings outside `components/ui`; 22 required strings present in the bundle; through Vite 5174 the planner cancels with CSRF, history lists it, admin audit search finds it, both SPA routes serve |
+
+- **US-30 met** (DRAFT, PLANNED and IN_PROGRESS tours move to CANCELLED with a reason; no re-cancel
+  and no cancellation after completion; stops, outcomes and history are retained; it is not a
+  delete).
+- **US-31 met** (dedicated PLANNER/ADMIN endpoint; reason, actor and UTC time; the previous values
+  are retained; an audit event names the correction; agents get 403).
+- **US-32 met** (filters by date, status, vehicle, agent and point; the detail retains resources,
+  order, outcomes, quantities, incidents, cancellation reason, timestamps and corrections; no reopen
+  or delete).
+- **US-39 met** (sign-in success and failure and every S1-S8 data change with actor, UTC time,
+  action, entity, outcome and details; no secrets; ADMIN filters by time, actor, action, entity and
+  outcome; no edit or delete), within D-040's limit for the UI pages: they were built and served but
+  not viewed in a browser.
+- **Deferred items closed:** FR-30 sign-in audit (S1); audit of S1-S7 changes, imports, evaluation
+  runs, accept/reject/confirm, start, outcomes, completion and the demo load; US-03 audit
+  administration; cancellation of drafts, planned and in-progress tours; planner corrections.
+- **Deferred.** Dashboards, evaluation explorer, CSV and the traffic overlay (S9); metrics (S10).
+- **Known gaps.**
+  - No browser walkthrough (D-040).
+  - Bootstrap seeding (dev accounts, map sample) is not audited by design.
+  - Demo-created master data is summarized by one `DEMO_LOADED` event.
+  - Refused requests are not audited; only failed sign-ins and failed evaluation runs are
+    `FAILURE` rows.
+  - The audit actor of demo tour steps is `system` (or the admin) while the outcome's recorder is
+    the crew account.
+- **Reviewer walkthrough.** Steps 8-11 of README §4.6.
+
+**Retrospective.**
+
+- *Went well.* All 326 tests and all 173 done-check assertions passed on the first run, with no
+  script correction and no `fix(...)` commit. Recording the audit event inside the service
+  transaction, after the change, kept refused requests out of the log without special cases, and
+  updating kept categories in place avoided the Hibernate insert-before-delete conflict that the
+  plan had flagged. Each diagram was rendered right after its edit.
+- *Went badly.* The UI was again verified without a browser (build, lint, bundle strings and proxy
+  checks). The done-check takes a long time because it starts the backend several times.
+- *Process changes for S9.* Keep counting the done-check assertions from the script output; plan a
+  browser walkthrough only if the owner can supply one; keep the audit hook in every new mutating
+  service method (CSV import in S9).
+
 
 ### 3.12 Sprint S9 — Dashboards, evaluation explorer, CSV exchange, traffic overlay
 

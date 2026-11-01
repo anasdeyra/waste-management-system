@@ -11,7 +11,7 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
 completed artifacts from planned work.
 
-> **Current state: Sprint S7 delivered.** Session authentication with CSRF protection, the
+> **Current state: Sprint S8 delivered.** Session authentication with CSRF protection, the
 > ADMIN / PLANNER / AGENT roles, user administration, waste categories, collection points with
 > demand entries on a Leaflet/OpenStreetMap map (S2), and (S3) vehicles and operational agents
 > with availability, the ADMIN-only agent to AGENT-account link, and the idempotent import of
@@ -34,6 +34,11 @@ completed artifacts from planned work.
 > collected (reason), and completes the tour once every stop is resolved. A `dev` start loads a
 > reproducible MN01 demonstration (see §4.6). The real MN01 source extracts are under
 > `backend/src/main/resources/data/`.
+>
+> **Corrections, history and audit (S8):** planners cancel a draft, planned or in-progress tour with
+> a reason, correct a recorded stop outcome (the previous values are kept), and search the history
+> of completed and cancelled tours. Administrators search an append-only audit log of sign-ins
+> and data changes (`/admin/audit`).
 
 The real-city sources, included snapshots, map interactions, routing rules, and attribution
 are documented in [`docs/geospatial-data.md`](docs/geospatial-data.md). Traffic is a timestamped
@@ -380,8 +385,8 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
 | 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
 | 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
-| 4 — Prototype | `backend/`, `frontend/` | S1–S7: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, three-method evaluation, review and confirmation, crew execution, MN01 demonstration |
-| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S7 executed, S8–S10 planned |
+| 4 — Prototype | `backend/`, `frontend/` | S1–S8: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, three-method evaluation, review and confirmation, crew execution, MN01 demonstration, cancellation, outcome corrections, operational history, audit log |
+| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S8 executed, S9–S10 planned |
 | 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
 | Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; point map implemented; routing to do |
 
