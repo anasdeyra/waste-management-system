@@ -15,6 +15,8 @@ public interface AgentRepository extends JpaRepository<Agent, UUID> {
 
     List<Agent> findByStatusOrderByDisplayNameAscIdAsc(ResourceStatus status);
 
+    long countByStatus(ResourceStatus status);
+
     Optional<Agent> findByUserAccount(AppUser user);
 
     List<Agent> findByUserAccountIsNotNull();

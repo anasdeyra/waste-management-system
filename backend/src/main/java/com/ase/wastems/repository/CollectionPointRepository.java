@@ -37,6 +37,8 @@ public interface CollectionPointRepository extends JpaRepository<CollectionPoint
     Optional<CollectionPoint> findWithDemandsBySourceDatasetAndSourceIdentifier(
             String dataset, String identifier);
 
+    long countByStatus(CollectionPointStatus status);
+
     boolean existsBySourceDataset(String dataset);
 
     Optional<CollectionPoint> findBySourceDatasetAndSourceIdentifier(String dataset, String identifier);

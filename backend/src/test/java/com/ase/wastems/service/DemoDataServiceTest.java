@@ -82,6 +82,7 @@ class DemoDataServiceTest {
     @Autowired private MockMvc mvc;
     @Autowired private AuditEventRepository auditEvents;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private DashboardService dashboardService;
 
     @BeforeEach
     void setUp() {
@@ -331,5 +332,39 @@ class DemoDataServiceTest {
         mvc.perform(get("/api/admin/demo/report").with(user("admin1").roles("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trigger").value("MANUAL"));
+    }
+
+    @Test
+    void dashboardSummaryMatchesTheDemonstration() {
+        demo.load(DemoTrigger.MANUAL);
+        OperationsSummary s = dashboardService.operations(null, null);
+        assertThat(s.tours().total()).isEqualTo(4);
+        assertThat(s.tours().draft()).isEqualTo(1);
+        assertThat(s.tours().planned()).isEqualTo(1);
+        assertThat(s.tours().inProgress()).isEqualTo(1);
+        assertThat(s.tours().completed()).isEqualTo(1);
+        assertThat(s.tours().cancelled()).isZero();
+        assertThat(s.stops().total()).isEqualTo(14);
+        assertThat(s.stops().pending()).isEqualTo(8);
+        assertThat(s.stops().collected()).isEqualTo(4);
+        assertThat(s.stops().notCollected()).isEqualTo(2);
+        assertThat(s.vehicles().total()).isEqualTo(vehicles.count());
+        assertThat(s.vehicles().unavailable()).isEqualTo(1);
+        assertThat(s.agents().total()).isEqualTo(agents.count());
+        assertThat(s.agents().unavailable()).isEqualTo(1);
+        BigDecimal expected = BigDecimal.ZERO;
+        for (Tour t : tours.findAll()) {
+            Tour full = tourService.get(t.getId());
+            if (full.getStatus() == TourStatus.DRAFT) {
+                continue;
+            }
+            for (TourStop stop : full.getStops()) {
+                if (stop.getStatus() == TourStopStatus.COLLECTED) {
+                    expected = expected.add(stop.actualTotalKg());
+                }
+            }
+        }
+        assertThat(s.collectedKg()).isEqualByComparingTo(expected);
+        assertThat(s.collectedKg().signum()).isPositive();
     }
 }

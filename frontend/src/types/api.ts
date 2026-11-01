@@ -836,3 +836,48 @@ export interface EvaluationBatchDetail {
   aggregates: EvaluationAggregate[]
   scenarioKeys: string[]
 }
+
+/** web.dto.OperationsDashboardResponse.ResourceCountsResponse */
+export interface ResourceCounts {
+  total: number
+  available: number
+  unavailable: number
+}
+
+/** web.dto.OperationsDashboardResponse.PointCountsResponse */
+export interface PointCounts {
+  total: number
+  active: number
+  inactive: number
+}
+
+/** web.dto.OperationsDashboardResponse.TourCountsResponse */
+export interface TourCounts {
+  total: number
+  draft: number
+  planned: number
+  inProgress: number
+  completed: number
+  cancelled: number
+}
+
+/** web.dto.OperationsDashboardResponse.StopCountsResponse */
+export interface StopCounts {
+  total: number
+  pending: number
+  collected: number
+  notCollected: number
+}
+
+/** web.dto.OperationsDashboardResponse: recorded data, not live tracking */
+export interface OperationsDashboard {
+  from?: string
+  to?: string
+  generatedAt: string
+  vehicles: ResourceCounts
+  agents: ResourceCounts
+  collectionPoints: PointCounts
+  tours: TourCounts
+  stops: StopCounts
+  collectedKg: number
+}

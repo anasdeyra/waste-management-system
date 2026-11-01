@@ -2,6 +2,7 @@ package com.ase.wastems.repository;
 
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.TourStatus;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
 import jakarta.persistence.LockModeType;
@@ -28,6 +29,15 @@ public interface TourRepository extends JpaRepository<Tour, UUID> {
             order by t.planningDate desc, t.createdAt desc""")
     List<Tour> search(
             @Param("status") TourStatus status, @Param("planningDate") LocalDate planningDate);
+
+    @Query("select t.status, count(t) from Tour t where (:from is null or t.planningDate >= :from) and (:to is null or t.planningDate <= :to) group by t.status")
+    List<Object[]> countToursByStatus(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("select s.status, count(s) from TourStop s where s.tour.status in :statuses and (:from is null or s.tour.planningDate >= :from) and (:to is null or s.tour.planningDate <= :to) group by s.status")
+    List<Object[]> countStopsByStatus(@Param("statuses") Collection<TourStatus> statuses, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("select coalesce(sum(q.actualQuantityKg), 0) from CollectedQuantity q where q.tourStop.status = com.ase.wastems.domain.TourStopStatus.COLLECTED and q.tourStop.tour.status in :statuses and (:from is null or q.tourStop.tour.planningDate >= :from) and (:to is null or q.tourStop.tour.planningDate <= :to)")
+    BigDecimal sumCollectedKg(@Param("statuses") Collection<TourStatus> statuses, @Param("from") LocalDate from, @Param("to") LocalDate to);
 
     List<Tour> findByStatusIn(Collection<TourStatus> statuses);
 
