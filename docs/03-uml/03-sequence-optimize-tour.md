@@ -124,7 +124,7 @@ sequenceDiagram
   matching editable draft.
 - The tour remains `DRAFT`; US-25/UC12 must separately validate and confirm it as `PLANNED`.
 - Updating the operational draft and recording the decision on the retained run occur in one
-  transaction. The audit event is added with the audit log in S8 (US-39).
+  transaction. The same transaction writes the `PROPOSAL_ACCEPTED` audit event (S8, US-39).
 - A proposal whose run revision or stop list differs from the current draft is stale. It is
   refused with 409 and changes nothing.
 
