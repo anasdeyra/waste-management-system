@@ -161,6 +161,23 @@ public class TourExecutionService {
         return resolved;
     }
 
+    /** IN_PROGRESS to COMPLETED when every stop is terminal (US-29). */
+    @Transactional
+    public Tour complete(UUID tourId, String username) {
+        Tour tour = lockedVisible(tourId, username);
+        if (tour.getStatus() != TourStatus.IN_PROGRESS) {
+            throw new ConflictException(
+                    "Only an IN_PROGRESS tour can be completed; this tour is " + tour.getStatus() + ".");
+        }
+        List<TourIssue> issues = tour.completionIssues();
+        if (!issues.isEmpty()) {
+            throw new TourNotCompletableException(issues);
+        }
+        tour.complete(now(), username);
+        tour.touch();
+        return TourService.initialized(tour);
+    }
+
     private Tour lockedVisible(UUID tourId, String username) {
         Tour tour = tours.findByIdForUpdate(tourId)
                 .orElseThrow(() -> new NotFoundException("Tour not found: " + tourId));

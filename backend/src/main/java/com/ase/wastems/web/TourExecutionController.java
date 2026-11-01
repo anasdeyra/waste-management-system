@@ -73,4 +73,9 @@ public class TourExecutionController {
         StopOutcomeCommand cmd = new StopOutcomeCommand(req.status(), quantities, req.incidentReason());
         return respond(execution.recordOutcome(id, stopId, auth.getName(), cmd));
     }
+
+    @PostMapping("/{id}/completion")
+    public TourResponse complete(@PathVariable UUID id, Authentication auth) {
+        return respond(execution.complete(id, auth.getName()));
+    }
 }
