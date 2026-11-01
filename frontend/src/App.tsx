@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/shared/app-shell'
 import { RequireAuth, RequireRole } from '@/components/shared/require-auth'
 import AgentsPage from '@/pages/agents-page'
+import AuditLogPage from '@/pages/audit-log-page'
 import CollectionPointsPage from '@/pages/collection-points-page'
 import CategoriesPage from '@/pages/waste-categories-page'
 import DataImportPage from '@/pages/data-import-page'
@@ -107,6 +108,14 @@ export default function App() {
           element={
             <RequireRole role="ADMIN">
               <DataImportPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/audit"
+          element={
+            <RequireRole role="ADMIN">
+              <AuditLogPage />
             </RequireRole>
           }
         />

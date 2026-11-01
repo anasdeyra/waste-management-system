@@ -76,6 +76,11 @@ export function AppShell() {
                 Data import
               </NavLink>
             )}
+            {hasRole(user, 'ADMIN') && (
+              <NavLink to="/admin/audit" className={navClass}>
+                Audit log
+              </NavLink>
+            )}
           </nav>
           <div className="ml-auto flex items-center gap-2">
             <span className="text-sm">{user?.username}</span>
