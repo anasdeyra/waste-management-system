@@ -699,3 +699,68 @@ artifacts, metrics, and presentation remain consistent.
     the second backend's warm-up warning is polled for up to 40 s instead of grepped once (it is logged
     after the login check). First run: `FAILS=3`; second run with these corrections: 116 checks, `FAILS=0`.
   - No GraphHopper API deviated from the plan; the code compiled against 11.1 as specified.
+
+## D-047 — S6 implementation conventions
+
+- **Date:** 2026-11-01
+- **Decision:**
+  - **Route reference on `Tour`.** Nullable columns `road_legs_geojson` (lob, copied byte for byte from
+    `MethodResult.legsGeoJson`), `road_graph_version`, `route_evaluation_run_id` (no foreign key, like
+    `evaluation_run.tour_id`), `route_method`, `route_distance_m`, `route_duration_s`; either all are set
+    (`hasRoute()`) or all are null. They are set only by accepting the NN + 2-opt proposal or by keeping the
+    input order (the `INPUT_ORDER` legs of the same run). `addStop`, `removeStop`, `reorderStops` and
+    `setDepot` with a different depot clear the route in the domain; `assign(...)` and `setPlanningDate(...)`
+    keep it (crew and date do not change the geometry; capacity is rechecked at confirmation). Accept
+    reorders first, then attaches.
+  - **Fresh versus stale.** A run is fresh for a tour iff its tour id and revision equal the tour's and the
+    frozen stop point ids in input order equal the tour's current stop point ids in visit order; otherwise
+    accept and reject answer 409 and change nothing (D-045 revision rule).
+  - **Accept and reject.** `POST /api/tours/{id}/proposal-acceptances` and `.../proposal-rejections`, body
+    `{"evaluationRunId": uuid}`, both 200 with the `TourResponse`; the tour stays `DRAFT` and `revision + 1`.
+    Accept applies the `NN_PLUS_2_OPT` point order and route; reject leaves the order unchanged and attaches
+    the `INPUT_ORDER` route, because confirmation needs a route (OCL `Tour::confirm()`
+    `VersionedRoadRoute`, activity diagram "Keep current DRAFT order"). Rule order, first failing wins: 400
+    missing or malformed body; 404 tour; 404 run; 422 run of another tour; 409 tour not `DRAFT`; 422 run
+    `ROUTING_FAILED`; 409 run already `ACCEPTED`; 409 stale; 422 the needed method result is missing or
+    infeasible.
+  - **Decision on the run.** `EvaluationRun` gets `decision` (`ProposalDecision`), `decided_by`,
+    `decided_at`, written in the same transaction as the tour change. Method results are never altered, so a
+    rejected proposal stays retained (US-24).
+  - **Confirmation.** `POST /api/tours/{id}/confirmation`, no body, 200 with `PLANNED` and `revision + 1`;
+    404 unknown tour, 400 malformed id, 409 not `DRAFT`, 422 with `ApiError.issues` (`{code, message}`) when
+    any issue exists, in which case nothing changes. Issue order: the S4 structural issues, then
+    `PLANNING_DATE_PAST` (date before today), then `ROUTE_MISSING` or `ROUTE_OUTDATED`. `ROUTE_OUTDATED`
+    (service level) means the route's run no longer exists or a current stop point's or the depot's
+    coordinates differ (> 1e-9) from those frozen in that run. `Tour.structuralIssues()` is unchanged, so the
+    S5 evaluation gate is unaffected.
+  - **Response fields.** `TourResponse` adds `route` (omitted when none), `confirmationIssues` (empty when the
+    tour is not `DRAFT`) and `readyToConfirm`; `TourSummaryResponse` adds `routeMethod`; the run responses
+    add `decision`, `decidedBy`, `decidedAt`; `ApiError` adds `issues` (omitted when null). Every
+    `TourResponse` is built through `TourController.respond(...)`.
+  - **Concurrency.** Accept, reject and confirm read the tour with `PESSIMISTIC_WRITE`
+    (`TourRepository.findByIdForUpdate`).
+  - **Lock.** Unchanged S4 rule: every mutation calls `requireDraft` (409 for `PLANNED`); accept, reject and
+    confirm join that set. There is no un-confirm (D-025; cancellation is S8).
+  - **No audit until S8.** The audit events of accept, reject and confirm belong to US-39.
+  - **Activity diagram.** The edge `FEASIBLE -- No --> KEEP` became `FEASIBLE -- No --> FIX`: without a
+    feasible proposal there is no feasible input-order route either (capacity is checked identically for all
+    methods and an over-capacity draft never reaches the optimizer), so the planner corrects the draft and
+    evaluates again.
+  - **Mermaid render procedure.** `@mermaid-js/mermaid-cli` 11 with Chrome is installed in the session
+    scratchpad, never in the repo: `PUPPETEER_CACHE_DIR=<scratch>/mermaid/.cache
+    <scratch>/mermaid/node_modules/.bin/mmdc -i docs/03-uml/<file>.md -o <scratch>/mermaid/out/<file>.svg`;
+    exit 0, the SVG written and no "syntax error" in it.
+  - **Frontend.** Traffic is not shown and not an optimizer input (D-021). The `[lon, lat]` to `[lat, lng]`
+    flip stays in `components/maps/geo.ts`. The UI is verified by build, lint, bundle strings and proxy
+    checks only (D-040).
+- **Rationale:** Making acceptance, keeping the input order and confirmation explicit, revision-checked and
+  atomic keeps the algorithm from silently changing operational work (US-24), and a single confirmation gate
+  with structured issues makes the `PLANNED` state trustworthy (US-25, NFR-02).
+- **Deviations from the S6 plan:**
+  - The trailer name is `Claude Sonnet 5.5` as given in the executor instructions.
+  - The plan's closing `end` of the sequence-diagram block was kept by the scripted replacement, leaving one
+    extra `end` that failed to parse; it was removed before the docs commit and the diagram renders.
+  - The plan says the done-check has about 120 checks; the script prints 173 `PASS` assertions. It ran
+    unmodified (no `s6-done-check.orig.sh`) and ended with `FAILS=0` on the first run.
+  - The tests copy the evaluation fixture, as planned. The confirmation test builds its extra basket with the
+    category found through `categories.findAll()`. No API of the plan needed correction.

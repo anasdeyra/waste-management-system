@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { evaluationsKey } from '@/hooks/use-evaluations'
 import { apiFetch } from '@/lib/api-client'
 import type {
   AddTourStopRequest,
+  ProposalDecisionRequest,
   ReorderTourStopsRequest,
   Tour,
   TourAssignmentRequest,
@@ -49,13 +51,19 @@ export function useCreateTour() {
 }
 
 /** Every tour mutation returns the whole tour: write it into the cache (single source of truth). */
-function useTourMutation<TVars>(fn: (v: TVars) => Promise<Tour>) {
+function useTourMutation<TVars>(
+  fn: (v: TVars) => Promise<Tour>,
+  alsoInvalidate: readonly (readonly unknown[])[] = [],
+) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: fn,
     onSuccess: (tour) => {
       queryClient.setQueryData(tourKey(tour.id), tour)
-      return queryClient.invalidateQueries({ queryKey: [...toursKey, 'list'] })
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: [...toursKey, 'list'] }),
+        ...alsoInvalidate.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      ])
     },
   })
 }
@@ -87,5 +95,30 @@ export function useReorderTourStops() {
 export function useAssignTour() {
   return useTourMutation((v: { id: string; body: TourAssignmentRequest }) =>
     apiFetch<Tour>(`/api/tours/${v.id}/assignment`, { method: 'PUT', body: v.body }),
+  )
+}
+
+/** Applies the NN + 2-opt order and road route of a current run (POST .../proposal-acceptances). */
+export function useAcceptProposal() {
+  return useTourMutation(
+    (v: { id: string; body: ProposalDecisionRequest }) =>
+      apiFetch<Tour>(`/api/tours/${v.id}/proposal-acceptances`, { method: 'POST', body: v.body }),
+    [evaluationsKey],
+  )
+}
+
+/** Keeps the input order and attaches its road route (POST .../proposal-rejections). */
+export function useRejectProposal() {
+  return useTourMutation(
+    (v: { id: string; body: ProposalDecisionRequest }) =>
+      apiFetch<Tour>(`/api/tours/${v.id}/proposal-rejections`, { method: 'POST', body: v.body }),
+    [evaluationsKey],
+  )
+}
+
+/** DRAFT -> PLANNED after full revalidation (POST .../confirmation). */
+export function useConfirmTour() {
+  return useTourMutation((v: { id: string }) =>
+    apiFetch<Tour>(`/api/tours/${v.id}/confirmation`, { method: 'POST' }),
   )
 }

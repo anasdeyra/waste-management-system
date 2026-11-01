@@ -25,9 +25,12 @@ public record TourResponse(
         List<TourStopResponse> stops,
         TourCapacityResponse capacity,
         boolean structurallyValid,
-        List<TourIssueResponse> validationIssues) {
+        List<TourIssueResponse> validationIssues,
+        TourRouteResponse route,
+        List<TourIssueResponse> confirmationIssues,
+        boolean readyToConfirm) {
 
-    public static TourResponse from(Tour t) {
+    public static TourResponse from(Tour t, List<TourIssue> confirmationIssues) {
         List<TourIssue> issues = t.structuralIssues();
         return new TourResponse(
                 t.getId(),
@@ -44,6 +47,9 @@ public record TourResponse(
                 t.getStops().stream().map(TourStopResponse::from).toList(),
                 TourCapacityResponse.from(t),
                 issues.isEmpty(),
-                issues.stream().map(TourIssueResponse::from).toList());
+                issues.stream().map(TourIssueResponse::from).toList(),
+                TourRouteResponse.from(t),
+                confirmationIssues.stream().map(TourIssueResponse::from).toList(),
+                t.isDraft() && confirmationIssues.isEmpty());
     }
 }

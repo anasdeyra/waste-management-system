@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { METHOD_LABELS } from '@/lib/evaluation-labels'
 import { STATUS_LABELS } from '@/lib/tour-labels'
 import { useTours } from '@/hooks/use-tours'
 import type { TourStatus } from '@/types/api'
@@ -117,6 +118,7 @@ export default function ToursPage() {
                 <TableHead>Driver</TableHead>
                 <TableHead>Collectors</TableHead>
                 <TableHead>Validation</TableHead>
+                <TableHead>Route</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -143,6 +145,7 @@ export default function ToursPage() {
                         : `${t.issueCount} issue${t.issueCount === 1 ? '' : 's'}`}
                     </Badge>
                   </TableCell>
+                  <TableCell>{t.routeMethod ? METHOD_LABELS[t.routeMethod] : '—'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

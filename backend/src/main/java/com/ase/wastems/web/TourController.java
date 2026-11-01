@@ -5,6 +5,7 @@ import com.ase.wastems.domain.TourStatus;
 import com.ase.wastems.domain.TourStop;
 import com.ase.wastems.service.TourService;
 import com.ase.wastems.web.dto.AddTourStopRequest;
+import com.ase.wastems.web.dto.ProposalDecisionRequest;
 import com.ase.wastems.web.dto.ReorderTourStopsRequest;
 import com.ase.wastems.web.dto.TourAssignmentRequest;
 import com.ase.wastems.web.dto.TourRequest;
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,7 +32,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Tour draft API; PLANNER and ADMIN only (SecurityConfig). There is no tour delete: drafts are
  * abandoned through cancellation (S8). Stop removal answers 200 with the tour because the
- * remaining stops are renumbered.
+ * remaining stops are renumbered. The review endpoints accept an evaluated proposal or keep the
+ * input order (S6, US-24); {@code /confirmation} moves a revalidated draft to PLANNED (US-25).
  */
 @RestController
 @RequestMapping("/api/tours")
@@ -40,6 +43,10 @@ public class TourController {
 
     public TourController(TourService service) {
         this.service = service;
+    }
+
+    private TourResponse respond(Tour t) {
+        return TourResponse.from(t, service.confirmationIssues(t));
     }
 
     @GetMapping
@@ -54,17 +61,17 @@ public class TourController {
     public ResponseEntity<TourResponse> create(@Valid @RequestBody TourRequest req) {
         Tour t = service.create(req.planningDate(), req.depotId());
         return ResponseEntity.created(URI.create("/api/tours/" + t.getId()))
-                .body(TourResponse.from(t));
+                .body(respond(t));
     }
 
     @GetMapping("/{id}")
     public TourResponse get(@PathVariable UUID id) {
-        return TourResponse.from(service.get(id));
+        return respond(service.get(id));
     }
 
     @PutMapping("/{id}")
     public TourResponse update(@PathVariable UUID id, @Valid @RequestBody TourRequest req) {
-        return TourResponse.from(service.updateHeader(id, req.planningDate(), req.depotId()));
+        return respond(service.updateHeader(id, req.planningDate(), req.depotId()));
     }
 
     @PostMapping("/{id}/stops")
@@ -72,24 +79,40 @@ public class TourController {
             @PathVariable UUID id, @Valid @RequestBody AddTourStopRequest req) {
         TourStop stop = service.addStop(id, req.collectionPointId());
         return ResponseEntity.created(URI.create("/api/tours/" + id + "/stops/" + stop.getId()))
-                .body(TourResponse.from(stop.getTour()));
+                .body(respond(stop.getTour()));
     }
 
     @DeleteMapping("/{id}/stops/{stopId}")
     public TourResponse removeStop(@PathVariable UUID id, @PathVariable UUID stopId) {
-        return TourResponse.from(service.removeStop(id, stopId));
+        return respond(service.removeStop(id, stopId));
     }
 
     @PutMapping("/{id}/assignment")
     public TourResponse assign(
             @PathVariable UUID id, @Valid @RequestBody TourAssignmentRequest req) {
-        return TourResponse.from(
-                service.assign(id, req.vehicleId(), req.driverId(), req.collectorIds()));
+        return respond(service.assign(id, req.vehicleId(), req.driverId(), req.collectorIds()));
     }
 
     @PutMapping("/{id}/stops/order")
     public TourResponse reorderStops(
             @PathVariable UUID id, @Valid @RequestBody ReorderTourStopsRequest req) {
-        return TourResponse.from(service.reorderStops(id, req.stopIds()));
+        return respond(service.reorderStops(id, req.stopIds()));
+    }
+
+    @PostMapping("/{id}/confirmation")
+    public TourResponse confirm(@PathVariable UUID id) {
+        return respond(service.confirm(id));
+    }
+
+    @PostMapping("/{id}/proposal-acceptances")
+    public TourResponse acceptProposal(
+            @PathVariable UUID id, @Valid @RequestBody ProposalDecisionRequest req, Authentication auth) {
+        return respond(service.acceptOptimizedProposal(id, req.evaluationRunId(), auth.getName()));
+    }
+
+    @PostMapping("/{id}/proposal-rejections")
+    public TourResponse rejectProposal(
+            @PathVariable UUID id, @Valid @RequestBody ProposalDecisionRequest req, Authentication auth) {
+        return respond(service.rejectProposal(id, req.evaluationRunId(), auth.getName()));
     }
 }

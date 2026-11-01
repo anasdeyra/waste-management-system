@@ -4,8 +4,10 @@ import com.ase.wastems.service.BusinessRuleException;
 import com.ase.wastems.service.ConflictException;
 import com.ase.wastems.routing.RoutingUnavailableException;
 import com.ase.wastems.service.NotFoundException;
+import com.ase.wastems.service.TourNotConfirmableException;
 import com.ase.wastems.web.dto.ApiError;
 import com.ase.wastems.web.dto.FieldErrorDetail;
+import com.ase.wastems.web.dto.TourIssueResponse;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -28,6 +30,13 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiError> authentication(AuthenticationException ex) {
         return body(HttpStatus.UNAUTHORIZED, "Invalid username or password.");
+    }
+
+    @ExceptionHandler(TourNotConfirmableException.class)
+    public ResponseEntity<ApiError> notConfirmable(TourNotConfirmableException ex) {
+        HttpStatus s = HttpStatus.UNPROCESSABLE_ENTITY;
+        return ResponseEntity.status(s).body(new ApiError(s.value(), s.getReasonPhrase(), ex.getMessage(), null,
+                ex.getIssues().stream().map(TourIssueResponse::from).toList()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

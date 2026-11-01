@@ -14,6 +14,11 @@ export function toLatLng(p: LonLat): [number, number] {
   return [p.latitude, p.longitude]
 }
 
+/** GeoJSON LineString coordinates ([longitude, latitude]) as Leaflet positions. */
+export function lineToLatLngs(coordinates: [number, number][]): [number, number][] {
+  return coordinates.map(([longitude, latitude]) => toLatLng({ longitude, latitude }))
+}
+
 const ORIGIN_LABELS: Record<DataOrigin, string> = {
   IMPORTED_REAL: 'Real (imported)',
   SYNTHETIC: 'Synthetic',

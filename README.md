@@ -11,7 +11,7 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
 completed artifacts from planned work.
 
-> **Current state: Sprint S5 delivered.** Session authentication with CSRF protection, the
+> **Current state: Sprint S6 delivered.** Session authentication with CSRF protection, the
 > ADMIN / PLANNER / AGENT roles, user administration, waste categories, collection points with
 > demand entries on a Leaflet/OpenStreetMap map (S2), and (S3) vehicles and operational agents
 > with availability, the ADMIN-only agent to AGENT-account link, and the idempotent import of
@@ -23,7 +23,11 @@ completed artifacts from planned work.
 > route. **Directed routing and three-method evaluation (S5):** embedded GraphHopper 11.1 on the
 > versioned OSM snapshot `osm-mn01-e1f2fabaa937`; `POST /api/tours/{id}/evaluations` runs input
 > order, nearest neighbor and NN + 2-opt on the frozen draft and retains the run (orders, road
-> legs, distance, duration, execution time, checks, snapshot IDs). No evaluation UI yet (S6).
+> legs, distance, duration, execution time, checks, snapshot IDs). **Review and planning
+> gate (S6):** the tour planner page compares the three road routes on a map and in an
+> indicator table. The planner accepts the NN + 2-opt proposal or keeps the input order, which
+> is refused when stale, and confirms a fully revalidated draft as `PLANNED`, which locks its
+> structure.
 > Tour execution is not implemented yet. The real MN01 source extracts are under
 > `backend/src/main/resources/data/`.
 
@@ -47,7 +51,7 @@ map overlay; it does not drive dynamic rerouting or the controlled optimization 
 | Components | shadcn/ui (Radix UI) | latest |
 | Data fetching | TanStack Query + React Router | 5.x / 7.x |
 | Interactive maps | Leaflet + React Leaflet, standard OSM tiles (D-039) | Leaflet 1.9 / React Leaflet 5 |
-| Road routing (planned) | GraphHopper + versioned OpenStreetMap extract | not installed yet |
+| Road routing | GraphHopper (embedded) + versioned OpenStreetMap extract `osm-mn01-e1f2fabaa937` | 11.1 |
 | Tests | JUnit 5, AssertJ, Spring Security Test | — |
 | Metrics | PMD, CKJM, JDepend, `tools/count-loc.py` | — |
 
@@ -228,11 +232,17 @@ curl -s -i -b $J -X POST "${H[@]}" $B/api/tours/$TOUR_ID/evaluations   # 201, Lo
 curl -s -b $J $B/api/evaluations/$RUN_ID                                 # three method results with orders, legs, indicators
 curl -s -b $J $B/api/evaluations/$RUN_ID/matrix                          # retained directed distance/time matrix
 curl -s -b $J $B/api/tours/$TOUR_ID/evaluations                          # runs of the tour, newest first
+# accept the NN + 2-opt proposal of a current run, or keep the input order (both 200, 409 when stale)
+curl -s -b $J "${H[@]}" -d "{\"evaluationRunId\":\"$RUN_ID\"}" $B/api/tours/$TOUR_ID/proposal-acceptances
+curl -s -b $J "${H[@]}" -d "{\"evaluationRunId\":\"$RUN_ID\"}" $B/api/tours/$TOUR_ID/proposal-rejections
+# confirm as PLANNED (422 lists the blocking issues; structural edits of a planned tour answer 409)
+curl -s -b $J -X POST "${H[@]}" $B/api/tours/$TOUR_ID/confirmation
 ```
 
 A draft that is not ready answers 422 (e.g. `OVER_CAPACITY`, `NO_VEHICLE`); an unroutable point or
 missing directed leg answers 201 with a retained run of status `ROUTING_FAILED`; a missing or
-corrupt road snapshot answers 503. The draft is never modified.
+corrupt road snapshot answers 503. Evaluation never
+modifies the draft; only an explicit accept or keep-input-order does.
 
 Over-capacity is reported (`capacity.overCapacity`, issue `OVER_CAPACITY`), not rejected, in a
 draft. There is no `DELETE /api/tours/{id}`.

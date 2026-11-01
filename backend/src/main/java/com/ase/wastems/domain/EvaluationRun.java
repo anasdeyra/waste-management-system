@@ -100,6 +100,16 @@ public class EvaluationRun {
     @Column(name = "matrix_json")
     private String matrixJson;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "decision", length = 20)
+    private ProposalDecision decision;
+
+    @Column(name = "decided_by", length = 50)
+    private String decidedBy;
+
+    @Column(name = "decided_at")
+    private Instant decidedAt;
+
     @ElementCollection
     @CollectionTable(name = "evaluation_stop", joinColumns = @JoinColumn(name = "run_id"))
     @OrderColumn(name = "stop_position")
@@ -155,6 +165,24 @@ public class EvaluationRun {
                 : failureMessage;
         this.results = new ArrayList<>();
         this.matrixJson = null;
+    }
+
+    public void recordDecision(ProposalDecision decision, String decidedBy, Instant decidedAt) {
+        this.decision = decision;
+        this.decidedBy = decidedBy;
+        this.decidedAt = decidedAt;
+    }
+
+    public ProposalDecision getDecision() {
+        return decision;
+    }
+
+    public String getDecidedBy() {
+        return decidedBy;
+    }
+
+    public Instant getDecidedAt() {
+        return decidedAt;
     }
 
     public List<String> sourceSnapshotIdList() {

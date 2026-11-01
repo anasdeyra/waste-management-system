@@ -4,8 +4,9 @@
 
 This is the core intelligent-planning scenario for UC10 and UC11 (US-21–US-24). A planner has
 already created a `DRAFT`, selected its stops/input order, and assigned a vehicle and crew. The
-planner requests a three-method comparison, inspects feasible results, and may explicitly apply
-the NN + 2-opt proposal to that same draft.
+planner requests a three-method comparison, inspects feasible results, and either applies the
+NN + 2-opt proposal to that same draft or keeps the input order. Both decisions are refused when
+the draft changed since the run.
 
 The diagram distinguishes:
 
@@ -75,18 +76,31 @@ sequenceDiagram
 
             alt Planner accepts a feasible NN + 2-opt proposal
                 Planner->>UI: Accept proposal for this draft
-                UI->>API: POST /api/tours/{tourId}/proposal-acceptances {evaluationId}
+                UI->>API: POST /api/tours/{tourId}/proposal-acceptances {evaluationRunId}
                 Note over API: Require the same planner authorization and an editable DRAFT
-                API->>Tours: acceptOptimizedProposal(tourId, evaluationId)
+                API->>Tours: acceptOptimizedProposal(tourId, evaluationRunId)
                 Tours->>Store: Lock/read draft and retained evaluation
-                Tours->>Tours: Verify proposal identity, feasibility and scenario/draft match
-                Tours->>Store: Save optimized stop order, road-leg reference and audit event atomically
-                Store-->>Tours: Updated DRAFT
-                Tours-->>API: Updated tour, still not PLANNED or started
-                API-->>UI: 200 OK with accepted draft order
-                UI-->>Planner: Confirm acceptance and retain all compared results
-            else Planner rejects/discards or no feasible optimized proposal
-                Planner->>UI: Reject proposal or correct the draft inputs
+                Tours->>Tours: Verify run identity, revision/stop match and NN + 2-opt feasibility
+                alt Draft changed since the run (stale proposal)
+                    Tours-->>API: Conflict, nothing changed
+                    API-->>UI: 409 Conflict (evaluate the tour again)
+                    UI-->>Planner: Show that the proposal is stale
+                else Proposal matches the current draft
+                    Tours->>Store: Save proposal stop order, road-route reference and ACCEPTED decision atomically
+                    Store-->>Tours: Updated DRAFT (revision + 1)
+                    Tours-->>API: Updated tour, still not PLANNED or started
+                    API-->>UI: 200 OK with accepted draft order and road route
+                    UI-->>Planner: Confirm acceptance and retain all compared results
+                end
+            else Planner keeps the input order (rejects the proposal)
+                Planner->>UI: Keep input order
+                UI->>API: POST /api/tours/{tourId}/proposal-rejections {evaluationRunId}
+                API->>Tours: rejectProposal(tourId, evaluationRunId)
+                Tours->>Store: Keep stop order, attach input-order road route, record REJECTED decision
+                Store-->>Tours: Updated DRAFT (revision + 1, same order)
+                API-->>UI: 200 OK, order unchanged, all three results retained
+                UI-->>Planner: Show the kept input order and its road route
+            else No feasible proposal or planner leaves the run undecided
                 UI-->>Planner: Keep current draft order unchanged, retained evaluation remains available
             end
         end
@@ -109,14 +123,25 @@ sequenceDiagram
 - Acceptance applies only the identified feasible NN + 2-opt order and road-route reference to the
   matching editable draft.
 - The tour remains `DRAFT`; US-25/UC12 must separately validate and confirm it as `PLANNED`.
-- Updating the operational draft and writing its audit event occur in one transaction.
+- Updating the operational draft and recording the decision on the retained run occur in one
+  transaction. The audit event is added with the audit log in S8 (US-39).
+- A proposal whose run revision or stop list differs from the current draft is stale. It is
+  refused with 409 and changes nothing.
 
 ### Failure or rejection
 
 - If the road snapshot itself cannot be loaded (missing or checksum mismatch), the API answers 503 and retains nothing.
 - Invalid inputs, unavailable directed legs, or optimization failures never produce a partially
   accepted tour and never corrupt existing operational data.
-- Rejecting/discarding a proposal leaves the current draft order unchanged while retaining the
-  evaluation for traceability.
+- Keeping the input order (rejecting the proposal) leaves the draft order unchanged, attaches
+  the input-order road route of the same run (needed for confirmation), and retains all three
+  results. Leaving the run undecided changes nothing.
 - NYC DOT traffic is absent from this sequence by design: it is a display overlay, not a cost
   input or automatic rerouting trigger.
+
+## 4. Confirmation (UC12, US-25)
+
+`POST /api/tours/{tourId}/confirmation` revalidates the structural issues, the planning date
+and the road route (`ROUTE_MISSING`/`ROUTE_OUTDATED`). It answers 422 with the list of
+blocking issues, or 200 with the tour `PLANNED`. After that, every structural edit,
+evaluation and proposal decision answers 409.

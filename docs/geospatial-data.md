@@ -131,6 +131,13 @@ accessibility:
 6. compare baseline and optimized tours using distinct route layers and indicators; and
 7. toggle the traffic layer and inspect its observation time and coverage.
 
+Implemented in S6 on the tour planner page. A comparison map draws one toggleable
+road-following layer per method from the retained run's leg GeoJSON, numbers the stops in a
+selected method's order, and sits beside an indicator table (distance, duration, changes from
+input order, execution time, checks) with accessible visit-order lists. The planner map draws the
+attached road route of the tour (item 5, planned side; execution states follow in S7). Traffic is
+not shown and is not an optimizer input (D-021).
+
 The map is not merely a static illustration: selection, editing, planning, execution, and
 comparison workflows must remain synchronized with the underlying REST resources.
 
