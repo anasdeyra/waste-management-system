@@ -2089,46 +2089,99 @@ audit scope and the session model.
 
 ### 3.12 Sprint S9 — Dashboards, evaluation explorer, CSV exchange, traffic overlay
 
-**Sprint goal.** Operational and evaluation dashboards exist; the fixed 60-scenario
-experiment can be generated and run locally; evaluation CSVs import/export per the documented
-schemas; the timestamped NYC DOT traffic overlay renders without touching optimizer costs.
+**Sprint goal.** Planners see an operational dashboard and explore retained evaluation
+comparisons; the fixed 60-scenario experiment of D-016/D-022 can be generated deterministically
+and run from the backend (HTTP for small sets, a headless command for S10); evaluation scenarios
+import from and results export to documented CSV files; a timestamped NYC DOT traffic layer is
+displayed without touching optimizer costs.
 
-**Entrance criteria.** S8 done; retained evaluation runs exist (S5/S6).
+**Entrance criteria.** S8 done (green baseline on `main` `3749362`: 326 backend tests, frontend
+build, three lint warnings in vendored `components/ui`). Retained evaluation runs exist (S5/S6).
+No decision is pending: D-016, D-021, D-022, D-024, D-028, D-029, D-038 and D-040 fix the
+experiment matrix, the traffic boundary, demand/capacity, the CSV scope, the dashboard and audit
+scope, the session model and the verification level.
+
+**Scope notes.**
+
+- **Experiment support (D-016, D-022).** A seeded generator samples real MN01 DSNY baskets
+  without replacement from the committed basket snapshot (238 eligible) and draws synthetic demand
+  per profile (`UNIFORM_LOW`, `UNIFORM_HIGH`, `HOTSPOT`); 3 profiles × seeds 1–5 × sizes
+  10/25/50/100 = 60 canonical scenarios. Same seed ⇒ identical scenario and results (execution
+  time excepted). Runs reuse the S5 retention and belong to an `EvaluationBatch` with its
+  parameters, snapshot ids, road graph version and environment. Trigger: `POST
+  /api/admin/experiments` (ADMIN, at most 180 runs) and `tools/run-experiment.sh OUT_DIR` for S10.
+  A planner spike measured about 3 s for a 100-point scenario, so the canonical campaign takes
+  about 1–2 minutes. S9 runs only a small hand-run set; the campaign is S10.
+- **Explorer (US-36).** Run list with filters (kind, batch, profile, size, seed, status), run
+  detail with reproducibility fields and per-method change vs input order (shown only for
+  comparable feasible results), batch aggregates per size and profile. The hand-crafted demo
+  runs (`TOUR_DRAFT`) are never part of a batch aggregate.
+- **CSV (US-37, US-38, D-028).** Import of scenario points (existing collection points by id or
+  source key, coordinates, category, kilograms, capacity, optional profile/seed) with strict,
+  atomic validation and row errors; export of one row per run and method including failures,
+  with every value needed to recompute changes; a batch's scenarios export in the import format
+  (round trip). Schemas in `docs/evaluation-csv.md`.
+- **Dashboard (US-35, D-029).** Resource counts, tours by status and stop progress for a planning
+  period, with links to filtered views; explicitly not live tracking.
+- **Traffic (US-34, D-021).** A planner spike found NYC Open Data `i4gi-tjb9` reachable without a
+  key; a bounded snapshot (12 links touching the MN01 road-extract box, 2026-11-01) is committed
+  with its fetch tool, like the basket and road extracts. An isolated `traffic/` package
+  classifies links (observed, stale, no reading, invalid) and serves a display-only overlay with
+  observation time, coverage note, attribution and the DOT disclaimer; a missing snapshot is
+  shown as unavailable. It never enters routing or optimization.
+- **Schema.** Additive (new table and nullable columns), plus a start-up conversion of three
+  H2 `ENUM` columns of the S8 schema to `VARCHAR`, which the new enum values require.
+- **UI (D-020, D-040).** Pages `/dashboard`, `/evaluations`, `/evaluations/:runId`; traffic toggle
+  on the collection-point and tour maps; verified by build, lint, bundle strings and proxy checks.
 
 **Task backlog**
 
-1. (L) Fixed-matrix experiment support (D-016/D-022): seeded generator sampling real MN01
-   DSNY points without replacement (3 profiles × 5 seeds × 4 sizes), per-scenario identity
-   (seed/profile/size/source snapshot/routing version), reusing the run retention of S5.
-   Batch runner invocable from the backend (documentable command for S10). **Tests:**
-   sampled scenarios reproducible; runner produces one retained result per scenario/method
-   incl. failure rows.
-2. (M) Evaluation-explorer dashboard (US-36): scenario selector, per-method comparisons
-   (distance, estimated duration, execution time, coverage/checks), % vs input order from
-   retained values (not shown for missing/infeasible as "improvement"), reproducibility
-   fields; aggregates scoped to the fixed experiment, hand-crafted demo excluded.
-3. (M) Operational dashboard (US-35): resource/tour/stop summaries with filtered-view links;
-   no real-time tracking implication. **Tests:** summary math vs seeded demo data.
-4. (M) CSV import (US-37): documented schema (`docs/evaluation-csv.md`), strict validation
-   (headers, types, coordinate ranges, positive kg, category refs, duplicate
-   point/order entries), row-specific errors, atomic failure, provenance retained.
-   **Test:** validation matrix incl. partial-failure atomicity.
-5. (M) CSV export (US-38): all three methods incl. failures, columns sufficient to recompute
-   reported deltas, demo/experiment separation. **Test:** round-trip with an import or
-   independent parser check.
-6. (L) Traffic overlay (US-34): retrieval of the bounded NYC DOT link snapshot with
-   `data_as_of` retention and stale/invalid rejection (per `docs/geospatial-data.md` §4); API
-   + Leaflet layer with timestamp, coverage disclaimer text from §6; toggling never changes
-   optimization inputs (architecture: separate service/module). **Tests:** stale/invalid
-   handling; layer toggle state orthogonal to evaluation.
-7. (S) Contract sync; test/build pass; README updates.
+1. (M) Schema groundwork: `EvaluationBatch`, scenario fields on runs and stops, new scenario kinds
+   and audit actions, VARCHAR enum mapping and the start-up `SchemaUpgrade`. **Tests:** fresh
+   columns are VARCHAR; ENUM conversion keeps data; point-count back-fill; batch counters.
+2. (M) Seeded scenario generator `mn01-v1` and a non-saving evaluation entry point.
+   **Tests:** golden samples and demand, determinism, nesting, sampling without replacement,
+   profile ranges.
+3. (L) Experiment service, ADMIN trigger, batch audit event. **Tests:** one retained run per
+   scenario and method with provenance; **determinism** (same spec twice ⇒ identical runs);
+   retained routing-failure runs; 409 without the MN01 import; validation; roles.
+4. (M) Explorer API (US-36): paged run list, batches, batch aggregates, run detail change values.
+   **Tests:** aggregate math, comparability rule, filters, paging, 400s, roles.
+5. (M) CSV export (US-38) of results and of a batch's scenarios. **Tests:** header, failure rows,
+   recalculation of changes, no operational columns.
+6. (M) CSV import (US-37). **Tests:** validation matrix with row errors, atomicity, provenance,
+   infeasible and routing-failure scenarios, **round trip** export → import ⇒ identical results.
+7. (S) Headless experiment runner (`experiment` profile, `tools/run-experiment.sh`) for S10.
+   **Tests:** output files; spec from properties.
+8. (M) Operational dashboard API (US-35). **Tests:** summary math against fixtures and against
+   the seeded demo data; period filter; roles.
+9. (L) Traffic overlay backend (US-34): committed snapshot and fetch tool, isolated package,
+   API. **Tests:** polyline decoding, classification (stale/no data/invalid/unavailable), pinned
+   snapshot facts, package isolation, identical evaluation matrices before and after reading
+   traffic.
+10. (M) Frontend: dashboard page and URL-driven filters on the operational lists.
+11. (L) Frontend: evaluation explorer, run page, CSV import/export, experiment launcher.
+12. (S) Frontend: display-only traffic layer and panel on the maps.
+13. (S) Documentation (`docs/evaluation-csv.md`, traffic provenance in
+    `docs/geospatial-data.md`, README, use-case text); rendered diagrams; full test/build pass.
+14. (S) Close-out: review, retrospective, statuses, D-050.
 
 **Automated done checks**
 
-- `./mvnw test` green incl. runner determinism and CSV validation/export tests.
-- `npm run build` green.
-- Demo dashboards render from seeded demo data; explorer lists a small hand-run set of test
-  scenarios (the full 60-scenario campaign is S10).
+- `./mvnw test` green including the generator determinism, experiment, CSV validation/round-trip,
+  export, dashboard and traffic tests.
+- `npm run build` green; `npm run lint` clean outside `components/ui`.
+- A database created by the S8 build upgrades in place and accepts experiment batches and CSV
+  imports.
+- A small hand-run scenario set (8 scenarios: 2 profiles × 2 seeds × 10/25 points) runs through
+  the API, matches an independent re-implementation of the generator and an independent
+  matrix-based recomputation, repeats identically, round-trips through CSV, and the headless CLI
+  reproduces the same results on another database.
+- The demo dashboard matches the seeded demo data; the explorer lists the demo runs separately
+  from the experiment batches.
+- The traffic overlay shows the committed snapshot's timestamp, counts and texts, an
+  "unavailable" state without a snapshot, and evaluation matrices are identical before and after
+  reading it.
 
 **Review.** *To be filled at sprint close.*
 
