@@ -32,6 +32,11 @@ export function AppShell() {
               Home
             </NavLink>
             {hasRole(user, 'PLANNER') && (
+              <NavLink to="/collection-points" className={navClass}>
+                Collection points
+              </NavLink>
+            )}
+            {hasRole(user, 'PLANNER') && (
               <NavLink to="/waste-categories" className={navClass}>
                 Waste categories
               </NavLink>

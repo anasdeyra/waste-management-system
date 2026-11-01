@@ -15,8 +15,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // The Spring Boot API runs on 8080; proxy /api to avoid CORS in development.
+      // API_PROXY_TARGET lets a second dev server point at another backend port.
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.API_PROXY_TARGET ?? 'http://localhost:8080',
         changeOrigin: true,
       },
     },
