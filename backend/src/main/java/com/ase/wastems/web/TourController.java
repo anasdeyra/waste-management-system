@@ -6,6 +6,8 @@ import com.ase.wastems.domain.TourStop;
 import com.ase.wastems.service.TourService;
 import com.ase.wastems.web.dto.AddTourStopRequest;
 import com.ase.wastems.web.dto.CancelTourRequest;
+import com.ase.wastems.service.StopOutcomeCommand;
+import com.ase.wastems.web.dto.OutcomeCorrectionRequest;
 import com.ase.wastems.web.dto.ProposalDecisionRequest;
 import com.ase.wastems.web.dto.ReorderTourStopsRequest;
 import com.ase.wastems.web.dto.TourAssignmentRequest;
@@ -109,6 +111,28 @@ public class TourController {
     public TourResponse cancel(
             @PathVariable UUID id, @Valid @RequestBody CancelTourRequest req, Authentication auth) {
         return respond(service.cancel(id, req.reason(), auth.getName()));
+    }
+
+    @PostMapping("/{id}/stops/{stopId}/corrections")
+    public TourResponse correctOutcome(
+            @PathVariable UUID id,
+            @PathVariable UUID stopId,
+            @Valid @RequestBody OutcomeCorrectionRequest req,
+            Authentication auth) {
+        req.validateOutcome();
+        List<StopOutcomeCommand.QuantityInput> q =
+                req.quantities() == null
+                        ? List.of()
+                        : req.quantities().stream()
+                                .map(x -> new StopOutcomeCommand.QuantityInput(x.categoryId(), x.actualQuantityKg()))
+                                .toList();
+        return respond(
+                service.correctOutcome(
+                        id,
+                        stopId,
+                        new StopOutcomeCommand(req.status(), q, req.incidentReason()),
+                        req.reason(),
+                        auth.getName()));
     }
 
     @PostMapping("/{id}/proposal-acceptances")

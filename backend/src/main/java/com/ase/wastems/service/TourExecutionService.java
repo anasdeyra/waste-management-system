@@ -171,27 +171,7 @@ public class TourExecutionService {
         for (StopDemand d : stop.getStopDemands()) {
             planned.add(d.getCategory().getId());
         }
-        Map<WasteCategory, BigDecimal> resolved = new LinkedHashMap<>();
-        Set<UUID> seen = new HashSet<>();
-        List<WasteCategory> found = new ArrayList<>();
-        for (StopOutcomeCommand.QuantityInput q : cmd.quantities()) {
-            WasteCategory c = categories.findById(q.categoryId()).orElseThrow(
-                    () -> new NotFoundException("Waste category not found: " + q.categoryId()));
-            found.add(c);
-        }
-        for (WasteCategory c : found) {
-            if (!seen.add(c.getId())) {
-                throw new BusinessRuleException("Each waste category may appear only once.");
-            }
-        }
-        for (int i = 0; i < found.size(); i++) {
-            WasteCategory c = found.get(i);
-            if (!c.isActive() && !planned.contains(c.getId())) {
-                throw new BusinessRuleException("Waste category " + c.getName() + " is inactive.");
-            }
-            resolved.put(c, cmd.quantities().get(i).quantityKg());
-        }
-        return resolved;
+        return OutcomeQuantities.resolve(categories, cmd.quantities(), planned);
     }
 
     /** IN_PROGRESS to COMPLETED when every stop is terminal (US-29). */

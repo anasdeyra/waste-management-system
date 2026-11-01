@@ -30,7 +30,8 @@ public record TourStopResponse(
         Instant outcomeRecordedAt,
         String outcomeRecordedBy,
         List<CollectedQuantityResponse> actualQuantities,
-        BigDecimal actualTotalKg) {
+        BigDecimal actualTotalKg,
+        List<OutcomeCorrectionResponse> corrections) {
 
     public static TourStopResponse from(TourStop s) {
         CollectionPoint p = s.getCollectionPoint();
@@ -69,6 +70,7 @@ public record TourStopResponse(
                 s.getOutcomeRecordedAt(),
                 s.getOutcomeRecordedBy() == null ? null : s.getOutcomeRecordedBy().getUsername(),
                 actuals,
-                actuals.isEmpty() ? null : s.actualTotalKg());
+                actuals.isEmpty() ? null : s.actualTotalKg(),
+                s.getCorrections().stream().map(OutcomeCorrectionResponse::from).toList());
     }
 }

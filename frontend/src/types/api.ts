@@ -278,6 +278,29 @@ export interface CollectedQuantity {
   actualQuantityKg: number
 }
 
+/** web.dto.CorrectionQuantityResponse */
+export interface CorrectionQuantity {
+  categoryId: string
+  categoryName: string
+  quantityKg: number
+}
+
+/** web.dto.OutcomeCorrectionResponse (null fields are omitted) */
+export interface OutcomeCorrection {
+  id: string
+  correctedAt: string
+  correctedBy: string
+  reason: string
+  previousStatus: TourStopStatus
+  previousIncidentReason?: string
+  previousRecordedBy?: string
+  previousRecordedAt?: string
+  previousQuantities: CorrectionQuantity[]
+  newStatus: TourStopStatus
+  newIncidentReason?: string
+  newQuantities: CorrectionQuantity[]
+}
+
 /** web.dto.TourStopResponse (source fields are omitted when null) */
 export interface TourStop {
   id: string
@@ -299,6 +322,7 @@ export interface TourStop {
   outcomeRecordedBy?: string
   actualQuantities: CollectedQuantity[]
   actualTotalKg?: number
+  corrections: OutcomeCorrection[]
 }
 
 /** web.dto.TourCapacityResponse (vehicle fields are omitted when no vehicle is assigned) */
@@ -359,6 +383,14 @@ export interface CancelTourRequest {
 export interface CollectedQuantityRequest {
   categoryId: string
   actualQuantityKg: number
+}
+
+/** web.dto.OutcomeCorrectionRequest */
+export interface OutcomeCorrectionRequest {
+  status: 'COLLECTED' | 'NOT_COLLECTED'
+  quantities?: CollectedQuantityRequest[]
+  incidentReason?: string
+  reason: string
 }
 
 /** web.dto.StopOutcomeRequest */

@@ -15,6 +15,12 @@ public record StopOutcomeRequest(
 
     /** Cross-field rules of D-031 (400 before any lookup). */
     public void validateOutcome() {
+        validateOutcome(status, quantities, incidentReason);
+    }
+
+    /** Shared with {@link OutcomeCorrectionRequest}. */
+    public static void validateOutcome(
+            TourStopStatus status, List<CollectedQuantityRequest> quantities, String incidentReason) {
         if (status == TourStopStatus.PENDING) {
             throw new InvalidRequestException("status", "must be COLLECTED or NOT_COLLECTED");
         }

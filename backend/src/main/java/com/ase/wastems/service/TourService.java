@@ -27,6 +27,11 @@ import com.ase.wastems.repository.DepotRepository;
 import com.ase.wastems.repository.SourceSnapshotRepository;
 import com.ase.wastems.repository.TourRepository;
 import com.ase.wastems.repository.VehicleRepository;
+import com.ase.wastems.repository.WasteCategoryRepository;
+import com.ase.wastems.domain.TourStopStatus;
+import com.ase.wastems.domain.WasteCategory;
+import com.ase.wastems.domain.StopDemand;
+import com.ase.wastems.domain.CollectedQuantity;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -61,6 +66,7 @@ public class TourService {
     private final SourceSnapshotRepository sourceSnapshots;
     private final EvaluationRunRepository runs;
     private final AuditService audit;
+    private final WasteCategoryRepository categories;
 
     public TourService(
             TourRepository tours,
@@ -70,8 +76,10 @@ public class TourService {
             AgentRepository agents,
             SourceSnapshotRepository sourceSnapshots,
             EvaluationRunRepository runs,
-            AuditService audit) {
+            AuditService audit,
+            WasteCategoryRepository categories) {
         this.audit = audit;
+        this.categories = categories;
         this.tours = tours;
         this.depots = depots;
         this.points = points;
@@ -524,6 +532,61 @@ public class TourService {
                 tour.getId(),
                 "from " + from + "; " + resolved + " of " + tour.getStops().size()
                         + " stops resolved; reason: " + AuditService.brief(tour.getCancellationReason()));
+        return initialized(tour);
+    }
+
+    /** Privileged correction of a recorded outcome (US-31, D-027); previous values are retained. */
+    @Transactional
+    public Tour correctOutcome(
+            UUID tourId, UUID stopId, StopOutcomeCommand cmd, String reason, String username) {
+        Tour tour = findForUpdate(tourId);
+        initialized(tour);
+        TourStop stop =
+                tour.findStop(stopId)
+                        .orElseThrow(() -> new NotFoundException("Tour stop not found: " + stopId));
+        if (!tour.isCorrectable()) {
+            throw new ConflictException(
+                    "Outcomes can be corrected only on an IN_PROGRESS, COMPLETED or CANCELLED tour; this tour is "
+                            + tour.getStatus() + ".");
+        }
+        if (!stop.isTerminal()) {
+            throw new ConflictException(
+                    "Stop " + stop.getVisitOrder() + " has no recorded outcome to correct.");
+        }
+        Map<WasteCategory, BigDecimal> quantities;
+        if (cmd.status() == TourStopStatus.COLLECTED) {
+            Set<UUID> allowed = new HashSet<>();
+            for (StopDemand d : stop.getStopDemands()) {
+                allowed.add(d.getCategory().getId());
+            }
+            for (CollectedQuantity q : stop.getActualQuantities()) {
+                allowed.add(q.getCategory().getId());
+            }
+            quantities = OutcomeQuantities.resolve(categories, cmd.quantities(), allowed);
+        } else {
+            quantities = Map.of();
+        }
+        if (stop.hasOutcome(cmd.status(), quantities, cmd.incidentReason())) {
+            throw new BusinessRuleException("The correction does not change the recorded outcome.");
+        }
+        TourStopStatus previous = stop.getStatus();
+        OutcomeCorrection c =
+                stop.correctOutcome(
+                        cmd.status(),
+                        quantities,
+                        cmd.incidentReason(),
+                        reason,
+                        username,
+                        Instant.now().truncatedTo(ChronoUnit.MILLIS));
+        tour.touch();
+        tours.flush();
+        audit.record(
+                AuditAction.STOP_OUTCOME_CORRECTED,
+                AuditEntityType.TOUR,
+                tour.getId(),
+                "correction " + c.getId() + " of stop " + stop.getVisitOrder() + " "
+                        + stop.getCollectionPoint().getName() + ": " + previous + " -> " + cmd.status()
+                        + "; reason: " + AuditService.brief(c.getReason()));
         return initialized(tour);
     }
 
