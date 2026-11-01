@@ -40,13 +40,13 @@ An agent's job is to help produce **all** of these, coherently, not only the cod
 | Optimization model | ✅ Directed road-network input-order baseline, NN + directed-cost 2-opt; 60 real-location scenarios fixed; NYC traffic overlay only |
 | Repository scaffold | ✅ `backend/`, `frontend/`, `docs/`, `tools/`, `README.md` |
 | Toolchain | ✅ JDK 21 + Maven 3.9 + CKJM installed locally by `tools/setup-toolchain.sh` |
-| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog + sprint plan complete, S1–S3 executed (reviews + retrospectives written), S4–S10 planned; Part 6 not started |
+| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog + sprint plan complete, S1–S4 executed (reviews + retrospectives written), S5–S10 planned; Part 6 not started |
 | UML diagrams (Part 3) | ✅ Use case, operational class, optimization sequence, tour-lifecycle activity, and OCL complete; all Mermaid sources rendered successfully |
-| Prototype (Part 4) | 🟡 S1–S3 implemented: auth/roles/users/categories, collection points + demand on a Leaflet map, vehicles/agents with availability and account links, idempotent MN01 import (449 baskets, 238 DSNY-eligible, MN01G depot, snapshot identity); tours, routing, optimization pending |
+| Prototype (Part 4) | 🟡 S1–S4 implemented: auth/roles/users/categories, collection points + demand on a Leaflet map, vehicles/agents with availability and account links, idempotent MN01 import (449 baskets, 238 DSNY-eligible, MN01G depot, snapshot identity), tour drafts with map/list stop selection, explicit input order, vehicle/crew assignment and capacity validation; routing, optimization, execution pending |
 | Metrics + research answer (Part 6) | ❌ Not started (`tools/metrics.sh` is ready) |
 | Presentation | ❌ Not started |
 
-**Last updated:** 2026-11-01 (S3 closed)
+**Last updated:** 2026-11-01 (S4 closed)
 
 Update this table whenever the state changes. Do not claim something is done unless the
 artifact exists in the repo.
@@ -92,9 +92,9 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [x] Frameworks initialised and runnable locally (backend on 8080, frontend on 5173, Vite proxies `/api`)
 - [x] README with setup + run instructions
 - [x] Authentication
-- [ ] Collection points, vehicles, agents, tours, waste categories (CRUD) (waste categories + users done in S1; collection points + demand done in S2; vehicles and agents done in S3; tours pending)
+- [ ] Collection points, vehicles, agents, tours, waste categories (CRUD) (waste categories + users done in S1; collection points + demand done in S2; vehicles and agents done in S3; tour drafts done in S4; tour lifecycle S6–S8)
 - [ ] Intelligent tour optimization on directed NYC road-network costs and impact measurement
-- [ ] Interactive maps for point editing/selection, tour display/comparison, and execution (point display/editing done in S2; tour maps pending)
+- [ ] Interactive maps for point editing/selection, tour display/comparison, and execution (point display/editing done in S2; stop selection done in S4; tour comparison and execution maps pending)
 - [ ] Versioned OSM/GraphHopper routing and timestamped NYC DOT traffic overlay
 - [ ] Dashboards, CSV import/export, audit log
 - [ ] Import the included real MN01 basket/depot snapshots and add demo operations so a reviewer can try them immediately (snapshot import done in S3; demo operations in S7)
@@ -102,9 +102,9 @@ Map every artifact to a part of the assignment. Keep this list honest.
 ### Part 5 — Scrum → `docs/05-scrum.md`
 - [x] Product Backlog as user stories ("As a …, I want …, so that …")
 - [x] Prioritized, with acceptance criteria
-- [x] Sprint Backlog(s) — ten sprints (S1–S10) planned for AI-agent execution, `docs/05-scrum.md` §3; none executed yet
-- [ ] Sprint review notes (S1–S3 recorded; S4–S10 pending)
-- [ ] Retrospective notes (what went well / badly) (S1–S3 recorded; S4–S10 pending)
+- [x] Sprint Backlog(s) — ten sprints (S1–S10) planned for AI-agent execution, `docs/05-scrum.md` §3; S1–S4 executed
+- [ ] Sprint review notes (S1–S4 recorded; S5–S10 pending)
+- [ ] Retrospective notes (what went well / badly) (S1–S4 recorded; S5–S10 pending)
 
 ### Part 6 — Metrology → `docs/06-metrics.md`
 > Tooling is in place (`bash tools/metrics.sh`); the measurements are not started.
@@ -153,6 +153,7 @@ project-ase/
 │       ├── components/maps/  # Leaflet base map and layers
 │       ├── components/collection-points/  # list, details, form, demand editor
 │       ├── components/fleet/  # vehicle form dialog
+│       ├── components/tours/  # tour header, stop list, candidates, assignment, capacity
 │       ├── components/agents/  # agent form and account-link dialogs
 │       ├── lib/              # cn(), API client, auth helpers
 │       ├── App.tsx           # routes

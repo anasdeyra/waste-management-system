@@ -69,7 +69,7 @@ operational and administrative data remain protected.**
 - Authorization is enforced by the backend, not merely by hiding frontend controls.
 
 **Traceability:** FR-02, FR-12, FR-27, FR-30; NFR-01.
-**Status:** Partially done in S1 (admin/category enforcement and role hierarchy); planning and tour scoping verified in S2–S7. S2: collection points and depots are PLANNER/ADMIN only, AGENT 403. S3: vehicles/agents PLANNER/ADMIN, links and import ADMIN only, AGENT 403.
+**Status:** Partially done in S1 (admin/category enforcement and role hierarchy); planning and tour scoping verified in S2–S7. S2: collection points and depots are PLANNER/ADMIN only, AGENT 403. S3: vehicles/agents PLANNER/ADMIN, links and import ADMIN only, AGENT 403. S4: tours PLANNER/ADMIN, AGENT 403.
 
 #### US-04 — Create a user account — P0
 
@@ -183,7 +183,7 @@ click so that planning uses accurate locations.**
   scenarios without rewriting retained evaluation snapshots.
 
 **Traceability:** FR-04, FR-05, FR-23; NFR-02, NFR-03, NFR-09.
-**Status:** Done in S2 except snapshot immutability, verified in S4/S5.
+**Status:** Done in S2; tour demand snapshots verified in S4; evaluation snapshots in S5.
 
 #### US-11 — Manage point demand entries — P0
 
@@ -200,7 +200,7 @@ point so that the optimizer uses current collection requirements.**
 - Editing current demand does not alter the frozen inputs of a retained evaluation run.
 
 **Traceability:** FR-06, FR-08, FR-15; NFR-02, NFR-07, NFR-09.
-**Status:** Done in S2 except snapshot immutability, verified in S4/S5.
+**Status:** Done in S2; tour demand snapshots verified in S4; evaluation snapshots in S5.
 
 #### US-12 — Deactivate a collection point — P1
 
@@ -215,7 +215,7 @@ without losing its history.**
   from active points.
 
 **Traceability:** FR-04, FR-14, FR-22; NFR-02.
-**Status:** Partially done in S2 (deactivation, filter, eligible query); exclusion from new tours/scenarios enforced in S4/S5.
+**Status:** Done in S2/S4 (rejected for new tour stops, kept and flagged on existing ones); scenarios in S5.
 
 ### 1.4 Epic E03 — Vehicles, agents, and access links
 
@@ -232,7 +232,7 @@ fleet with explicit capacities.**
 - Invalid or non-positive capacities are rejected.
 
 **Traceability:** FR-07, FR-08; NFR-02.
-**Status:** Done in S3; identity on existing tours verified when tours exist (S4).
+**Status:** Done in S3; identity on tour assignments verified in S4.
 
 #### US-14 — Change vehicle availability — P0
 
@@ -247,7 +247,7 @@ use only operable resources.**
 - Changing availability does not erase or rewrite historical assignments.
 
 **Traceability:** FR-07, FR-10, FR-11; NFR-02.
-**Status:** Partially done in S3 (availability, usable-vehicle query); assignment and recheck rules in S4/S6/S7.
+**Status:** Partially done (S3 availability; S4 rejection on new assignment and kept historical assignments); recheck at confirm/start in S6/S7.
 
 #### US-15 — Create and edit an agent — P0
 
@@ -262,7 +262,7 @@ collectors to tours.**
 - Only information needed for assignment and operational follow-up is required.
 
 **Traceability:** FR-09; NFR-02, NFR-11.
-**Status:** Done in S3; identity on existing assignments verified in S4.
+**Status:** Done in S3; identity on tour assignments verified in S4.
 
 #### US-16 — Manage an agent's login link — P1
 
@@ -293,7 +293,7 @@ people available for collection work.**
 - Changing availability does not erase historical assignments or collection results.
 
 **Traceability:** FR-09, FR-10, FR-11; NFR-02.
-**Status:** Partially done in S3 (availability, usable-agent query); crew rules and rechecks in S4/S6/S7.
+**Status:** Partially done (S3 availability; S4 rejection on new assignment and kept historical assignments); recheck at confirm/start in S6/S7.
 
 ### 1.5 Epic E04 — Tour planning and intelligent optimization
 
@@ -310,6 +310,7 @@ collection work before confirming it.**
 - The planner can consult and edit the draft before confirmation.
 
 **Traceability:** FR-11; NFR-02.
+**Status:** Done in S4 (draft creation/edit); the PLANNED gate is enforced by confirmation in S6.
 
 #### US-19 — Select and arrange tour stops — P1
 
@@ -326,6 +327,7 @@ synchronized map and list interactions so that the tour has an explicit baseline
 - Inactive points cannot be newly added.
 
 **Traceability:** FR-11, FR-15, FR-19, FR-23; NFR-03, NFR-07.
+**Status:** Done in S4 (map/list selection, explicit order); scenario freezing in S5.
 
 #### US-20 — Assign the vehicle and crew — P1
 
@@ -341,6 +343,7 @@ tour has a valid operating crew and capacity.**
   capacity; an over-capacity tour cannot become `PLANNED`.
 
 **Traceability:** FR-06, FR-08, FR-10, FR-11; NFR-02.
+**Status:** Done in S4 (assignment rules, capacity report); blocking at confirmation in S6.
 
 #### US-21 — Run the three-method evaluation — P1
 
@@ -680,7 +683,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S3 executed; S4–S10 planned.** Review and retrospective slots of S4–S10 stay empty until each sprint actually closes. |
+| Status | **S1–S4 executed; S5–S10 planned.** Review and retrospective slots of S5–S10 stay empty until each sprint actually closes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -727,7 +730,7 @@ Differences from a human-team sprint backlog, and why:
 | S1 | Secure foundation: identities, roles, waste categories | US-01…US-07 | Done (frontend verified by build and proxy checks only, no browser walkthrough) |
 | S2 | Collection points and demand on the real map | US-08…US-12 | Done (frontend verified by build, bundle and proxy checks only, no browser walkthrough) |
 | S3 | Fleet, crew, and MN01 import groundwork | US-13…US-17 (+ US-33 groundwork) | Done (frontend verified by build, lint and proxy checks only, no browser walkthrough) |
-| S4 | Tour drafts: stops, order, crew, capacity | US-18…US-20 | Not started |
+| S4 | Tour drafts: stops, order, crew, capacity | US-18…US-20 | Done (frontend verified by build, lint, bundle and proxy checks only, no browser walkthrough) |
 | S5 | Directed routing and the three-method optimizer | US-21, US-22 | Not started |
 | S6 | Optimization review, comparison, planning gate | US-23…US-25 | Not started |
 | S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Not started |
@@ -1208,39 +1211,163 @@ eligible".
 
 ### 3.7 Sprint S4 — Tour drafts: stops, order, crew, capacity
 
-**Sprint goal.** A `PLANNER` can create a `DRAFT` tour, add/map-select active points in an
-explicit input order, and assign a valid vehicle/crew; over-capacity or invalid assignments
-are reported and block the lifecycle.
+**Sprint goal.** A `PLANNER` can create a `DRAFT` tour for a planning date and depot, add
+eligible points from the map or a list in an explicit input order, and assign a vehicle, a
+driver and up to two collectors; capacity excess, unavailable resources and invalid stops are
+reported as structural issues that will block the lifecycle (S6), and invalid assignments are
+rejected.
 
-**Entrance criteria.** S3 done; imported points and available vehicles/agents exist.
+**Entrance criteria.** S3 done (green baseline: 120 backend tests, frontend build); the MN01
+import (237 eligible points), vehicles and agents with availability exist.
+
+**Scope notes.**
+
+- Names follow the class diagram: `Tour` (`planningDate`, `status`, `origin`, depot, vehicle,
+  driver, collectors), `TourStop` (`visitOrder`, `status`), `StopDemand`
+  (`plannedQuantityKg`), `TourStatus`, `TourStopStatus`. S4 creates only `DRAFT` tours with
+  `PENDING` stops. Lifecycle transitions land with confirm (S6), start/complete (S7) and cancel
+  (S8); the attributes they need (`cancellationReason`, `roadLegsGeoJson`, `roadGraphVersion`,
+  stop outcome fields, `CollectedQuantity`) are added by those sprints.
+- **Stop order** is `visitOrder` 1..n, unique and contiguous (OCL `UniqueContiguousVisitOrder`),
+  maintained by the domain: append on add, renumber on remove, explicit permutation on
+  reorder. A point appears at most once per tour (409).
+- **Demand snapshot.** Adding a stop copies the point's current demand entries into
+  `StopDemand` (class diagram §1); later demand edits do not change the stop (US-11 deferred
+  item). Name, coordinates and status are read live; S5 freezes coordinates in the evaluation
+  scenario (US-10 deferred item).
+- **New stops** must be `optimizationEligible` (D-019/D-044): inactive → 422 (US-12 deferred
+  item), active non-DSNY → 422. A stop whose point later becomes inactive or ineligible is kept
+  and reported.
+- **Assignment** (D-011/D-014): one request replaces vehicle, driver and collectors; more than
+  two collectors, duplicate collectors, or the driver as collector → 422 (OCL
+  `AtMostTwoCollectors`, `DriverIsNotCollector`). A newly placed resource must be `AVAILABLE`
+  (422, US-14/US-17 deferred item). A resource already on the tour that later becomes
+  unavailable stays assigned (historical assignment preserved) and is reported.
+- **Capacity** (D-024): the sum of all planned demand over all categories is compared with the
+  single vehicle capacity (equality is within capacity). In a draft, excess is **reported, not
+  rejected**, because stops and vehicle can be edited in any order; it is a blocking issue
+  (`OVER_CAPACITY`) for confirmation (OCL `CapacityRespectedAfterDraft`, S6).
+- **Structural validation** (`Tour.structuralIssues()`, the activity diagram's "Draft inputs
+  structurally valid?" decision): missing stops/vehicle/driver, unavailable vehicle/driver/
+  collector, inactive or ineligible stop, over capacity. S5 evaluation and S6 confirmation reuse
+  it; S6 adds the road-route checks.
+- **Revision.** Every successful structural change increments `Tour.revision`, so an S5
+  evaluation can record the exact draft version it froze and S6 can refuse a stale proposal.
+- The planning date must be today or later when set or changed. The same vehicle or agent may
+  serve several tours on one day (D-012). No tour is deleted (405); abandonment is the S8
+  cancellation.
+- **No road routing in S4.** The map shows the input order as straight dashed lines labelled
+  "not a route"; road geometry and distances arrive in S5 (D-021).
+- API `/api/tours` (PLANNER/ADMIN, `AGENT` 403). Frontend routes `/tours` and `/tours/:id`.
 
 **Task backlog**
 
-1. (L) Tour domain per D-025: `Tour` (status enum, planning date, depot FK), `TourStop`
-   (ordered, point FK, per-stop outcome fields used in S7). Lifecycle transitions land with
-   confirm (S6) and start/complete (S7); this sprint models state and draft persistence.
-2. (M) Draft API `/api/tours`: create `DRAFT` (date, depot), add/remove stops (active points
-   only, no duplicates), reorder input order, read tour detail (US-18, US-19). **Tests:**
-   inactive point rejected; duplicate point rejected; order persists.
-3. (M) Assignment API: vehicle + driver + 0–2 collectors, distinctness, availability,
-   mixed-category capacity sum report (US-20, D-011/D-014/D-024). **Tests:** over-capacity
-   and unavailable-resource rejections; driver/collector role distinctness.
-4. (M) Map interaction 4 from `docs/geospatial-data.md`: stop selection from
-   `src/components/maps/` into the tour editor + synchronized ordered-stop list/editors.
-5. (M) Frontend `src/pages/TourPlannerPage` (create/edit draft; assignment panel; capacity
-   indicator). Contract sync.
-6. (S) Test/build pass.
+1. (L) Tour domain and persistence: `Tour`, `TourStop`, `StopDemand`, the status enums,
+   `structuralIssues()`, `revision`; `TourRepository` with status/date search; `Tour.revision`
+   added to the class diagram. **Tests:** pure domain tests (append/renumber, demand snapshot,
+   capacity equality and excess, every issue code); repository round trip of order,
+   snapshots and collector order; unique point per tour.
+2. (M) Draft and stop API (US-18, US-19): create/read/list/edit draft; add stop, remove stop,
+   reorder. **Tests:** 201 + `Location`; validation (400/404/422 date); role matrix; inactive
+   and non-DSNY points 422, duplicate 409; order persists; renumbering on removal; non-draft
+   edits 409; demand edits do not change the stop snapshot; a deactivated stop is kept and
+   flagged.
+3. (M) Assignment API and capacity report (US-20): `PUT /api/tours/{id}/assignment`.
+   **Tests:** valid crew; over-capacity reported and blocking; collector count, distinctness
+   and driver/collector separation 422; unavailable new resources 422; unknown ids 404;
+   rejections change nothing; unavailable/renamed resources keep their identity on the tour
+   (US-13/US-14/US-15/US-17 history); same resources on two tours of one day allowed.
+4. (S) Frontend contract, hooks, Tours list page and draft-creation dialog; navigation.
+5. (M) Tour planner page with map interaction 4 (`docs/geospatial-data.md` §5): candidate and
+   stop layers with numbered stops and an input-order line labelled "not a route", add/remove
+   from map popups or a candidate list, an ordered stop list with move up/down/remove,
+   assignment panel, capacity indicator and issues panel, all fed by the same tour query.
+6. (S) README; test/build pass.
 
 **Automated done checks**
 
-- `./mvnw test` green incl. stop/assignment validation matrix.
-- `npm run build` green.
-- Browser: map-selected stops appear in the list with correct order; removing from either
-  side synchronizes.
+- `./mvnw test` green incl. the domain, stop and assignment validation matrix above.
+- `npm run build` and `npm run lint` green (no findings in own code).
+- Scripted HTTP checks on a spare port with a scratch database (D-040): role matrix; draft
+  creation and validation; stop add/duplicate/inactive/non-DSNY/reorder/remove with persisted
+  order; assignment rules, capacity excess and recovery; preserved historical assignments;
+  demand snapshot after point edits; list filters; restart persistence; the same calls through
+  a Vite proxy; the bundle contains the "not a route" label and the list reorder control.
+- Not machine-checked: the visual map/list synchronisation in a browser (D-040); a reviewer
+  walkthrough is written in the review.
 
-**Review.** *To be filled at sprint close.*
+**Review.** 2026-11-01.
 
-**Retrospective.** *To be filled at sprint close.*
+- `./mvnw test`: 150 tests, 0 failures, 0 errors, 0 skipped (120 from S1-S3 plus 30 new:
+  tour domain 8, tour repository 3, tour controller 19). `npm run build` exits 0 (only the
+  pre-existing >500 kB chunk warning); `npm run lint` reports only the three pre-existing
+  warnings in vendored `src/components/ui/`.
+- Done-check `s4-done-check.sh` (113 checks), run unmodified: **`FAILS=0`**. It used the jar on
+  port 8081 with a scratch H2 database, Vite on 5174 through `API_PROXY_TARGET`; the owner's
+  servers on 8080/5173 and `backend/data/` were not touched, and only the processes the
+  script started were stopped.
+
+| Check | Observed |
+|---|---|
+| Role matrix: `AGENT` list / create; anonymous list; POST without CSRF; `PLANNER`, `ADMIN` list | 403 / 403; 401; 403; 200, 200 |
+| Create: missing date / missing depot / bad date / yesterday / unknown depot / valid | 400 / 400 / 400 / 422 / 404 / 201 |
+| New draft: `Location`; state; vehicle/driver; issues; capacity | `/api/tours/{id}`; `DRAFT USER_ENTERED` revision 0, no stops/collectors; both absent; `NO_STOPS,NO_VEHICLE,NO_DRIVER`; invalid, total 0, no capacity, not over |
+| Stops: add P1-P3; orders; planned total of P1; capacity total; revision | 201 each; `1,2,3`; equals the point total (14.0); 61.0 = sum; 3 |
+| Stop rejections: duplicate / inactive `10130345` / non-DSNY / unknown point / bad uuid / unknown tour | 409 / 422 / 422 / 404 / 400 / 404; tour unchanged (3 stops, revision 3) |
+| Reorder `[P3,P1,P2]`; persisted; incomplete / duplicate / foreign / null list | 200; order kept on re-read; 422 / 422 / 422 / 400; order unchanged |
+| Remove P1; again; re-add P1 | 200 with `[P3,P2]` orders `1,2`; 404; 201 at order 3 |
+| Assignment `S4-SMALL` (15 kg) + Dana + `[Eli, Finn]`; `S4-BIG` | 200, `overCapacity` true, invalid, last issue `OVER_CAPACITY`, remaining -46.0; roles explicit; 200, valid, 0 issues |
+| Crew rejections: 3 collectors / duplicates / driver as collector / `S4-DOWN` / `Una` as driver and collector / unknown vehicle and agent / bad uuid | 422 / 422 / 422 / 422 / 422, 422 / 404, 404 / 400; revision, vehicle, driver and collectors unchanged |
+| History: vehicle unavailable; same assignment re-sent; rename; Eli unavailable; all available | same vehicle id with `VEHICLE_UNAVAILABLE`, invalid; 200; same id, `S4-BIG2`, 4000.0; Eli kept with `COLLECTOR_UNAVAILABLE`; valid |
+| Point edits: P2 demand +100 kg; P2 deactivated; reactivated and restored | stop planned total unchanged (28.0); stop kept, `INACTIVE`, `INACTIVE_STOP`, invalid; valid again |
+| Header edit (date +2); yesterday | 200, revision +1; 422 |
+| List: tour present; `?status=DRAFT` / `PLANNED` / `FOO`; `?planningDate` same / other day | `stopCount` 3, vehicle `S4-BIG2`; present / empty / 400; 1 / 0 |
+| Second draft same day with the same vehicle and crew; `DELETE` tour; unknown / malformed id | 201 and 200 (D-012); 405; 404 / 400 |
+| Restart on the same database: tour; eligible points; tours; dev passwords in log | unchanged (revision, order, vehicle, driver, collectors); 237; 2; 0 matches |
+| `npm run build`; lint outside `components/ui`; routing strings in `frontend/src` | exit 0; 0 findings; 0 files |
+| Bundle strings `Input order (straight lines, not a route)`, `Move up` | both present |
+| Through the Vite proxy: login, `/api/tours`, tour detail; SPA routes `/tours`, `/tours/{id}` | 200, 200, 200; both serve the root element |
+
+Acceptance criteria: US-18 is met (draft with planning date and depot, editable, incomplete
+allowed; the "cannot become PLANNED" half is enforced by S6 confirmation using
+`structuralIssues()`). US-19 is met (map and list add/remove, no duplicates, explicit editable
+order, inactive and ineligible points rejected; the scenario used by all three methods is
+frozen in S5 from these stops, snapshots and revision). US-20 is met for the assignment rules
+and the capacity report (blocking at confirmation is S6).
+
+Deferred: confirm gate and lock of structural edits (S6, US-25); recheck of availability at
+confirm/start (S6/S7); evaluation-snapshot immutability of point edits (S5); agent access to
+assigned tours (S7); cancellation of drafts (S8).
+
+Known gaps: the pages were verified by build, lint, bundle strings and proxy checks only, not
+in a browser (D-040): the map/list synchronisation and the popup buttons are untested
+visually. Reviewer walkthrough: (1) as `planner` create a vehicle and three agents; (2) Tours,
+New draft tour; (3) click candidate points on the map, "Add to tour", see the numbers and the
+dashed input-order line; (4) add one more from the candidate list; (5) Move up/down and Remove
+in the ordered list, the map numbers follow; (6) assign vehicle, driver and collectors, watch
+the capacity indicator and the issues panel.
+
+**Retrospective.**
+
+- *Went well.* The done-check script ran unmodified and passed on its first run (113 of 113),
+  and all 30 new backend tests passed on their first run except one fixture problem (below).
+  The plan's rule orders (404, 409 draft, 422 rules) and the "newly placed resources must be
+  available" rule needed no change. `tours.flush()` after `addStop` gave the stop its id for
+  the `Location` header, `initialized(...)` on every service return path avoided any lazy
+  loading error with `open-in-view: false`, and wiping tours in `@BeforeEach` and `@AfterEach`
+  of `TourControllerTest` kept the other Spring test classes free of foreign-key failures.
+  The S3 process changes were applied: no scripted edit truncated a file, the form uses
+  `useWatch`, and results were read from the `Tests run:` summary.
+- *Went badly.* (1) `nonDraftTourIsLocked` first failed with a `LazyInitializationException`
+  because the test read the stops of a tour returned by `save()` after a merge; the stop id is
+  now taken from the first (persisted) instance. (2) Lint flagged a constant exported from a
+  page (`only-export-components`) and `watch`; the labels moved to `lib/tour-labels.ts` and
+  `useWatch` was used. (3) Nothing in the planner UI could be seen in a browser, so the
+  map/list synchronisation rests on the single-query design and on the build/bundle checks.
+- *Process changes for S5.* Export shared constants from `lib/` rather than from page files;
+  take ids for test fixtures from the instance that was persisted, not from a merged copy;
+  because S5 freezes scenarios from tours, read the tour through `TourService.get(...)`
+  (which initializes the collections) instead of the repository.
 
 ### 3.8 Sprint S5 — Directed routing and the three-method optimizer
 

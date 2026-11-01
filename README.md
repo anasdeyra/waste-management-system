@@ -11,13 +11,16 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
 completed artifacts from planned work.
 
-> **Current state: Sprint S3 delivered.** Session authentication with CSRF protection, the
+> **Current state: Sprint S4 delivered.** Session authentication with CSRF protection, the
 > ADMIN / PLANNER / AGENT roles, user administration, waste categories, collection points with
 > demand entries on a Leaflet/OpenStreetMap map (S2), and (S3) vehicles and operational agents
 > with availability, the ADMIN-only agent to AGENT-account link, and the idempotent import of
 > the included MN01 snapshots (449 baskets, of which 238 `DSNY ` types are
 > optimization-eligible, plus the MN01G depot) with snapshot identifiers are implemented
-> (backend API and React UI). Tours, routing and optimization are not implemented yet. The real
+> (backend API and React UI). **Tour drafts (S4):** planning date + depot, map/list stop
+> selection in an explicit input order, vehicle + driver + up to two collectors, live capacity
+> and structural validation. The map shows the input order as straight dashed lines, not a road
+> route (routing arrives in S5). Routing, optimization and tour execution are not implemented yet. The real
 > MN01 source extracts are under `backend/src/main/resources/data/`.
 
 The real-city sources, included snapshots, map interactions, routing rules, and attribution
@@ -72,7 +75,8 @@ project-ase/
 │       ├── components/shared/ # app shell, route guards
 │       ├── components/maps/   # Leaflet base map and layers
 │       ├── components/collection-points/  # list, details, form, demand editor
-│       ├── pages/ hooks/ types/  # pages, auth hooks, typed API contract
+│       ├── components/tours/  # tour header, stop list, candidates, assignment, capacity
+│       ├── pages/ hooks/ types/  # pages (incl. tours-page, tour-planner-page), hooks, typed API contract
 │       ├── lib/               # cn(), API client, auth helpers
 │       ├── App.tsx            # routes
 │       └── main.tsx           # providers: Query, Router
@@ -191,7 +195,26 @@ curl -s -b $J -X PUT -H "X-XSRF-TOKEN: $X" -H 'Content-Type: application/json' \
      -d "{\"userId\":\"$USER_ID\"}" $B/api/agents/$AGENT_ID/user-account
 ```
 
-Collection points, depots, vehicles and agents are available to PLANNER and ADMIN only; AGENT
+Tour drafts (PLANNER/ADMIN). `$DEPOT_ID`, `$POINT_ID`, `$VEHICLE_ID` and `$AGENT_ID` are UUIDs;
+`$TOUR_ID` and `$STOP_ID` come from the responses (every tour response carries `stops[].id`,
+the capacity report, `revision` and `validationIssues`):
+
+```bash
+H=(-H "X-XSRF-TOKEN: $X" -H 'Content-Type: application/json')
+# create a draft (planning date must be today or later); the Location header names the tour
+curl -s -i -b $J "${H[@]}" -d "{\"planningDate\":\"$(date -d tomorrow +%F)\",\"depotId\":\"$DEPOT_ID\"}" $B/api/tours
+# add a stop (appended at the end; demand is snapshotted), then reorder with the full id list
+curl -s -b $J "${H[@]}" -d "{\"collectionPointId\":\"$POINT_ID\"}" $B/api/tours/$TOUR_ID/stops
+curl -s -b $J -X PUT "${H[@]}" -d "{\"stopIds\":[\"$STOP_ID\"]}" $B/api/tours/$TOUR_ID/stops/order
+# replace vehicle, driver and collectors (at most two) together
+curl -s -b $J -X PUT "${H[@]}" \
+     -d "{\"vehicleId\":\"$VEHICLE_ID\",\"driverId\":\"$AGENT_ID\",\"collectorIds\":[]}" $B/api/tours/$TOUR_ID/assignment
+```
+
+Over-capacity is reported (`capacity.overCapacity`, issue `OVER_CAPACITY`), not rejected, in a
+draft. There is no `DELETE /api/tours/{id}`.
+
+Collection points, depots, vehicles, agents and tours are available to PLANNER and ADMIN only; AGENT
 receives 403. Linking agents to accounts (`/api/agents/{id}/user-account`) and the data import
 (`/api/admin/**`) are ADMIN only.
 
@@ -218,8 +241,8 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
 | 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
 | 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
-| 4 — Prototype | `backend/`, `frontend/` | S1–S3: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import |
-| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S3 executed, S4–S10 planned |
+| 4 — Prototype | `backend/`, `frontend/` | S1–S4: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts (stops, order, crew, capacity) |
+| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S4 executed, S5–S10 planned |
 | 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
 | Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; point map implemented; routing to do |
 

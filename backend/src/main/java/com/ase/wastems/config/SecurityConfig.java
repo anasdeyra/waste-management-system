@@ -138,6 +138,9 @@ public class SecurityConfig {
                                                 "/api/agents",
                                                 "/api/agents/**")
                                         .hasRole("PLANNER")
+                                        // S7 adds GET /api/tours/mine for AGENT above this rule.
+                                        .requestMatchers("/api/tours", "/api/tours/**")
+                                        .hasRole("PLANNER")
                                         .anyRequest()
                                         .authenticated())
                 .headers(h -> h.frameOptions(f -> f.sameOrigin()));
