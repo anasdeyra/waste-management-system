@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -25,12 +26,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.ase.wastems.optimization.PlanningMethod;
 
 /**
  * A single-vehicle collection tour (D-012, D-025). S4 persists DRAFT tours: depot, planning
  * date, ordered stops with planned demand snapshots, vehicle, driver and up to two collectors.
  * The revision counts structural changes so later evaluations can prove they used identical
- * inputs.
+ * inputs. S6 adds the road-route reference (accepted or kept proposal) and the DRAFT to PLANNED
+ * confirmation.
  */
 @Entity
 @Table(name = "tour")
@@ -78,6 +81,26 @@ public class Tour {
     @Column(nullable = false)
     private long revision = 0;
 
+    @Lob
+    @Column(name = "road_legs_geojson")
+    private String roadLegsGeoJson;
+
+    @Column(name = "road_graph_version", length = 80)
+    private String roadGraphVersion;
+
+    @Column(name = "route_evaluation_run_id")
+    private UUID routeEvaluationRunId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "route_method", length = 20)
+    private PlanningMethod routeMethod;
+
+    @Column(name = "route_distance_m")
+    private Double routeDistanceM;
+
+    @Column(name = "route_duration_s")
+    private Double routeDurationS;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -119,6 +142,11 @@ public class Tour {
     }
 
     public void setDepot(Depot depot) {
+        boolean same = this.depot == depot
+                || (this.depot != null && this.depot.getId() != null && this.depot.getId().equals(depot.getId()));
+        if (!same) {
+            clearRoute();
+        }
         this.depot = depot;
     }
 
@@ -140,6 +168,58 @@ public class Tour {
 
     public long getRevision() {
         return revision;
+    }
+
+    public String getRoadLegsGeoJson() {
+        return roadLegsGeoJson;
+    }
+
+    public String getRoadGraphVersion() {
+        return roadGraphVersion;
+    }
+
+    public UUID getRouteEvaluationRunId() {
+        return routeEvaluationRunId;
+    }
+
+    public PlanningMethod getRouteMethod() {
+        return routeMethod;
+    }
+
+    public Double getRouteDistanceM() {
+        return routeDistanceM;
+    }
+
+    public Double getRouteDurationS() {
+        return routeDurationS;
+    }
+
+    public boolean hasRoute() {
+        return roadLegsGeoJson != null;
+    }
+
+    /** Attaches the road route of one method of a retained evaluation run (US-24). */
+    public void attachRoute(UUID evaluationRunId, PlanningMethod method, String roadGraphVersion,
+            String legsGeoJson, double distanceM, double durationS) {
+        if (evaluationRunId == null || method == null || roadGraphVersion == null || legsGeoJson == null) {
+            throw new IllegalArgumentException("A road route needs run, method, graph version and legs.");
+        }
+        this.routeEvaluationRunId = evaluationRunId;
+        this.routeMethod = method;
+        this.roadGraphVersion = roadGraphVersion;
+        this.roadLegsGeoJson = legsGeoJson;
+        this.routeDistanceM = distanceM;
+        this.routeDurationS = durationS;
+    }
+
+    /** Drops the route; called by every change of stops, order or depot. */
+    public void clearRoute() {
+        roadLegsGeoJson = null;
+        roadGraphVersion = null;
+        routeEvaluationRunId = null;
+        routeMethod = null;
+        routeDistanceM = null;
+        routeDurationS = null;
     }
 
     public Instant getCreatedAt() {
@@ -166,12 +246,14 @@ public class Tour {
     public TourStop addStop(CollectionPoint point) {
         TourStop stop = new TourStop(this, point, stops.size() + 1);
         stops.add(stop);
+        clearRoute();
         return stop;
     }
 
     /** Removes the stop and renumbers the remaining stops 1..n. */
     public void removeStop(TourStop stop) {
         stops.remove(stop);
+        clearRoute();
         for (int i = 0; i < stops.size(); i++) {
             stops.get(i).setVisitOrder(i + 1);
         }
@@ -183,6 +265,7 @@ public class Tour {
             s.setVisitOrder(stopIdsInNewOrder.indexOf(s.getId()) + 1);
         }
         stops.sort(Comparator.comparingInt(TourStop::getVisitOrder));
+        clearRoute();
     }
 
     public void assign(Vehicle vehicle, Agent driver, List<Agent> newCollectors) {
@@ -207,10 +290,42 @@ public class Tour {
     }
 
     /**
+     * Confirmation findings (activity diagram "All confirmation validations pass?", OCL
+     * Tour::confirm()): the structural issues, then PLANNING_DATE_PAST, then ROUTE_MISSING.
+     * ROUTE_OUTDATED needs the retained run and is added by TourService. Empty when not DRAFT.
+     */
+    public List<TourIssue> confirmationIssues(LocalDate today) {
+        if (!isDraft()) {
+            return List.of();
+        }
+        List<TourIssue> issues = new ArrayList<>(structuralIssues());
+        if (planningDate.isBefore(today)) {
+            issues.add(new TourIssue(TourIssueCode.PLANNING_DATE_PAST,
+                    "The planning date " + planningDate + " is in the past."));
+        }
+        if (!hasRoute()) {
+            issues.add(new TourIssue(TourIssueCode.ROUTE_MISSING,
+                    "No road route is attached. Evaluate the tour, then accept the proposal or keep the input order."));
+        }
+        return issues;
+    }
+
+    /** DRAFT -> PLANNED (D-025). The service has checked every confirmation issue. */
+    public void confirm() {
+        if (!isDraft()) {
+            throw new IllegalStateException("Only a DRAFT tour can be confirmed.");
+        }
+        if (!hasRoute()) {
+            throw new IllegalStateException("A planned tour needs a versioned road route.");
+        }
+        status = TourStatus.PLANNED;
+    }
+
+    /**
      * Structural validation of the draft (activity diagram "Draft inputs structurally valid?").
      * Covers OCL ResourcesRequiredAfterDraft, CapacityRespectedAfterDraft, the
-     * {@code Tour::confirm()} precondition CompleteValidPlan and US-12; S6 adds the route
-     * checks.
+     * {@code Tour::confirm()} precondition CompleteValidPlan and US-12; confirmation adds the
+     * date and route checks ({@code confirmationIssues}).
      */
     public List<TourIssue> structuralIssues() {
         List<TourIssue> issues = new ArrayList<>();
