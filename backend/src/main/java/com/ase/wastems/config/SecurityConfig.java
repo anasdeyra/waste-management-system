@@ -122,6 +122,12 @@ public class SecurityConfig {
                                         .requestMatchers(
                                                 "/api/waste-categories", "/api/waste-categories/**")
                                         .hasRole("ADMIN")
+                                        .requestMatchers(
+                                                "/api/collection-points",
+                                                "/api/collection-points/**",
+                                                "/api/depots",
+                                                "/api/depots/**")
+                                        .hasRole("PLANNER")
                                         .anyRequest()
                                         .authenticated())
                 .headers(h -> h.frameOptions(f -> f.sameOrigin()));

@@ -31,3 +31,11 @@ spring:
 logging:
   level:
     com.ase.wastems: INFO
+
+wastems:
+  # NYC bounding box; coordinates outside it (e.g. longitude/latitude swapped) are rejected (422).
+  service-area:
+    min-longitude: -74.30
+    max-longitude: -73.65
+    min-latitude: 40.45
+    max-latitude: 40.95
