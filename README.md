@@ -11,11 +11,12 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
 completed artifacts from planned work.
 
-> **Current state: Sprint S1 delivered.** Session authentication with CSRF protection, the
-> ADMIN / PLANNER / AGENT roles, user administration and waste categories are implemented
-> (backend API and React UI). Maps, collection points, fleet, tours and optimization are not
-> implemented yet. Real MN01 source extracts are already included under
-> `backend/src/main/resources/data/`.
+> **Current state: Sprint S2 delivered.** Session authentication with CSRF protection, the
+> ADMIN / PLANNER / AGENT roles, user administration, waste categories, and (S2) collection
+> points with demand entries on a Leaflet/OpenStreetMap map are implemented (backend API and
+> React UI). The `dev` profile seeds the real MN01G depot and a five-basket DSNY sample; the
+> full MN01 import arrives in S3. Fleet, tours and optimization are not implemented yet. Real
+> MN01 source extracts are already included under `backend/src/main/resources/data/`.
 
 The real-city sources, included snapshots, map interactions, routing rules, and attribution
 are documented in [`docs/geospatial-data.md`](docs/geospatial-data.md). Traffic is a timestamped
@@ -36,7 +37,7 @@ map overlay; it does not drive dynamic rerouting or the controlled optimization 
 | Styling | Tailwind CSS | 4.x |
 | Components | shadcn/ui (Radix UI) | latest |
 | Data fetching | TanStack Query + React Router | 5.x / 7.x |
-| Interactive maps (planned) | Leaflet + React Leaflet, OSM-compatible basemap | not installed yet |
+| Interactive maps | Leaflet + React Leaflet, standard OSM tiles (D-039) | Leaflet 1.9 / React Leaflet 5 |
 | Road routing (planned) | GraphHopper + versioned OpenStreetMap extract | not installed yet |
 | Tests | JUnit 5, AssertJ, Spring Security Test | — |
 | Metrics | PMD, CKJM, JDepend, `tools/count-loc.py` | — |
@@ -67,6 +68,8 @@ project-ase/
 │   └── src/
 │       ├── components/ui/     # shadcn/ui components (vendored)
 │       ├── components/shared/ # app shell, route guards
+│       ├── components/maps/   # Leaflet base map and layers
+│       ├── components/collection-points/  # list, details, form, demand editor
 │       ├── pages/ hooks/ types/  # pages, auth hooks, typed API contract
 │       ├── lib/               # cn(), API client, auth helpers
 │       ├── App.tsx            # routes
@@ -121,6 +124,11 @@ The API listens on <http://localhost:8080>. It starts with the `dev` Spring prof
 | `agent` | `agent123` | AGENT |
 
 These are **development credentials only: change or remove them for any shared deployment.**
+The `dev` profile also seeds a small map sample, idempotently: two demo waste categories
+(`Mixed litter`, `Recyclables`), the real MN01G depot, and five real DSNY baskets from the
+included snapshots (four active, one inactive) with **synthetic** demand. The full 449-basket
+import is S3 and will upsert these rows by source key.
+
 To start without seeding, use any non-`dev` profile, e.g.
 `./mvnw spring-boot:run -Dspring-boot.run.profiles=prod`. To reset the database, stop the
 application and delete `backend/data/`.
@@ -139,6 +147,13 @@ npm run dev
 
 The application is served on <http://localhost:5173>. The Vite development server proxies
 `/api` to `http://localhost:8080`, so no CORS configuration is required.
+
+To run a second frontend against a backend on another port (for example a scratch backend on
+8081), override the proxy target and port:
+
+```bash
+API_PROXY_TARGET=http://localhost:8081 npx vite --port 5174 --strictPort
+```
 
 ### 4.3 Production build
 
@@ -160,7 +175,17 @@ X=$(awk '$6=="XSRF-TOKEN"{print $7}' $J)
 curl -s -c $J -b $J -H "X-XSRF-TOKEN: $X" -H 'Content-Type: application/json' \
      -d '{"username":"admin","password":"admin123"}' $B/api/auth/login   # sets JSESSIONID
 curl -s -b $J $B/api/auth/me                              # {"id":...,"username":"admin","role":"ADMIN"}
+curl -s -b $J $B/api/collection-points?status=ACTIVE      # collection points with demand entries
 ```
+
+Collection points and depots (`/api/collection-points`, `/api/depots`) are available to
+PLANNER and ADMIN only; AGENT receives 403.
+
+### 4.5 Map attribution
+
+Base-map tiles come from OpenStreetMap and are shown with the required
+"© OpenStreetMap contributors" attribution. Depot and basket locations come from NYC Open Data
+(DSNY); see [`docs/geospatial-data.md`](docs/geospatial-data.md).
 
 ## 5. Tests and metrics
 
@@ -179,10 +204,10 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
 | 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
 | 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
-| 4 — Prototype | `backend/`, `frontend/` | S1: authentication, roles, users, waste categories |
-| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1 executed, S2–S10 planned |
+| 4 — Prototype | `backend/`, `frontend/` | S1–S2: authentication, roles, users, waste categories, collection points and demand on the map |
+| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S2 executed, S3–S10 planned |
 | 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
-| Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; maps/routing to do |
+| Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; point map implemented; routing to do |
 
 ## 7. Conventions
 
