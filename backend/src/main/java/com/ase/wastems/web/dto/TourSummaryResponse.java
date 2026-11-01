@@ -1,5 +1,6 @@
 package com.ase.wastems.web.dto;
 
+import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.TourStatus;
 import com.ase.wastems.optimization.PlanningMethod;
@@ -13,9 +14,11 @@ public record TourSummaryResponse(
         UUID id,
         LocalDate planningDate,
         TourStatus status,
+        DataOrigin origin,
         UUID depotId,
         String depotName,
         int stopCount,
+        int terminalStopCount,
         BigDecimal totalPlannedDemandKg,
         UUID vehicleId,
         String vehicleRegistration,
@@ -35,9 +38,11 @@ public record TourSummaryResponse(
                 t.getId(),
                 t.getPlanningDate(),
                 t.getStatus(),
+                t.getOrigin(),
                 t.getDepot().getId(),
                 t.getDepot().getName(),
                 t.getStops().size(),
+                t.terminalStopCount(),
                 t.totalPlannedDemandKg(),
                 t.getVehicle() == null ? null : t.getVehicle().getId(),
                 t.getVehicle() == null ? null : t.getVehicle().getRegistration(),

@@ -2,6 +2,8 @@ package com.ase.wastems.web;
 
 import com.ase.wastems.service.BusinessRuleException;
 import com.ase.wastems.service.ConflictException;
+import com.ase.wastems.service.ForbiddenException;
+import com.ase.wastems.service.InvalidRequestException;
 import com.ase.wastems.routing.RoutingUnavailableException;
 import com.ase.wastems.service.NotFoundException;
 import com.ase.wastems.service.TourNotConfirmableException;
@@ -37,6 +39,18 @@ public class ApiExceptionHandler {
         HttpStatus s = HttpStatus.UNPROCESSABLE_ENTITY;
         return ResponseEntity.status(s).body(new ApiError(s.value(), s.getReasonPhrase(), ex.getMessage(), null,
                 ex.getIssues().stream().map(TourIssueResponse::from).toList()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiError> forbidden(ForbiddenException ex) {
+        return body(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ApiError> invalidRequest(InvalidRequestException ex) {
+        HttpStatus s = HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(s).body(new ApiError(s.value(), s.getReasonPhrase(),
+                "Validation failed.", List.of(new FieldErrorDetail(ex.getField(), ex.getMessage()))));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
