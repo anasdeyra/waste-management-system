@@ -392,4 +392,35 @@ class CollectionPointControllerTest {
         // sanity: demandIdOf helper resolves by name
         org.junit.jupiter.api.Assertions.assertEquals(d, demandIdOf(a, "Paper"));
     }
+
+    @Test
+    void eligibilityIsExposedAndFilterable() throws Exception {
+        String userPoint = createPoint("User point", paper25());
+        String inactive = createPoint("Inactive point", paper25());
+        mvc.perform(get("/api/collection-points/" + userPoint).with(asPlanner()))
+                .andExpect(jsonPath("$.optimizationEligible").value(true));
+        sendStatus(inactive, "{\"status\":\"INACTIVE\"}")
+                .andExpect(jsonPath("$.optimizationEligible").value(false));
+
+        com.ase.wastems.domain.CollectionPoint bid =
+                new com.ase.wastems.domain.CollectionPoint(
+                        "BID point", -74.0, 40.71, com.ase.wastems.domain.DataOrigin.IMPORTED_REAL);
+        bid.setSource("8znf-7b2c", "X1", "BID-owned Compactor");
+        bid.addDemand(
+                new com.ase.wastems.domain.DemandEntry(
+                        categories.findById(java.util.UUID.fromString(paperId)).orElseThrow(),
+                        java.math.BigDecimal.ONE,
+                        com.ase.wastems.domain.DataOrigin.SYNTHETIC));
+        String bidId = points.save(bid).getId().toString();
+        fetchOne(bidId).andExpect(jsonPath("$.optimizationEligible").value(false));
+
+        fetchList("?eligible=true")
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("User point"));
+        fetchList("?eligible=false")
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[?(@.name=='Inactive point')]").exists())
+                .andExpect(jsonPath("$[?(@.name=='BID point')]").exists());
+        fetchList("?eligible=maybe").andExpect(status().isBadRequest());
+    }
 }

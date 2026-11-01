@@ -34,7 +34,16 @@ public class CollectionPointService {
 
     @Transactional(readOnly = true)
     public List<CollectionPoint> search(CollectionPointStatus status, UUID categoryId) {
-        return points.search(status, categoryId);
+        return search(status, categoryId, null);
+    }
+
+    /** {@code eligible} null means no filter; otherwise keeps points whose D-019 eligibility matches. */
+    @Transactional(readOnly = true)
+    public List<CollectionPoint> search(
+            CollectionPointStatus status, UUID categoryId, Boolean eligible) {
+        return points.search(status, categoryId).stream()
+                .filter(p -> eligible == null || p.isOptimizationEligible() == eligible)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -43,12 +52,15 @@ public class CollectionPointService {
     }
 
     /**
-     * Points that may be planned. Used by tour drafts (S4) and evaluation scenarios (S5);
-     * inactive points are never eligible (US-12).
+     * Points that may be planned (D-019): active, and either user-entered or of a {@code DSNY }
+     * basket type. Used by tour drafts (S4) and evaluation scenarios (S5); inactive points are
+     * never eligible (US-12).
      */
     @Transactional(readOnly = true)
     public List<CollectionPoint> findEligibleForPlanning() {
-        return search(CollectionPointStatus.ACTIVE, null);
+        return search(CollectionPointStatus.ACTIVE, null).stream()
+                .filter(CollectionPoint::isOptimizationEligible)
+                .toList();
     }
 
     @Transactional

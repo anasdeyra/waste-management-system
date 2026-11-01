@@ -27,6 +27,9 @@ import java.util.UUID;
                         columnNames = {"source_dataset", "source_identifier"}))
 public class CollectionPoint {
 
+    /** Basket types of this prefix are the DSNY-owned baskets eligible for optimization (D-019). */
+    public static final String DSNY_TYPE_PREFIX = "DSNY ";
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -125,6 +128,16 @@ public class CollectionPoint {
 
     public String getSourceOwnershipType() {
         return sourceOwnershipType;
+    }
+
+    public void setSourceOwnershipType(String type) {
+        this.sourceOwnershipType = type;
+    }
+
+    /** D-019: active, and either user-entered (no source label) or a DSNY basket type. */
+    public boolean isOptimizationEligible() {
+        return isActive()
+                && (sourceOwnershipType == null || sourceOwnershipType.startsWith(DSNY_TYPE_PREFIX));
     }
 
     public List<DemandEntry> getDemands() {

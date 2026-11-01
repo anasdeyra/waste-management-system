@@ -28,5 +28,8 @@ public interface CollectionPointRepository extends JpaRepository<CollectionPoint
     List<CollectionPoint> search(
             @Param("status") CollectionPointStatus status, @Param("categoryId") UUID categoryId);
 
+    @EntityGraph(attributePaths = {"demands", "demands.category"})
+    List<CollectionPoint> findBySourceDataset(String dataset);
+
     boolean existsBySourceDatasetAndSourceIdentifier(String dataset, String identifier);
 }
