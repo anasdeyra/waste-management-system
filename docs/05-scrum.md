@@ -183,7 +183,7 @@ click so that planning uses accurate locations.**
   scenarios without rewriting retained evaluation snapshots.
 
 **Traceability:** FR-04, FR-05, FR-23; NFR-02, NFR-03, NFR-09.
-**Status:** Done in S2; tour demand snapshots verified in S4; evaluation snapshots in S5.
+**Status:** Done in S2; tour demand snapshots verified in S4; evaluation snapshots verified in S5.
 
 #### US-11 — Manage point demand entries — P0
 
@@ -200,7 +200,7 @@ point so that the optimizer uses current collection requirements.**
 - Editing current demand does not alter the frozen inputs of a retained evaluation run.
 
 **Traceability:** FR-06, FR-08, FR-15; NFR-02, NFR-07, NFR-09.
-**Status:** Done in S2; tour demand snapshots verified in S4; evaluation snapshots in S5.
+**Status:** Done in S2; tour demand snapshots verified in S4; evaluation snapshots verified in S5.
 
 #### US-12 — Deactivate a collection point — P1
 
@@ -215,7 +215,7 @@ without losing its history.**
   from active points.
 
 **Traceability:** FR-04, FR-14, FR-22; NFR-02.
-**Status:** Done in S2/S4 (rejected for new tour stops, kept and flagged on existing ones); scenarios in S5.
+**Status:** Done in S2/S4/S5 (rejected for new tour stops, kept and flagged on existing ones, blocking evaluation).
 
 ### 1.4 Epic E03 — Vehicles, agents, and access links
 
@@ -327,7 +327,7 @@ synchronized map and list interactions so that the tour has an explicit baseline
 - Inactive points cannot be newly added.
 
 **Traceability:** FR-11, FR-15, FR-19, FR-23; NFR-03, NFR-07.
-**Status:** Done in S4 (map/list selection, explicit order); scenario freezing in S5.
+**Status:** Done in S4 (map/list selection, explicit order); scenario frozen for evaluation in S5.
 
 #### US-20 — Assign the vehicle and crew — P1
 
@@ -363,6 +363,7 @@ on the same scenario so that I can review an optimized proposal and measure its 
 - A failed run does not modify or corrupt the existing operational tour.
 
 **Traceability:** FR-15, FR-16, FR-19, FR-20, FR-21; NFR-04 to NFR-09.
+**Status:** Done in S5 (engine, retention and API); review UI in S6.
 
 #### US-22 — Understand an infeasible or failed optimization — P1
 
@@ -393,6 +394,7 @@ so that I can understand where the measured improvement comes from.**
   cost input.
 
 **Traceability:** FR-18, FR-19, FR-20, FR-24; NFR-03, NFR-06, NFR-07, NFR-12.
+**Status:** Done in S5 (422 not-ready explanations, retained routing failures, 503 for an unusable snapshot); UI display in S6.
 
 #### US-24 — Accept or reject an optimized proposal — P1
 
@@ -683,7 +685,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S4 executed; S5–S10 planned.** Review and retrospective slots of S5–S10 stay empty until each sprint actually closes. |
+| Status | **S1–S5 executed; S6–S10 planned.** Review and retrospective slots of S6–S10 stay empty until each sprint actually closes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -732,7 +734,7 @@ Differences from a human-team sprint backlog, and why:
 | S2 | Collection points and demand on the real map | US-08…US-12 | Done (frontend verified by build, bundle and proxy checks only, no browser walkthrough) |
 | S3 | Fleet, crew, and MN01 import groundwork | US-13…US-17 (+ US-33 groundwork) | Done (frontend verified by build, lint and proxy checks only, no browser walkthrough) |
 | S4 | Tour drafts: stops, order, crew, capacity | US-18…US-20 | Done (frontend verified by build, lint, bundle and proxy checks only, no browser walkthrough) |
-| S5 | Directed routing and the three-method optimizer | US-21, US-22 | Not started |
+| S5 | Directed routing and the three-method optimizer | US-21, US-22 | Done (no UI by plan; verified by tests, scripted HTTP checks and an independent matrix-based verifier) |
 | S6 | Optimization review, comparison, planning gate | US-23…US-25 | Not started |
 | S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Not started |
 | S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Not started |
@@ -1450,9 +1452,76 @@ legs of 312.6 m versus 797.3 m between two real baskets.
   restart; a backend with a wrong snapshot checksum answers 503 and retains nothing.
 - `npm run build` and `npm run lint` remain green (no UI for evaluation yet).
 
-**Review.** *To be filled at sprint close.*
+**Review.** 2026-11-01.
 
-**Retrospective.** *To be filled at sprint close.*
+- `./mvnw test`: **195 tests, 0 failures, 0 errors, 0 skipped** (150 from S1-S4 plus 45 new:
+  optimization core 16, routing 7, matrix provider 5, evaluation service 6, evaluation API 11).
+  `npm run build` exits 0 (only the pre-existing >500 kB chunk warning); `npm run lint` shows the
+  three pre-existing warnings in vendored `src/components/ui/` and nothing else.
+- Done-check `s5-done-check.sh`: 116 checks, final line `FAILS=0` on the second run (see
+  deviations in D-046 for the three script corrections). Backend on 8081 with a scratch H2 and an
+  empty scratch routing cache, a second backend on 8082 with a wrong `expected-sha256`, Vite on
+  5174. The owner's servers (8080, 5173), `backend/data/` and `backend/routing-cache/` were not
+  touched.
+- Spike facts (planner, 2026-11-01): extract 4 148 737 bytes, SHA-256 `e1f2fabaa937...341d6a01`,
+  version `osm-mn01-e1f2fabaa937`; first import incl. CH preparation about 2 s, cache load about
+  0.55 s; 101x101 directed matrix 1.4-2.3 s; directional evidence 312.6 m versus 797.3 m between
+  two real baskets; maximum snap distance 21.5 m. Observed by the done-check: the graph
+  (3 411 nodes, 4 467 edges) was ready about 1.9 s after the MN01 import line on the empty cache
+  and about 0.3 s after it on the restart, with one `Road graph ... ready` line per start. Run A
+  (six real eligible points, 5000 kg vehicle): input order `[1,2,3,4,5,6]` 4350.0 m / 4156.4 s /
+  0.324 ms; nearest neighbor `[2,1,6,5,4,3]` 3585.0 m / 4059.6 s / 0.032 ms; NN + 2-opt
+  `[2,1,6,5,4,3]` 3585.0 m / 4059.6 s / 0.489 ms (2-opt accepted no move on this small tour).
+
+| Group | Check | Observed |
+|---|---|---|
+| Static | snapshot checksum, size, query file, fetch script syntax, git-ignored cache | `e1f2fabaa937...341d6a01`, 4148737, present, `bash -n` 0, ignored |
+| Static | no framework imports in `optimization/`; GraphHopper only in `routing/`; dependency 11.1 with XML exclusion | 0 offending imports, 0 files outside `routing/`, yes, yes |
+| Warm-up and cache | graph built by the `dev` warm-up; per-version cache directory | one `Road graph osm-mn01-e1f2fabaa937 ready` line; `osm-mn01-e1f2fabaa937-gh11.1/graph` exists |
+| Roles | AGENT, anonymous (with CSRF token), no CSRF, run detail | 403, 401, 403, AGENT 403 / anonymous 401; tour unchanged afterwards |
+| Small real-point tour | evaluate six stops | 201 + `Location`; `COMPLETED`; tour id + revision 7; `TOUR_DRAFT`, creator `planner` |
+| Small real-point tour | version, engine, snapshot IDs, scenario | `osm-mn01-e1f2fabaa937`; `GraphHopper 11.1`; depot + basket snapshot IDs of the import report; 6 points, 600 s, 5000 kg; stop 1 = P1; depot `MN01G`; matrix 7 nodes |
+| Small real-point tour | independent verifier on the retained matrix | all true: methods in order, feasible, identity input order, permutations, distances and travel times, duration formula, legs, NN recomputed, **2-optimal by brute force**, NN + 2-opt <= NN, asymmetric pairs, zero diagonal |
+| Retrieval and determinism | detail = POST body; run list; second run | identical; 1 run then 2 newest first; identical orders and distances |
+| Not ready (US-22) | no vehicle/driver; tiny vehicle | 422 naming `NO_VEHICLE`/`NO_DRIVER`; 422 naming `OVER_CAPACITY`; 0 runs retained; tour unchanged |
+| Unroutable point | Queens point | 201 `ROUTING_FAILED` / `POINT_NOT_ROUTABLE`, names the stop and `limit 100 m`, no results, matrix 404, run retrievable, tour unchanged |
+| Frozen scenario | rename and move P1 after the run | run A still shows the original name and longitude |
+| Ids | unknown tour/run/runs-of-tour; malformed id; ADMIN | 404, 404, 404; 400; 201 |
+| Restart | same DB and cache | graph loaded again (2 ready lines), run A identical, same version, orders and distances; no dev passwords logged |
+| Bad checksum | backend on 8082 | warm-up only warns; tour API 200; evaluation 503 naming the checksum mismatch; nothing retained; tour unchanged |
+| Frontend | `api.ts`, build, lint, no routing calls, Vite 5174 | evaluation types present; build 0; no lint findings outside `components/ui`; 0 references; login, run detail and run list 200 |
+
+- **US-21 met.** The three methods run on identical frozen inputs from and to the depot and visit
+  every point once; 2-opt re-costs reversed segments without the symmetric shortcut (unit tests
+  with hand-built asymmetric matrices and the brute-force check of the verifier); orders, legs,
+  indicators, execution time, checks, configuration and snapshot IDs are retained; a failed run
+  never touches the draft.
+- **US-22 met.** Excess demand and other structural issues are explained with 422; an unroutable
+  point or missing leg is retained as `ROUTING_FAILED` with a named stop and no partial
+  proposal; a missing or corrupt snapshot gives 503; the draft and earlier runs are unchanged.
+- **Deferred.** Comparison UI, accept/reject and confirmation (S6, US-23 to US-25); the
+  evaluation explorer, CSV export and the 60-scenario campaign (S9/S10, reusing `EvaluationRun`
+  with `demandProfile`/`seed`); the route reference on the tour (`roadLegsGeoJson`/
+  `roadGraphVersion`, S6 acceptance).
+- **Known gaps.** No evaluation UI yet (by plan); the `car` profile approximates a collection
+  truck; leg costs follow GraphHopper's fastest-path weighting while the optimizer minimizes
+  distance (documented in `docs/geospatial-data.md` §4); runs are not audited yet (S8); the Mermaid
+  change to the sequence diagram was not rendered with a tool, only kept syntactically identical.
+
+**Retrospective.**
+
+- *Went well.* The planner's spike removed the integration risk: GraphHopper 11.1, the snapshot
+  and the Spring dependency set worked as specified, and every task compiled and passed its
+  tests on the first run. The independent verifier recomputing every indicator from the retained
+  matrix caught nothing, which is evidence that the retained numbers are self-consistent.
+- *Went badly.* Three of the 116 done-check assertions were wrong in the script rather than in
+  the code (anonymous POST without a CSRF token yields 403 before authentication; the real depot
+  name is `MN01G Garage, 353 Spring St`; the warm-up warning of the second backend is logged
+  after login, so a one-shot grep raced). A plan test said `nodeCount` 4 for a five-node fixture.
+  On the six-point demo tour 2-opt found no improvement, so it did not demonstrate itself there;
+  its value is shown only by the unit tests and later by the S10 campaign.
+- *Process changes for S6.* Poll logs instead of grepping once; derive expected fixture values
+  from the live data; keep a done-check assertion for an improving 2-opt case in S6/S10.
 
 ### 3.9 Sprint S6 — Optimization review, comparison, planning gate
 
