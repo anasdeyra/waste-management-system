@@ -1,12 +1,15 @@
 import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react'
 
+import { StopOutcomeSummary } from '@/components/execution/stop-outcome-summary'
+import { StopStatusBadge } from '@/components/execution/stop-status-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { TourStop } from '@/types/api'
+import type { TourStatus, TourStop } from '@/types/api'
 
 /** Ordered stop list: the accessible, map-free editor of stops and their input order. */
 export function TourStopList({
   stops,
+  tourStatus,
   selectedStopId,
   editable,
   busy,
@@ -15,6 +18,7 @@ export function TourStopList({
   onRemove,
 }: {
   stops: TourStop[]
+  tourStatus: TourStatus
   selectedStopId: string | null
   editable: boolean
   busy: boolean
@@ -67,7 +71,9 @@ export function TourStopList({
               {' — total '}
               {s.plannedTotalKg} kg
             </div>
+            <StopOutcomeSummary stop={s} />
           </div>
+          {(s.status !== 'PENDING' || tourStatus !== 'DRAFT') && <StopStatusBadge status={s.status} />}
           {editable && (
             <div className="flex gap-1">
               <Button
