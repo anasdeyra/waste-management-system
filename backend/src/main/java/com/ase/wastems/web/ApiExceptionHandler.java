@@ -1,8 +1,12 @@
 package com.ase.wastems.web;
 
+import com.ase.wastems.service.BusinessRuleException;
+import com.ase.wastems.service.ConflictException;
+import com.ase.wastems.service.NotFoundException;
 import com.ase.wastems.web.dto.ApiError;
 import com.ase.wastems.web.dto.FieldErrorDetail;
 import java.util.List;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -44,5 +48,25 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiError> typeMismatch(MethodArgumentTypeMismatchException ex) {
         return body(HttpStatus.BAD_REQUEST, "Invalid value for parameter '" + ex.getName() + "'.");
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiError> notFound(NotFoundException ex) {
+        return body(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiError> conflict(ConflictException ex) {
+        return body(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ApiError> businessRule(BusinessRuleException ex) {
+        return body(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> integrity(DataIntegrityViolationException ex) {
+        return body(HttpStatus.CONFLICT, "The request conflicts with existing data.");
     }
 }
