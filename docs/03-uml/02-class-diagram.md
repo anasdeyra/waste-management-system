@@ -294,7 +294,15 @@ inv PlannedTourHasVersionedRoadRoute:
    status = TourStatus::COMPLETED) implies
     (roadLegsGeoJson <> null and roadLegsGeoJson.size() > 0 and
      roadGraphVersion <> null and roadGraphVersion.size() > 0)
+inv RouteMethodIsDecidable:
+  routeMethod->notEmpty() implies
+    (routeMethod = PlanningMethod::INPUT_ORDER or
+     routeMethod = PlanningMethod::NN_PLUS_2_OPT)
 ```
+
+`PlanningMethod` has four values (`INPUT_ORDER`, `SWEEP`, `NEAREST_NEIGHBOR`, `NN_PLUS_2_OPT`); `SWEEP` and
+`NEAREST_NEIGHBOR` are evaluated and retained for comparison only, so a tour's attached route is
+only ever the input order or the accepted NN + 2-opt proposal (D-052).
 
 The `0..1` association ends enforce the optional one-to-one agent/account link. The `0..2`
 collectors end and `DriverIsNotCollector` together enforce a distinct small crew.

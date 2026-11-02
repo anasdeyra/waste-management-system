@@ -120,7 +120,7 @@ flowchart LR
 | UC07 | **Manage agents** — Planner | Register and edit operational agents and change their availability for driver/collector assignment. | US-15, US-17; FR-09 |
 | UC08 | **Prepare draft tour** — Planner | Create a `DRAFT`, choose its depot/date, select eligible stops, and arrange the explicit input order used by the baseline. | US-18, US-19; FR-11, FR-15, FR-23 |
 | UC09 | **Assign vehicle and crew** — Planner | Assign one vehicle, one driver, and zero to two distinct collectors; report mixed-category demand against vehicle capacity. | US-20; FR-06, FR-08, FR-10, FR-11 |
-| UC10 | **Evaluate and compare tour plans** — Planner | Run input order, nearest neighbor, and NN + directed-cost 2-opt on one frozen scenario; retain orders, road geometry, indicators, feasibility, and snapshot IDs; explain failures. | US-21, US-22, US-23; FR-15, FR-16, FR-18, FR-19, FR-20, FR-21, FR-24 |
+| UC10 | **Evaluate and compare tour plans** — Planner | Run input order, the sweep baseline, nearest neighbor, and NN + directed-cost 2-opt on one frozen scenario; retain orders, road geometry, indicators, feasibility, and snapshot IDs; explain failures. | US-21, US-22, US-23; FR-15, FR-16, FR-18, FR-19, FR-20, FR-21, FR-24 |
 | UC11 | **Review and accept optimized proposal** — Planner | Inspect the proposal, explicitly apply it to the editable draft or reject it, and never allow automatic operational acceptance. | US-24; FR-16, FR-17, FR-21 |
 | UC12 | **Confirm planned tour** — Planner | Revalidate the complete draft and move it to `PLANNED`, after which ordinary structural edits are locked. | US-25; FR-08, FR-10, FR-11, FR-17 |
 | UC13 | **Consult assigned tour** — Collection agent | Read only the agent's assigned tour, ordered stops, demands, road route, and execution states in map and accessible list forms. | US-26; FR-02, FR-12, FR-24 |
@@ -132,8 +132,8 @@ flowchart LR
 | UC19 | **Consult operational history** — Planner | Filter completed/cancelled tours and inspect their resources, stops, outcomes, quantities, incidents, and timestamps. | US-32; FR-14 |
 | UC20 | **Load MN01 demonstration data** — Administrator | Reproducibly load the included real basket/depot extracts and clearly labelled synthetic demo operations. | US-33; FR-26 |
 | UC21 | **View NYC traffic overlay** — Planner | Show official traffic links, observation timestamps, coverage limits, and attribution without changing optimization costs. | US-34; FR-25 |
-| UC22 | **View operational and evaluation dashboards** — Planner | Summarize resources/tour progress and explore retained three-method comparisons with their reproducibility metadata. | US-35, US-36; FR-20, FR-21, FR-28 |
-| UC23 | **Import evaluation scenario CSV** — Planner | Validate a documented scenario-point CSV atomically and preserve its input order and provenance for identical three-method evaluation. | US-37; FR-15, FR-29 |
+| UC22 | **View operational and evaluation dashboards** — Planner | Summarize resources/tour progress and explore retained four-method comparisons with their reproducibility metadata. | US-35, US-36; FR-20, FR-21, FR-28 |
+| UC23 | **Import evaluation scenario CSV** — Planner | Validate a documented scenario-point CSV atomically and preserve its input order and provenance for identical four-method evaluation. | US-37; FR-15, FR-29 |
 | UC24 | **Export evaluation results CSV** — Planner | Export all retained scenario/method outcomes and the values needed to recalculate reported changes. | US-38; FR-20, FR-21, FR-29 |
 | UC25 | **Review audit log** — Administrator | Search sign-in and data-change events by time, actor, action, entity, and outcome without exposing credentials. | US-39; FR-01, FR-30 |
 
