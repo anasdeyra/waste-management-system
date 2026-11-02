@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** Full retained evaluation run (inputs, status and, when completed, the three method results). */
+/** Full retained evaluation run (inputs, status and, when completed, the four method results). */
 public record EvaluationRunResponse(
         UUID id,
         ScenarioKind scenarioKind,
@@ -51,14 +51,15 @@ public record EvaluationRunResponse(
                 r.getVehicleCapacityKg(), r.getServiceTimeSeconds(), r.getPointCount(), r.getTotalDemandKg(),
                 r.getStops().stream().map(EvaluationStopResponse::from).toList(),
                 r.getResults().stream()
-                        .map(m -> MethodResultResponse.from(m, r.getStops(), inputOrder(r),
+                        .map(m -> MethodResultResponse.from(m, r.getStops(), method(r, PlanningMethod.INPUT_ORDER),
+                                method(r, PlanningMethod.SWEEP),
                                 r.getStatus() == EvaluationStatus.COMPLETED))
                         .toList(),
                 r.getDecision(), r.getDecidedBy(), r.getDecidedAt());
     }
 
-    private static MethodResult inputOrder(EvaluationRun r) {
-        return r.getResults().stream().filter(m -> m.getMethod() == PlanningMethod.INPUT_ORDER).findFirst()
+    private static MethodResult method(EvaluationRun r, PlanningMethod method) {
+        return r.getResults().stream().filter(m -> m.getMethod() == method).findFirst()
                 .orElse(null);
     }
 }

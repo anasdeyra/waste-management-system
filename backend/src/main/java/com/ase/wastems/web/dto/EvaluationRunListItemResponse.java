@@ -21,6 +21,8 @@ public record EvaluationRunListItemResponse(UUID id, ScenarioKind scenarioKind, 
     public static EvaluationRunListItemResponse from(RunListRow r, List<RunMethodRow> methodRows) {
         RunMethodRow io = methodRows.stream().filter(m -> m.method() == PlanningMethod.INPUT_ORDER).findFirst()
                 .orElse(null);
+        RunMethodRow sweep = methodRows.stream().filter(m -> m.method() == PlanningMethod.SWEEP).findFirst()
+                .orElse(null);
         boolean completed = r.status() == EvaluationStatus.COMPLETED;
         List<EvaluationMethodBriefResponse> brief = methodRows.stream()
                 .filter(m -> m.method() != null)
@@ -30,11 +32,17 @@ public record EvaluationRunListItemResponse(UUID id, ScenarioKind scenarioKind, 
                     boolean ioFeasible = io != null && Boolean.TRUE.equals(io.feasible());
                     Double ioDist = io == null ? null : io.distanceM();
                     Double ioDur = io == null ? null : io.durationS();
+                    boolean vs = EvaluationComparison.comparedWithSweep(m.method()) && sweep != null;
+                    boolean swFeasible = vs && Boolean.TRUE.equals(sweep.feasible());
                     return new EvaluationMethodBriefResponse(m.method(), feasible, m.distanceM(), m.durationS(),
                             m.executionNanos() == null ? 0 : m.executionNanos() / 1e6,
                             Boolean.TRUE.equals(m.coverageOk()), Boolean.TRUE.equals(m.capacityOk()),
                             EvaluationComparison.changePct(completed, feasible, m.distanceM(), ioFeasible, ioDist),
-                            EvaluationComparison.changePct(completed, feasible, m.durationS(), ioFeasible, ioDur));
+                            EvaluationComparison.changePct(completed, feasible, m.durationS(), ioFeasible, ioDur),
+                            vs ? EvaluationComparison.changePct(completed, feasible, m.distanceM(), swFeasible,
+                                    sweep.distanceM()) : null,
+                            vs ? EvaluationComparison.changePct(completed, feasible, m.durationS(), swFeasible,
+                                    sweep.durationS()) : null);
                 })
                 .toList();
         return new EvaluationRunListItemResponse(r.id(), r.scenarioKind(), r.batchId(), r.scenarioKey(),

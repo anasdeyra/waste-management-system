@@ -202,7 +202,7 @@ class EvaluationControllerTest {
     }
 
     @Test
-    void evaluatesReadyTourWithThreeMethods() throws Exception {
+    void evaluatesReadyTourWithFourMethods() throws Exception {
         String id = readyTour(p1, p2, p3);
         String revisionBefore = String.valueOf(mapper.readTree(doGetBody("/api/tours/" + id)).get("revision"));
         MvcResult res = performEvaluate(id).andExpect(status().isCreated())
@@ -217,7 +217,7 @@ class EvaluationControllerTest {
                 .andExpect(jsonPath("$.totalDemandKg").value(30.0))
                 .andExpect(jsonPath("$.serviceTimeSeconds").value(600.0))
                 .andExpect(jsonPath("$.results[*].method")
-                        .value(Matchers.contains("INPUT_ORDER", "NEAREST_NEIGHBOR", "NN_PLUS_2_OPT")))
+                        .value(Matchers.contains("INPUT_ORDER", "SWEEP", "NEAREST_NEIGHBOR", "NN_PLUS_2_OPT")))
                 .andExpect(jsonPath("$.stops[0].name").value("CENTRE STREET & WORTH STREET"))
                 .andExpect(jsonPath("$.stops[0].longitude").value(-74.00212207))
                 .andReturn();
@@ -226,7 +226,7 @@ class EvaluationControllerTest {
         assertThat(res.getResponse().getHeader("Location")).endsWith("/api/evaluations/" + run.get("id").asText());
         assertThat(run.get("createdBy").asText()).isEqualTo("planner1");
         JsonNode results = run.get("results");
-        assertThat(results).hasSize(3);
+        assertThat(results).hasSize(4);
         for (JsonNode r : results) {
             assertThat(r.get("feasible").asBoolean()).isTrue();
             assertThat(r.get("coverageOk").asBoolean()).isTrue();
@@ -253,8 +253,8 @@ class EvaluationControllerTest {
             assertThat(r.get("executionTimeMs").asDouble()).isGreaterThanOrEqualTo(0);
         }
         assertThat(results.get(0).get("visitOrder").toString()).isEqualTo("[1,2,3]");
-        assertThat(results.get(2).get("distanceM").asDouble())
-                .isLessThanOrEqualTo(results.get(1).get("distanceM").asDouble());
+        assertThat(results.get(3).get("distanceM").asDouble())
+                .isLessThanOrEqualTo(results.get(2).get("distanceM").asDouble());
     }
 
     @Test
@@ -273,7 +273,7 @@ class EvaluationControllerTest {
         JsonNode post = mapper.readTree(body);
         String runId = post.get("id").asText();
         JsonNode detail = mapper.readTree(doGetBody("/api/evaluations/" + runId));
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             assertThat(detail.get("results").get(i).get("distanceM")).isEqualTo(post.get("results").get(i).get("distanceM"));
             assertThat(detail.get("results").get(i).get("visitOrder"))
                     .isEqualTo(post.get("results").get(i).get("visitOrder"));
@@ -281,7 +281,7 @@ class EvaluationControllerTest {
         JsonNode list = mapper.readTree(doGetBody("/api/tours/" + id + "/evaluations"));
         assertThat(list).hasSize(1);
         assertThat(list.get(0).get("id").asText()).isEqualTo(runId);
-        assertThat(list.get(0).get("results")).hasSize(3);
+        assertThat(list.get(0).get("results")).hasSize(4);
         JsonNode mx = mapper.readTree(doGetBody("/api/evaluations/" + runId + "/matrix"));
         assertThat(mx.get("nodeCount").asInt()).isEqualTo(4);
         assertThat(mx.get("nodeLabels").get(0).asText()).startsWith("Depot: MN01G");

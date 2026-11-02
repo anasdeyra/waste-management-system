@@ -8,12 +8,16 @@ public record EvaluationAggregateResponse(String group, String value, PlanningMe
         int comparableRuns, int excludedRuns, Double meanDistanceM, Double meanDurationS,
         Double meanDistanceChangePct, Double minDistanceChangePct, Double maxDistanceChangePct,
         Double meanDurationChangePct, Double minDurationChangePct, Double maxDurationChangePct,
-        Double meanExecutionTimeMs) {
+        Double meanExecutionTimeMs, int comparableVsSweepRuns, Double meanDistanceChangeVsSweepPct,
+        Double minDistanceChangeVsSweepPct, Double maxDistanceChangeVsSweepPct,
+        Double meanDurationChangeVsSweepPct) {
 
     public static EvaluationAggregateResponse from(AggregateRow a) {
         return new EvaluationAggregateResponse(a.group(), a.value(), a.method(), a.runs(), a.comparableRuns(),
                 a.excludedRuns(), a.meanDistanceM(), a.meanDurationS(), a.meanDistanceChangePct(),
                 a.minDistanceChangePct(), a.maxDistanceChangePct(), a.meanDurationChangePct(),
-                a.minDurationChangePct(), a.maxDurationChangePct(), a.meanExecutionTimeMs());
+                a.minDurationChangePct(), a.maxDurationChangePct(), a.meanExecutionTimeMs(), a.comparableVsSweepRuns(),
+                a.meanDistanceChangeVsSweepPct(), a.minDistanceChangeVsSweepPct(),
+                a.maxDistanceChangeVsSweepPct(), a.meanDurationChangeVsSweepPct());
     }
 }
