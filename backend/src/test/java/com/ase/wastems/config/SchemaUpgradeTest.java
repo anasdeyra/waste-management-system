@@ -1,6 +1,7 @@
 package com.ase.wastems.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.ase.wastems.domain.EvaluationRun;
 import com.ase.wastems.domain.EvaluationStop;
@@ -12,6 +13,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -80,5 +82,36 @@ class SchemaUpgradeTest {
         } finally {
             runs.deleteById(id);
         }
+    }
+
+    @Test
+    void dropEnumWhitelistChecksRemovesLegacyListsButKeepsNotNullChecks() {
+        try {
+            jdbc.execute("CREATE TABLE S11_CHECK_PROBE (ID INT PRIMARY KEY, "
+                    + "ACTION VARCHAR(40), KIND VARCHAR(20) NOT NULL)");
+            jdbc.update("insert into S11_CHECK_PROBE values (1, 'OLD', 'X')");
+            jdbc.execute("ALTER TABLE S11_CHECK_PROBE ADD CONSTRAINT S11_CHECK_PROBE_OLD "
+                    + "CHECK (ACTION IN ('OLD', 'OLDER'))");
+            jdbc.execute("ALTER TABLE S11_CHECK_PROBE ADD CONSTRAINT S11_CHECK_PROBE_NN "
+                    + "CHECK (KIND IS NOT NULL)");
+            assertThat(constraintsOf("S11_CHECK_PROBE")).hasSize(2);
+            assertThatThrownBy(() -> jdbc.update("insert into S11_CHECK_PROBE values (2, 'NEW', 'X')"))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            upgrade.dropEnumWhitelistChecks();
+            assertThat(constraintsOf("S11_CHECK_PROBE")).containsExactly("S11_CHECK_PROBE_NN");
+            jdbc.update("insert into S11_CHECK_PROBE values (2, 'NEW', 'X')");
+            upgrade.dropEnumWhitelistChecks(); // idempotent, the whitelist stays gone
+            assertThat(constraintsOf("S11_CHECK_PROBE")).containsExactly("S11_CHECK_PROBE_NN");
+        } finally {
+            jdbc.execute("DROP TABLE IF EXISTS S11_CHECK_PROBE");
+        }
+    }
+
+    private List<String> constraintsOf(String table) {
+        return jdbc.queryForList(
+                "select constraint_name from information_schema.table_constraints "
+                        + "where table_schema='PUBLIC' and table_name=? and constraint_type='CHECK' "
+                        + "order by constraint_name",
+                String.class, table);
     }
 }

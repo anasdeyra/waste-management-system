@@ -5,6 +5,7 @@ import { ExecutionStopList } from '@/components/execution/execution-stop-list'
 import { TourExecutionPanel } from '@/components/execution/tour-execution-panel'
 import { ExecutionStopsLayer } from '@/components/maps/execution-stops-layer'
 import { BaseMap } from '@/components/maps/base-map'
+import { executionLegend } from '@/components/maps/legend-items'
 import type { LonLat } from '@/components/maps/geo'
 import { MapFocus } from '@/components/maps/map-focus'
 import { TourRouteLayer } from '@/components/maps/route-layers'
@@ -16,7 +17,7 @@ import { useCurrentUser } from '@/hooks/use-auth'
 import { useMyTour } from '@/hooks/use-my-tours'
 import { formatDistanceKm } from '@/lib/evaluation-format'
 import { METHOD_LABELS } from '@/lib/evaluation-labels'
-import { crewRole, STOP_STATUS_LEGEND } from '@/lib/execution-labels'
+import { crewRole } from '@/lib/execution-labels'
 import { STATUS_LABELS } from '@/lib/tour-labels'
 
 /** AGENT page: one assigned tour with its map, stops, start, outcomes and completion. */
@@ -100,7 +101,11 @@ export default function MyTourPage() {
       </Card>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-2">
-          <BaseMap className="h-[480px]">
+          <BaseMap
+            className="h-[480px]"
+            fitTo={[t.depot, ...t.stops]}
+            legend={executionLegend(t.route?.method)}
+          >
             <ExecutionStopsLayer
               tour={t}
               selectedStopId={selectedStopId}
@@ -109,7 +114,6 @@ export default function MyTourPage() {
             {t.route && <TourRouteLayer route={t.route} />}
             <MapFocus target={focusTarget} />
           </BaseMap>
-          <p className="text-xs text-muted-foreground">{STOP_STATUS_LEGEND}</p>
           <p className="text-xs text-muted-foreground">
             Basket and depot locations: NYC Open Data (DSNY). Road route: OpenStreetMap
             (© OpenStreetMap contributors).

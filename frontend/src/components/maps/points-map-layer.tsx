@@ -1,8 +1,10 @@
-import { CircleMarker, LayerGroup, LayersControl, Popup, Tooltip } from 'react-leaflet'
+import { CircleMarker, LayerGroup, LayersControl, Marker, Popup, Tooltip } from 'react-leaflet'
 
 import type { CollectionPoint, Depot } from '@/types/api'
 
 import { formatCoordinates, originLabel, toLatLng } from './geo'
+import { depotIcon, pointPathOptions, pointRadius } from './map-theme'
+import { useMapZoom } from './use-map-zoom'
 
 function source(dataset?: string, identifier?: string, ownership?: string): string | null {
   if (!dataset && !identifier) return null
@@ -22,6 +24,7 @@ export function PointsMapLayer({
   selectedId: string | null
   onSelect: (id: string) => void
 }) {
+  const zoom = useMapZoom()
   const active = points.filter((p) => p.status === 'ACTIVE')
   const inactive = points.filter((p) => p.status === 'INACTIVE')
 
@@ -33,33 +36,35 @@ export function PointsMapLayer({
       <CircleMarker
         key={p.id}
         center={toLatLng(p)}
-        radius={selected ? 10 : 7}
-        pathOptions={{
-          color: selected ? '#2563eb' : isActive ? '#15803d' : '#6b7280',
-          fillColor: isActive ? '#22c55e' : '#d1d5db',
-          fillOpacity: 0.9,
-          weight: selected ? 3 : 2,
-          dashArray: isActive ? undefined : '3',
-        }}
+        radius={pointRadius(zoom, selected)}
+        pathOptions={pointPathOptions(isActive, selected)}
         eventHandlers={{ click: () => onSelect(p.id) }}
       >
-        <Tooltip>{p.name}</Tooltip>
+        <Tooltip direction="top" offset={[0, -4]}>
+          {p.name}
+        </Tooltip>
         <Popup>
-          <div className="space-y-1 text-sm">
-            <div className="font-semibold">{p.name}</div>
-            <div>
+          <div className="wm-popup">
+            <div className="wm-popup-title">{p.name}</div>
+            <div className="wm-popup-meta">
               {isActive ? 'Active' : 'Inactive'} · {originLabel(p.origin)}
             </div>
-            {src && <div>Source: {src}</div>}
-            <div>{formatCoordinates(p)}</div>
-            <ul>
-              {p.demands.map((d) => (
-                <li key={d.id}>
-                  {d.categoryName}: {d.quantityKg} kg
+            {p.demands.length > 0 && (
+              <ul className="wm-popup-rows">
+                {p.demands.map((d) => (
+                  <li key={d.id}>
+                    <span>{d.categoryName}</span>
+                    <span>{d.quantityKg} kg</span>
+                  </li>
+                ))}
+                <li className="wm-popup-total">
+                  <span>Total</span>
+                  <span>{p.totalDemandKg} kg</span>
                 </li>
-              ))}
-            </ul>
-            <div>Total: {p.totalDemandKg} kg</div>
+              </ul>
+            )}
+            {src && <div className="wm-popup-fine">Source: {src}</div>}
+            <div className="wm-popup-fine">{formatCoordinates(p)}</div>
           </div>
         </Popup>
       </CircleMarker>
@@ -73,22 +78,17 @@ export function PointsMapLayer({
           {depots.map((d) => {
             const src = source(d.sourceDataset, d.sourceIdentifier)
             return (
-              <CircleMarker
-                key={d.id}
-                center={toLatLng(d)}
-                radius={10}
-                pathOptions={{ color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 0.9 }}
-              >
+              <Marker key={d.id} position={toLatLng(d)} icon={depotIcon()} zIndexOffset={1000}>
                 <Tooltip>{d.name}</Tooltip>
                 <Popup>
-                  <div className="space-y-1 text-sm">
-                    <div className="font-semibold">{d.name}</div>
-                    <div>Depot · {originLabel(d.origin)}</div>
-                    {src && <div>Source: {src}</div>}
-                    <div>{formatCoordinates(d)}</div>
+                  <div className="wm-popup">
+                    <div className="wm-popup-title">{d.name}</div>
+                    <div className="wm-popup-meta">Depot · {originLabel(d.origin)}</div>
+                    {src && <div className="wm-popup-fine">Source: {src}</div>}
+                    <div className="wm-popup-fine">{formatCoordinates(d)}</div>
                   </div>
                 </Popup>
-              </CircleMarker>
+              </Marker>
             )
           })}
         </LayerGroup>

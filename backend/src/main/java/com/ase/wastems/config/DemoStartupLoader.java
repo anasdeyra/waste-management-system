@@ -12,8 +12,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * Loads the MN01 demonstration at start-up in the {@code dev} profile, after the accounts (10),
- * the map sample (20), the MN01 import (30) and the routing warm-up (40). It never fails the
- * start-up (NFR-10): any problem is logged and the application keeps running.
+ * the map sample (20), the MN01 import (30) and the routing warm-up (40). With the one-shot
+ * option {@code --wastems.demo.reset=true} the demonstration data is deleted first and reloaded
+ * (US-33, D-055). It never fails the start-up (NFR-10): any problem is logged and the
+ * application keeps running.
  */
 @Component
 @Profile("dev")
@@ -23,9 +25,11 @@ public class DemoStartupLoader implements ApplicationRunner {
     private static final Logger LOG = LoggerFactory.getLogger(DemoStartupLoader.class);
 
     private final DemoDataService service;
+    private final DemoProperties props;
 
-    public DemoStartupLoader(DemoDataService service) {
+    public DemoStartupLoader(DemoDataService service, DemoProperties props) {
         this.service = service;
+        this.props = props;
     }
 
     @Override
@@ -35,7 +39,11 @@ public class DemoStartupLoader implements ApplicationRunner {
             return;
         }
         try {
-            service.load(DemoTrigger.STARTUP);
+            if (props.reset()) {
+                service.reset(DemoTrigger.STARTUP);
+            } else {
+                service.load(DemoTrigger.STARTUP);
+            }
         } catch (RuntimeException e) {
             LOG.warn("Demo load failed: {}", e.getMessage());
         }

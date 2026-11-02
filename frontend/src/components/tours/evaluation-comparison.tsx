@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { BaseMap } from '@/components/maps/base-map'
+import { EVALUATION_LEGEND } from '@/components/maps/legend-items'
 import { EvaluationRouteLayers } from '@/components/maps/route-layers'
 import { EvaluationIndicatorTable } from '@/components/tours/evaluation-indicator-table'
 import { METHOD_LABELS, METHOD_ORDER, METHOD_STYLES } from '@/lib/evaluation-labels'
@@ -10,7 +11,7 @@ import type { EvaluationRun, PlanningMethod } from '@/types/api'
 export function EvaluationComparison({ run }: { run: EvaluationRun }) {
   const [visible, setVisible] = useState<Record<PlanningMethod, boolean>>({
     INPUT_ORDER: true,
-    SWEEP: false,
+    SWEEP: true,
     NEAREST_NEIGHBOR: true,
     NN_PLUS_2_OPT: true,
   })
@@ -20,7 +21,11 @@ export function EvaluationComparison({ run }: { run: EvaluationRun }) {
   )
   return (
     <div className="flex flex-col gap-3">
-      <BaseMap className="h-[460px]">
+      <BaseMap
+        className="h-[460px]"
+        fitTo={[run.depot, ...run.stops]}
+        legend={EVALUATION_LEGEND}
+      >
         <EvaluationRouteLayers run={run} visible={visible} numbersFor={numbersFor} />
       </BaseMap>
       <ul className="flex flex-wrap gap-4 text-xs text-muted-foreground">

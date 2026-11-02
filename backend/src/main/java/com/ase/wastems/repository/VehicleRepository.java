@@ -1,5 +1,6 @@
 package com.ase.wastems.repository;
 
+import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.ResourceStatus;
 import com.ase.wastems.domain.Vehicle;
 import java.util.List;
@@ -21,4 +22,6 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
     boolean existsByRegistrationAndIdNot(String registration, UUID id);
 
     Optional<Vehicle> findByRegistration(String registration);
+
+    List<Vehicle> findByOrigin(DataOrigin origin);
 }

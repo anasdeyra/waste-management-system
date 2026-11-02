@@ -1,9 +1,10 @@
-import { CircleMarker, LayerGroup, LayersControl, Popup, Tooltip } from 'react-leaflet'
+import { LayerGroup, LayersControl, Marker, Popup, Tooltip } from 'react-leaflet'
 
-import { STOP_STATUS_COLORS, STOP_STATUS_LABELS } from '@/lib/execution-labels'
+import { STOP_STATUS_LABELS } from '@/lib/execution-labels'
 import type { Tour } from '@/types/api'
 
 import { toLatLng } from './geo'
+import { depotIcon, stopIcon } from './map-theme'
 
 /** Execution map layers: depot and stops numbered in visit order, coloured by outcome. */
 export function ExecutionStopsLayer({
@@ -19,59 +20,45 @@ export function ExecutionStopsLayer({
     <LayersControl position="topright">
       <LayersControl.Overlay checked name="Depot">
         <LayerGroup>
-          <CircleMarker
-            center={toLatLng(tour.depot)}
-            radius={10}
-            pathOptions={{ color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 0.9 }}
-          >
+          <Marker position={toLatLng(tour.depot)} icon={depotIcon()} zIndexOffset={1000}>
             <Tooltip>Depot: {tour.depot.name}</Tooltip>
-          </CircleMarker>
+          </Marker>
         </LayerGroup>
       </LayersControl.Overlay>
       <LayersControl.Overlay checked name="Tour stops">
         <LayerGroup>
           {tour.stops.map((s) => (
-            <CircleMarker
+            <Marker
               key={s.id}
-              center={toLatLng(s)}
-              radius={9}
-              pathOptions={{
-                color: STOP_STATUS_COLORS[s.status],
-                fillColor: STOP_STATUS_COLORS[s.status],
-                fillOpacity: 0.85,
-                weight: s.id === selectedStopId ? 4 : 2,
-              }}
+              position={toLatLng(s)}
+              icon={stopIcon(s.visitOrder, s.status, s.id === selectedStopId)}
+              zIndexOffset={s.id === selectedStopId ? 900 : 500}
               eventHandlers={{ click: () => onSelectStop(s.id) }}
             >
-              <Tooltip permanent direction="center" className="tour-stop-number">
-                {s.visitOrder}
-              </Tooltip>
               <Popup>
-                <div className="space-y-1 text-sm">
-                  <div className="font-semibold">
+                <div className="wm-popup">
+                  <div className="wm-popup-title">
                     Stop {s.visitOrder} · {s.name}
                   </div>
-                  <div>{STOP_STATUS_LABELS[s.status]}</div>
-                  <ul>
+                  <div className="wm-popup-meta">{STOP_STATUS_LABELS[s.status]}</div>
+                  <ul className="wm-popup-rows">
                     {s.plannedDemands.map((d) => (
                       <li key={d.id}>
-                        Planned {d.categoryName}: {d.plannedQuantityKg} kg
+                        <span>Planned {d.categoryName}</span>
+                        <span>{d.plannedQuantityKg} kg</span>
+                      </li>
+                    ))}
+                    {s.actualQuantities.map((q) => (
+                      <li key={q.id}>
+                        <span>Collected {q.categoryName}</span>
+                        <span>{q.actualQuantityKg} kg</span>
                       </li>
                     ))}
                   </ul>
-                  {s.actualQuantities.length > 0 && (
-                    <ul>
-                      {s.actualQuantities.map((q) => (
-                        <li key={q.id}>
-                          Collected {q.categoryName}: {q.actualQuantityKg} kg
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {s.incidentReason && <div>{s.incidentReason}</div>}
+                  {s.incidentReason && <div className="wm-popup-warn">{s.incidentReason}</div>}
                 </div>
               </Popup>
-            </CircleMarker>
+            </Marker>
           ))}
         </LayerGroup>
       </LayersControl.Overlay>

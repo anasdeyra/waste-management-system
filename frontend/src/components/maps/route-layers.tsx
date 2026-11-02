@@ -1,11 +1,12 @@
 import L from 'leaflet'
 import { useEffect, useMemo } from 'react'
-import { CircleMarker, Polyline, Popup, Tooltip, useMap } from 'react-leaflet'
+import { Marker, Polyline, Popup, Tooltip, useMap } from 'react-leaflet'
 
 import { METHOD_LABELS, METHOD_ORDER, METHOD_STYLES } from '@/lib/evaluation-labels'
 import type { EvaluationRun, PlanningMethod, RoadLegCollection, TourRoute } from '@/types/api'
 
 import { lineToLatLngs, toLatLng } from './geo'
+import { depotIcon, ROUTE_CASING, stopIcon } from './map-theme'
 
 type LineStyle = { color: string; weight: number; opacity: number }
 
@@ -14,18 +15,40 @@ export function RoadRouteLine({
   legs,
   style,
   label,
+  casing = false,
 }: {
   legs: RoadLegCollection
   style: LineStyle
   label: string
+  /** White outline under the line; only for a single route (it would hide overlapping ones). */
+  casing?: boolean
 }) {
+  const positions = useMemo(
+    () => legs.features.map((f) => lineToLatLngs(f.geometry.coordinates)),
+    [legs],
+  )
   return (
-    <Polyline
-      positions={legs.features.map((f) => lineToLatLngs(f.geometry.coordinates))}
-      pathOptions={{ color: style.color, weight: style.weight, opacity: style.opacity }}
-    >
-      <Tooltip sticky>{label}</Tooltip>
-    </Polyline>
+    <>
+      {casing && (
+        <Polyline
+          positions={positions}
+          interactive={false}
+          pathOptions={{ ...ROUTE_CASING, weight: style.weight + 4, lineCap: 'round', lineJoin: 'round' }}
+        />
+      )}
+      <Polyline
+        positions={positions}
+        pathOptions={{
+          color: style.color,
+          weight: style.weight,
+          opacity: style.opacity,
+          lineCap: 'round',
+          lineJoin: 'round',
+        }}
+      >
+        <Tooltip sticky>{label}</Tooltip>
+      </Polyline>
+    </>
   )
 }
 
@@ -38,7 +61,7 @@ function FitToRun({ run }: { run: EvaluationRun }) {
     [run.id],
   )
   useEffect(() => {
-    map.fitBounds(L.latLngBounds(positions), { padding: [24, 24] })
+    map.fitBounds(L.latLngBounds(positions), { paddingTopLeft: [56, 40], paddingBottomRight: [40, 96] })
   }, [map, positions])
   return null
 }
@@ -74,38 +97,32 @@ export function EvaluationRouteLayers({
           />
         )
       })}
-      <CircleMarker
-        center={toLatLng(run.depot)}
-        radius={10}
-        pathOptions={{ color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 0.9 }}
-      >
+      <Marker position={toLatLng(run.depot)} icon={depotIcon()} zIndexOffset={1000}>
         <Tooltip>Depot: {run.depot.name}</Tooltip>
-      </CircleMarker>
+      </Marker>
       {run.stops.map((stop) => {
         const position = numbering ? numbering.visitOrder.indexOf(stop.inputIndex) + 1 : stop.inputIndex
         return (
-          <CircleMarker
+          <Marker
             key={stop.collectionPointId}
-            center={toLatLng(stop)}
-            radius={9}
-            pathOptions={{ color: '#1d4ed8', fillColor: '#3b82f6', fillOpacity: 0.9, weight: 2 }}
+            position={toLatLng(stop)}
+            icon={stopIcon(position, 'planned')}
+            zIndexOffset={500}
           >
-            <Tooltip permanent direction="center" className="tour-stop-number">
-              {position}
-            </Tooltip>
             <Popup>
-              <div className="space-y-1 text-sm">
-                <div className="font-semibold">{stop.name}</div>
-                <ul>
+              <div className="wm-popup">
+                <div className="wm-popup-title">{stop.name}</div>
+                <ul className="wm-popup-rows">
                   {feasible.map((r) => (
                     <li key={r.method}>
-                      {METHOD_LABELS[r.method]}: visit {r.visitOrder.indexOf(stop.inputIndex) + 1}
+                      <span>{METHOD_LABELS[r.method]}</span>
+                      <span>visit {r.visitOrder.indexOf(stop.inputIndex) + 1}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             </Popup>
-          </CircleMarker>
+          </Marker>
         )
       })}
     </>
@@ -116,13 +133,14 @@ export function EvaluationRouteLayers({
 export function TourRouteLayer({ route }: { route: TourRoute }) {
   const style =
     route.method === 'NN_PLUS_2_OPT'
-      ? { color: '#16a34a', weight: 5, opacity: 0.9 }
+      ? { color: '#16a34a', weight: 5, opacity: 0.95 }
       : METHOD_STYLES[route.method]
   return (
     <RoadRouteLine
       legs={route.legs}
       style={style}
       label={`Road route: ${METHOD_LABELS[route.method]}`}
+      casing
     />
   )
 }

@@ -1,16 +1,20 @@
-import { CircleMarker, LayerGroup, LayersControl, Polyline, Popup, Tooltip } from 'react-leaflet'
+import { CircleMarker, LayerGroup, LayersControl, Marker, Polyline, Popup, Tooltip } from 'react-leaflet'
 
-import { STOP_STATUS_COLORS, STOP_STATUS_LABELS } from '@/lib/execution-labels'
+import { buttonVariants } from '@/components/ui/button'
+
+import { STOP_STATUS_LABELS } from '@/lib/execution-labels'
 import type { CollectionPoint, Tour } from '@/types/api'
 
 import { toLatLng } from './geo'
+import { depotIcon, MARKER, pointRadius, stopIcon } from './map-theme'
+import { useMapZoom } from './use-map-zoom'
 
 export const INPUT_ORDER_LABEL = 'Input order (straight lines, not a route)'
 
 /**
  * Tour planning layers: depot, candidate points, numbered stops and the input-order line.
  * The line joins stops in input order with straight segments; it is not a route (S5 adds
- * road routing). Only circle markers are used (no default marker images).
+ * road routing). Markers come from map-theme.ts (no default marker images).
  */
 export function TourStopsLayer({
   tour,
@@ -29,6 +33,7 @@ export function TourStopsLayer({
   onRemove: (stopId: string) => void
   onSelectStop: (stopId: string) => void
 }) {
+  const zoom = useMapZoom()
   const inTour = new Set(tour.stops.map((s) => s.collectionPointId))
   const free = candidates.filter((p) => !inTour.has(p.id))
   const linePositions =
@@ -44,32 +49,36 @@ export function TourStopsLayer({
     <LayersControl position="topright">
       <LayersControl.Overlay checked name="Depot">
         <LayerGroup>
-          <CircleMarker
-            center={toLatLng(tour.depot)}
-            radius={10}
-            pathOptions={{ color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 0.9 }}
-          >
+          <Marker position={toLatLng(tour.depot)} icon={depotIcon()} zIndexOffset={1000}>
             <Tooltip>Depot: {tour.depot.name}</Tooltip>
-          </CircleMarker>
+          </Marker>
         </LayerGroup>
       </LayersControl.Overlay>
-      <LayersControl.Overlay checked name="Candidate points">
+      {/* Candidates only matter while stops can be added; locked tours start with them hidden. */}
+      <LayersControl.Overlay checked={editable} name="Candidate points">
         <LayerGroup>
           {free.map((p) => (
             <CircleMarker
               key={p.id}
               center={toLatLng(p)}
-              radius={5}
-              pathOptions={{ color: '#4d7c0f', fillColor: '#9ca3af', fillOpacity: 0.8, weight: 1 }}
+              radius={Math.max(2.5, pointRadius(zoom) - 1)}
+              pathOptions={{
+                className: 'wm-point',
+                color: MARKER.ring,
+                weight: 1.5,
+                fillColor: MARKER.candidate,
+                fillOpacity: 0.85,
+              }}
             >
+              <Tooltip direction="top">{p.name}</Tooltip>
               <Popup>
-                <div className="space-y-1 text-sm">
-                  <div className="font-semibold">{p.name}</div>
-                  <div>Total demand: {p.totalDemandKg} kg</div>
+                <div className="wm-popup">
+                  <div className="wm-popup-title">{p.name}</div>
+                  <div className="wm-popup-meta">Candidate · {p.totalDemandKg} kg demand</div>
                   {editable && (
                     <button
                       type="button"
-                      className="rounded border px-2 py-1 text-sm font-medium"
+                      className={buttonVariants({ size: 'sm', className: 'mt-1 w-full' })}
                       onClick={() => onAdd(p.id)}
                     >
                       Add to tour
@@ -86,48 +95,49 @@ export function TourStopsLayer({
           {tour.stops.map((s) => {
             const flagged = s.pointStatus !== 'ACTIVE' || !s.optimizationEligible
             const selected = s.id === selectedStopId
-            const executionColor = tour.status === 'DRAFT' ? null : STOP_STATUS_COLORS[s.status]
+            const tone = tour.status === 'DRAFT' ? 'planned' : s.status
             return (
-              <CircleMarker
+              <Marker
                 key={s.id}
-                center={toLatLng(s)}
-                radius={9}
-                pathOptions={{
-                  color: flagged ? '#dc2626' : (executionColor ?? '#1d4ed8'),
-                  fillColor: executionColor ?? '#3b82f6',
-                  fillOpacity: 0.9,
-                  weight: selected ? 4 : 2,
-                  dashArray: flagged ? '4 3' : undefined,
-                }}
+                position={toLatLng(s)}
+                icon={stopIcon(s.visitOrder, tone, selected, flagged)}
+                zIndexOffset={selected ? 900 : 500}
                 eventHandlers={{ click: () => onSelectStop(s.id) }}
               >
-                <Tooltip permanent direction="center" className="tour-stop-number">
-                  {s.visitOrder}
-                </Tooltip>
                 <Popup>
-                  <div className="space-y-1 text-sm">
-                    <div className="font-semibold">
+                  <div className="wm-popup">
+                    <div className="wm-popup-title">
                       Stop {s.visitOrder} · {s.name}
                     </div>
-                    <ul>
+                    {tour.status !== 'DRAFT' && (
+                      <div className="wm-popup-meta">{STOP_STATUS_LABELS[s.status]}</div>
+                    )}
+                    {flagged && (
+                      <div className="wm-popup-warn">Inactive or not eligible for optimization</div>
+                    )}
+                    <ul className="wm-popup-rows">
                       {s.plannedDemands.map((d) => (
                         <li key={d.id}>
-                          {d.categoryName}: {d.plannedQuantityKg} kg
+                          <span>{d.categoryName}</span>
+                          <span>{d.plannedQuantityKg} kg</span>
+                        </li>
+                      ))}
+                      <li className="wm-popup-total">
+                        <span>Planned total</span>
+                        <span>{s.plannedTotalKg} kg</span>
+                      </li>
+                      {s.actualQuantities.map((q) => (
+                        <li key={q.id}>
+                          <span>Collected {q.categoryName}</span>
+                          <span>{q.actualQuantityKg} kg</span>
                         </li>
                       ))}
                     </ul>
-                    <div>Planned total: {s.plannedTotalKg} kg</div>
-                    {tour.status !== 'DRAFT' && <div>{STOP_STATUS_LABELS[s.status]}</div>}
-                    {s.actualQuantities.map((q) => (
-                      <div key={q.id}>
-                        Collected {q.categoryName}: {q.actualQuantityKg} kg
-                      </div>
-                    ))}
-                    {s.incidentReason && <div>{s.incidentReason}</div>}
+                    {s.incidentReason && <div className="wm-popup-warn">{s.incidentReason}</div>}
                     {editable && (
                       <button
                         type="button"
-                        className="rounded border px-2 py-1 text-sm font-medium"
+                        className={buttonVariants({ size: 'sm', variant: 'outline', className: 'mt-1 w-full' })}
                         onClick={() => onRemove(s.id)}
                       >
                         Remove from tour
@@ -135,7 +145,7 @@ export function TourStopsLayer({
                     )}
                   </div>
                 </Popup>
-              </CircleMarker>
+              </Marker>
             )
           })}
         </LayerGroup>
@@ -145,7 +155,7 @@ export function TourStopsLayer({
           {linePositions.length > 0 && (
             <Polyline
               positions={linePositions}
-              pathOptions={{ color: '#4b5563', weight: 2, opacity: 0.7, dashArray: '6 6' }}
+              pathOptions={{ color: MARKER.inputOrder, weight: 2, opacity: 0.75, dashArray: '2 6', lineCap: 'round' }}
             />
           )}
         </LayerGroup>

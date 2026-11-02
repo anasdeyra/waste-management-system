@@ -25,6 +25,12 @@ public class DemoDataController {
         return DemoLoadReportResponse.from(service.load(DemoTrigger.MANUAL));
     }
 
+    /** Deletes the demonstration data and reloads it; user accounts and MN01 data are kept. */
+    @PostMapping("/reset")
+    public DemoLoadReportResponse reset() {
+        return DemoLoadReportResponse.from(service.reset(DemoTrigger.RESET));
+    }
+
     @GetMapping("/report")
     public DemoLoadReportResponse report() {
         return DemoLoadReportResponse.from(service.lastReport().orElseThrow(

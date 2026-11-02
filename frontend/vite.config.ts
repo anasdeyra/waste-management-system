@@ -6,6 +6,8 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // MapLibre starts its tile worker as an ES module worker.
+  worker: { format: 'es' },
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

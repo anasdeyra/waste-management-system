@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useDemoReport, useLoadDemo } from '@/hooks/use-demo-data'
+import { useDemoReport, useLoadDemo, useResetDemo } from '@/hooks/use-demo-data'
 import { useImportReport, useRunImport } from '@/hooks/use-data-import'
 import { STATUS_LABELS } from '@/lib/tour-labels'
 import type { DatasetImportResult, DemoCount } from '@/types/api'
@@ -51,6 +51,7 @@ function CountRow({ label, c }: { label: string; c: DemoCount }) {
 function DemoCard() {
   const report = useDemoReport()
   const load = useLoadDemo()
+  const reset = useResetDemo()
   const r = report.data
   return (
     <Card>
@@ -58,13 +59,14 @@ function DemoCard() {
         <CardTitle>Demonstration data</CardTitle>
         <CardDescription>
           Synthetic vehicles, agents, accounts, demand entries and tours on the real MN01 locations
-          (US-33). Loading again never duplicates them.
+          (US-33). Loading again never duplicates them; resetting deletes the demonstration data
+          first (user accounts and the MN01 import are kept) and rebuilds it.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div>
+        <div className="flex flex-wrap gap-2">
           <Button
-            disabled={load.isPending}
+            disabled={load.isPending || reset.isPending}
             onClick={() =>
               load.mutate(undefined, {
                 onSuccess: (d) =>
@@ -74,6 +76,21 @@ function DemoCard() {
             }
           >
             Load demonstration data
+          </Button>
+          <Button
+            variant="outline"
+            disabled={load.isPending || reset.isPending}
+            onClick={() =>
+              reset.mutate(undefined, {
+                onSuccess: (d) =>
+                  toast.success(
+                    `Demo reset: tours deleted, then created ${d.tours.created}; accounts and MN01 data kept`,
+                  ),
+                onError: (err) => toast.error(err.message),
+              })
+            }
+          >
+            {reset.isPending ? 'Resetting…' : 'Reset demonstration data'}
           </Button>
         </div>
         {report.isError && (

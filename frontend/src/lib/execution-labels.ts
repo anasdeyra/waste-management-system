@@ -13,8 +13,6 @@ export const STOP_STATUS_COLORS: Record<TourStopStatus, string> = {
   NOT_COLLECTED: '#dc2626',
 }
 
-export const STOP_STATUS_LEGEND = 'Blue: pending · Green: collected · Red: not collected'
-
 /** Crew role of the signed-in agent: the list and detail only contain the caller's tours. */
 export function crewRole(
   driverId: string | undefined,

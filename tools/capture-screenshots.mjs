@@ -13,7 +13,7 @@
 // accepts a proposal, starts, completes or cancels a tour.
 //
 // It writes 12 PNG files (1440x900 viewport) to OUT_DIR and exits 1 if one screenshot failed or no
-// OpenStreetMap tile was loaded.
+// basemap vector tile (OpenFreeMap, OpenStreetMap data, D-054) was loaded.
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -42,7 +42,7 @@ async function newPage(contextPage) {
   const page = contextPage ?? (await (await browser.createBrowserContext()).newPage())
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 })
   page.on('response', (response) => {
-    if (response.url().includes('tile.openstreetmap.org')) {
+    if (response.url().includes('tiles.openfreemap.org/planet/')) {
       if (response.ok()) tilesOk += 1
       else tilesFailed += 1
     }
@@ -74,7 +74,8 @@ async function settle(page) {
       { timeout: 15000 },
     )
     .catch(() => {})
-  await sleep(800)
+  // The vector basemap is drawn on a WebGL canvas after its tiles arrive.
+  await sleep(1500)
 }
 
 async function open(page, route) {
@@ -220,8 +221,8 @@ try {
 }
 
 await browser.close()
-console.log(`OSM tiles: ${tilesOk} ok, ${tilesFailed} failed`)
+console.log(`Basemap tiles: ${tilesOk} ok, ${tilesFailed} failed`)
 if (failures.length || tilesOk === 0) {
-  console.error(`failures: ${failures.length ? failures.join('; ') : 'no OSM tile loaded'}`)
+  console.error(`failures: ${failures.length ? failures.join('; ') : 'no basemap tile loaded'}`)
   process.exit(1)
 }

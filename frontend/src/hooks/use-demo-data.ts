@@ -26,18 +26,33 @@ export function useLoadDemo() {
   return useMutation({
     mutationFn: () => apiFetch<DemoLoadReport>('/api/admin/demo', { method: 'POST' }),
     onSuccess: async () => {
-      await Promise.all(
-        [
-          demoReportKey,
-          ['tours'],
-          ['vehicles'],
-          ['agents'],
-          ['users'],
-          ['collection-points'],
-          ['waste-categories'],
-          ['my-tours'],
-        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-      )
+      await invalidateDemoData(queryClient)
     },
   })
+}
+
+/** Deletes the demonstration data and reloads it (user accounts and MN01 data are kept). */
+export function useResetDemo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiFetch<DemoLoadReport>('/api/admin/demo/reset', { method: 'POST' }),
+    onSuccess: async () => {
+      await invalidateDemoData(queryClient)
+    },
+  })
+}
+
+async function invalidateDemoData(queryClient: ReturnType<typeof useQueryClient>) {
+  await Promise.all(
+    [
+      demoReportKey,
+      ['tours'],
+      ['vehicles'],
+      ['agents'],
+      ['users'],
+      ['collection-points'],
+      ['waste-categories'],
+      ['my-tours'],
+    ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+  )
 }

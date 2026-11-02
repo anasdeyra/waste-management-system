@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { Link, useParams } from 'react-router-dom'
 
 import { BaseMap } from '@/components/maps/base-map'
+import { plannerLegend } from '@/components/maps/legend-items'
 import { TrafficLayer } from '@/components/maps/traffic-layer'
 import { TrafficPanel } from '@/components/maps/traffic-panel'
 import { useTrafficOverlay } from '@/hooks/use-traffic'
@@ -32,7 +33,6 @@ import {
 } from '@/hooks/use-tours'
 import { useVehicles } from '@/hooks/use-vehicles'
 import { METHOD_LABELS } from '@/lib/evaluation-labels'
-import { STOP_STATUS_LEGEND } from '@/lib/execution-labels'
 import { STATUS_LABELS } from '@/lib/tour-labels'
 
 /** Tour planner: map and list stop selection, input order, crew, capacity and validation. */
@@ -109,7 +109,16 @@ export default function TourPlannerPage() {
       )}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-2">
-          <BaseMap className="h-[520px]">
+          <BaseMap
+            className="h-[520px]"
+            fitTo={[t.depot, ...t.stops]}
+            legend={plannerLegend(
+              t.status === 'DRAFT',
+              editable,
+              t.stops.some((s) => s.pointStatus !== 'ACTIVE' || !s.optimizationEligible),
+              t.route?.method,
+            )}
+          >
             {showTraffic && traffic.data?.available && <TrafficLayer links={traffic.data.links} />}
             <TourStopsLayer
               tour={t}
@@ -137,7 +146,6 @@ export default function TourPlannerPage() {
             {t.route &&
               ` The solid line is the attached road route (${METHOD_LABELS[t.route.method]}) on road graph ${t.route.roadGraphVersion}.`}
           </p>
-          {!editable && <p className="text-xs text-muted-foreground">{STOP_STATUS_LEGEND}</p>}
           <p className="text-xs text-muted-foreground">
             Basket and depot locations: NYC Open Data (DSNY). Demand values marked Synthetic are
             demonstration data.

@@ -2,6 +2,7 @@ package com.ase.wastems.repository;
 
 import com.ase.wastems.domain.Agent;
 import com.ase.wastems.domain.AppUser;
+import com.ase.wastems.domain.DataOrigin;
 import com.ase.wastems.domain.ResourceStatus;
 import java.util.List;
 import java.util.Optional;
@@ -20,4 +21,6 @@ public interface AgentRepository extends JpaRepository<Agent, UUID> {
     Optional<Agent> findByUserAccount(AppUser user);
 
     List<Agent> findByUserAccountIsNotNull();
+
+    List<Agent> findByOrigin(DataOrigin origin);
 }

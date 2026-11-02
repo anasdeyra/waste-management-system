@@ -2,6 +2,7 @@ package com.ase.wastems.repository;
 
 import com.ase.wastems.domain.Tour;
 import com.ase.wastems.domain.TourStatus;
+import com.ase.wastems.domain.DataOrigin;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -51,4 +52,18 @@ public interface TourRepository extends JpaRepository<Tour, UUID> {
                    or t.cancelledFromStatus <> com.ase.wastems.domain.TourStatus.DRAFT)
               and (d.id = :agentId or c.id = :agentId)""")
     List<Tour> findAssignedTo(@Param("agentId") UUID agentId);
+
+    List<Tour> findByOrigin(DataOrigin origin);
+
+    /** Tours still using any of these agents as driver or collector (demo reset guard, D-055). */
+    @Query(
+            """
+            select t from Tour t
+              left join t.collectors c
+            where t.driver.id in :ids or c.id in :ids""")
+    List<Tour> findToursWithCrewIn(@Param("ids") Collection<UUID> ids);
+
+    /** Tours still using any of these vehicles (demo reset guard, D-055). */
+    @Query("select t from Tour t where t.vehicle.id in :ids")
+    List<Tour> findToursWithVehicleIn(@Param("ids") Collection<UUID> ids);
 }

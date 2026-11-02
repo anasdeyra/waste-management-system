@@ -48,7 +48,7 @@ map overlay; it does not drive dynamic rerouting or the controlled optimization 
 | Styling | Tailwind CSS | 4.x |
 | Components | shadcn/ui (Radix UI) | latest |
 | Data fetching | TanStack Query + React Router | 5.x / 7.x |
-| Interactive maps | Leaflet + React Leaflet, standard OSM tiles (D-039) | Leaflet 1.9 / React Leaflet 5 |
+| Interactive maps | Leaflet + React Leaflet; minimal vector basemap (OpenFreeMap OSM tiles drawn by MapLibre GL, own style, D-054) | Leaflet 1.9 / React Leaflet 5 / MapLibre GL 6.14 |
 | Road routing | GraphHopper (embedded) + versioned OpenStreetMap extract `osm-mn01-e1f2fabaa937` | 11.1 |
 | Tests | JUnit 5, AssertJ, Spring Security Test | — |
 | Metrics | PMD, CKJM, JDepend, `tools/count-loc.py` | — |
@@ -182,6 +182,20 @@ npm run dev
 
 The application is served on <http://localhost:5173>. The Vite development server proxies
 `/api` to `http://localhost:8080`, so no CORS configuration is required.
+
+**Both at once.** `tools/dev.sh` starts the backend and the frontend side by side in one tmux
+session (`ase`, backend left, frontend right) and attaches to it:
+
+```bash
+tools/dev.sh              # start and attach (-d / --detach to stay out)
+tools/dev.sh status       # session and HTTP status of both ports
+tools/dev.sh stop         # kill the session, stopping both servers
+tools/dev.sh restart
+ASE_BACKEND_ARGS="-Dspring-boot.run.arguments=--wastems.demo.reset=true" tools/dev.sh   # one-shot demo reset (D-055)
+```
+
+Detach with `Ctrl-b d`; `Ctrl-b ←/→` switches panes. It refuses to start if port 8080 or 5173 is
+already taken. Requires `tmux`, the toolchain of §7.1 of `AGENTS.md` and `fnm`.
 
 To run a second frontend against a backend on another port (for example a scratch backend on
 8081), override the proxy target and port:
@@ -324,14 +338,23 @@ OpenStreetMap extract (© OpenStreetMap contributors, ODbL). The optional traffi
 after the MN01 import. An ADMIN can reload it from *Data import → Demonstration data → Load
 demonstration data* or with `curl -s -b $J -X POST -H "X-XSRF-TOKEN: $X" $B/api/admin/demo`
 (report: `GET /api/admin/demo/report`). Loading again never duplicates anything and never resets
-progress made in the UI. `--wastems.demo.enabled=false` skips it. Delete `backend/data/` to
-start from scratch (stop the backend first).
+progress made in the UI. `--wastems.demo.enabled=false` skips it.
+
+**Resetting the demonstration (D-055).** To get back to the pristine demonstration state without
+losing anything else, an ADMIN can use *Data import → Demonstration data → Reset demonstration
+data*, `curl -s -b $J -X POST -H "X-XSRF-TOKEN: $X" $B/api/admin/demo/reset`, or start the backend
+once with `--wastems.demo.reset=true`. The reset deletes the synthetic tours (with their stops,
+outcomes and corrections), their route evaluations, the demo demand rows, vehicles and agents, then
+reloads the dataset below. **Kept:** user accounts, the MN01 import and its snapshots, experiment and
+CSV evaluation runs, the audit log. It answers 409 and deletes nothing if the MN01 import is missing
+or if a tour you created uses a demo vehicle or agent. Delete `backend/data/` only to start from
+scratch (stop the backend first).
 
 **Real versus synthetic.**
 
 | Real | Synthetic (`origin` `SYNTHETIC`) |
 |---|---|
-| The 449 MN01 basket locations and the MN01G garage (NYC Open Data, source ids kept) | Every demand quantity, the categories `Recyclables` and `Organics`, vehicles `DEMO-01…03`, the five agents named `… (demo)`, the demo accounts, the four tours and every collection outcome (reasons end with "(synthetic demo outcome)") |
+| The 449 MN01 basket locations and the MN01G garage (NYC Open Data, source ids kept) | Every extra demand quantity (30 Recyclables/Organics rows on real baskets), the categories `Recyclables` and `Organics`, vehicles `DEMO-01…05`, the seven agents named `… (demo)`, the demo accounts, the six tours and every collection outcome (reasons end with "(synthetic demo …)") |
 
 **Accounts.**
 
@@ -343,36 +366,40 @@ start from scratch (stop the backend first).
 | `collector` / `collector123` | AGENT | Blair Chen (demo) |
 | `agent2` / `agent2123` | AGENT | Casey Morgan (demo) |
 
-Dana Lopez (demo) has no login. Eli Novak (demo) and `DEMO-03` are unavailable.
+Dana Lopez, Farah Idris and Grant Wolfe (all demo) have no login. Eli Novak (demo) and `DEMO-03` are unavailable.
 
-**Tours** (dates are the day of the first load):
+**Tours** (dates are the day of the load; every tour has a road route on the versioned OSM snapshot):
 
-| Tour | State | Vehicle and crew | Stops | Road route |
+| Tour | State | Vehicle and crew | Stops | Road route (NN + 2-opt) |
 |---|---|---|---|---|
-| draft | `DRAFT` | DEMO-01, Alex + Blair | 8 baskets | evaluated (input order 11.74 km, sweep 8.44 km, NN 10.21 km, NN + 2-opt 7.47 km), not yet decided |
-| planned | `PLANNED` | DEMO-01, Alex + Blair | 5 baskets | NN + 2-opt, 2.39 km |
-| in-progress | `IN_PROGRESS` | DEMO-02, Alex + Casey + Dana | 5 baskets, stop 1 collected, stop 2 not collected | 2.75 km |
-| completed | `COMPLETED` | DEMO-02, Casey + Alex | 4 baskets, 3 collected and 1 not collected | 6.11 km |
+| draft | `DRAFT` | DEMO-04, Alex + Blair | 12 baskets | evaluated (four methods), not yet decided |
+| planned | `PLANNED` | DEMO-02, Casey + Dana | 8 baskets | 4.96 km |
+| planned-2 | `PLANNED` | DEMO-01, Farah + Grant | 6 baskets | 6.37 km |
+| in-progress | `IN_PROGRESS` | DEMO-05, Alex + Dana + Grant | 7 baskets, first 3 visited, one of them not collected | 4.07 km |
+| completed | `COMPLETED` | DEMO-02, Blair + Alex | 9 baskets, 8 collected and 1 not collected; one outcome corrected (retained) | 3.69 km |
+| cancelled | `CANCELLED` | DEMO-01, Dana + Farah | 6 baskets, cancelled from `PLANNED` with a reason | 3.20 km |
 
 **What to click.**
 
-1. Sign in as `planner`, open *Tours*: four tours with the `Synthetic demo` badge, one per state.
-2. Open the draft, *Route evaluation*: compare the four routes (sweep is hidden by default); *Accept NN + 2-opt proposal*, then
+1. Sign in as `planner`, open *Tours*: six tours with the `Synthetic demo` badge: a draft, two
+   planned, one in progress, one completed and one cancelled.
+2. Open the draft, *Route evaluation*: compare the four routes (all shown by default); *Accept NN + 2-opt proposal*, then
    *Confirm as planned*.
 3. Open the in-progress tour: the map colours stops by state and the *Execution* card shows the
-   progress.
-4. Sign out; sign in as `agent`, *My tours*: three tours (the draft is not visible).
-5. Open the planned tour, *Start tour*; for each stop *Record outcome* (Collected with quantities,
-   or Not collected with a reason); then *Complete tour*.
-6. Sign in as `agent2`, *My tours*: the planned tour is absent; its URL answers "You are not
-   assigned to this tour."
-7. (Optional) as `planner`, deactivate a basket of a planned tour: the agent's *Start tour* is
-   blocked with `INACTIVE_STOP` until it is reactivated.
+   progress (three of seven stops visited).
+4. Sign out; sign in as `agent` (Alex), *My tours*: the in-progress and completed tours, plus the
+   former draft once you confirmed it in step 2; the other planned tours are not listed.
+5. Open the former draft, *Start tour*; for each stop *Record outcome* (Collected with quantities,
+   or Not collected with a reason); then *Complete tour*. (Or finish the in-progress tour the same way.)
+6. Sign in as `agent2` (Casey), *My tours*: only the planned 8-basket tour; the URL of a tour you are
+   not on answers "You are not assigned to this tour."
+7. (Optional) as `planner`, deactivate a basket of the 8-basket planned tour: Casey's *Start tour*
+   is blocked with `INACTIVE_STOP` until it is reactivated.
 8. As `planner`, open the completed tour, *Correct* its not-collected stop (for example
    Collected, Mixed litter 18 kg, reason "Weighbridge ticket"): the stop shows *Corrected* and the
-   previous values.
-9. As `planner`, open the planned tour and *Cancel tour* with a reason; `agent` sees it as
-   cancelled in *My tours*.
+   previous values. The demonstration already contains one retained correction on another stop.
+9. As `planner`, open the 6-basket planned tour (Farah + Grant) and *Cancel tour* with a reason; it
+   joins the tour already cancelled by the demonstration. Neither crew member has a login.
 10. As `planner`, open *History*: filter by status, vehicle, agent or collection point; the
     corrected and the cancelled tours are listed.
 11. As `admin`, open *Audit log*: filter by action (`Outcome corrected`, `Sign-in` with outcome

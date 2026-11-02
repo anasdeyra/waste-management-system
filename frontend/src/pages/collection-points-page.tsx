@@ -8,6 +8,7 @@ import { PointFiltersBar } from '@/components/collection-points/point-filters'
 import { PointForm } from '@/components/collection-points/point-form'
 import { PointList } from '@/components/collection-points/point-list'
 import { BaseMap } from '@/components/maps/base-map'
+import { POINTS_LEGEND } from '@/components/maps/legend-items'
 import { TrafficLayer } from '@/components/maps/traffic-layer'
 import { TrafficPanel } from '@/components/maps/traffic-panel'
 import { useTrafficOverlay } from '@/hooks/use-traffic'
@@ -135,7 +136,11 @@ export default function CollectionPointsPage() {
               <AlertDescription>{depots.error.message}</AlertDescription>
             </Alert>
           )}
-          <BaseMap onMapClick={onMapClick}>
+          <BaseMap
+            onMapClick={onMapClick}
+            fitTo={[...list, ...(depots.data ?? [])]}
+            legend={POINTS_LEGEND}
+          >
             {showTraffic && traffic.data?.available && <TrafficLayer links={traffic.data.links} />}
             <PointsMapLayer
               points={list}

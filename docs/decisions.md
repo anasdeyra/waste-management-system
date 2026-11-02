@@ -446,6 +446,7 @@ artifacts, metrics, and presentation remain consistent.
   the OSM tile usage policy.
 - **Rationale:** Free, needs no key, and is consistent with the ODbL attribution already
   required (D-020).
+- **Superseded by D-054** (2026-11-02): the maps now use a custom minimal vector style.
 
 ## D-040 — Frontend verification level
 
@@ -1225,3 +1226,61 @@ artifacts, metrics, and presentation remain consistent.
     HTTP on a fresh `dev` start on a scratch database.
 - **Rationale:** Each change keeps the measured data honest and the repository runnable; none changes
   the D-052 design.
+
+## D-054 — Minimal vector basemap (supersedes D-039)
+
+- **Date:** 2026-11-02
+- **Decision:** The Leaflet maps draw OpenStreetMap data from the OpenFreeMap vector tiles
+  (`tiles.openfreemap.org`, OpenMapTiles schema, no key) with MapLibre GL 6.14, embedded as a
+  Leaflet layer by `@maplibre/maplibre-gl-leaflet` 0.1.4. The style is our own
+  (`frontend/src/components/maps/basemap-style.ts`): no businesses, house numbers or transit
+  icons; neighbourhood names, major street names from zoom 14 and minor street names from zoom 17;
+  neutral white/grey roads; green parks and woods; blue water labelled only for rivers, bays and
+  the sea. Attribution: "OpenFreeMap © OpenStreetMap contributors". Markers, routes and the traffic
+  overlay stay Leaflet layers on top. The CARTO Voyager raster tiles were previewed and rejected.
+- **Rationale:** The standard OSM raster tiles bake in labels, POI icons and colours, so the
+  project owner found the map overcrowded and could not restyle it. Vector tiles keep OSM data but
+  let the style hide clutter, and neutral roads keep the coloured traffic, route and stop layers
+  readable. The worker URL is set explicitly (`setWorkerUrl`, Vite `worker.format: 'es'`)
+  because Vite's dependency pre-bundling breaks MapLibre's relative worker path.
+- **Map UI (same day):** every map is limited to Manhattan (`MANHATTAN_BOUNDS`, minimum zoom
+  12, `geo.ts`), frames its data on first load, and has *Reset view* and *Fit to data* buttons,
+  a scale bar and a legend. Markers share one palette (`map-theme.ts`): teal dots with a white
+  ring for collection points (smaller when zoomed out), numbered badges for stops (ink in drafts,
+  status colours once planned), a violet square for the depot. A single attached route gets a
+  white casing; overlapping comparison routes do not. Candidate points start hidden on locked tours.
+  The sweep route on the comparison map is now shown by default like the other three methods
+  (amends the D-052 default).
+
+## D-055 — Demonstration reset and enriched demo dataset (amends D-023 demo scope)
+
+- **Date:** 2026-11-02
+- **Decision:** The demonstration data can be wiped and rebuilt at any time. The reset deletes
+  every `SYNTHETIC`-origin tour (cascading stops, outcomes and corrections), the `TOUR_DRAFT`
+  evaluation runs of those tours, the demand entries recorded by the last demo load (tracked in
+  `demo_record`), the `SYNTHETIC` vehicles and agents, and all `demo_record` rows; it then reloads
+  the dataset. It refuses (409) when the MN01 import is missing or when non-demo tours still
+  reference demo vehicles or agents, without deleting anything. Kept on every reset: user
+  accounts, the imported MN01 data (points, depot, its base demand rows, source and routing
+  snapshots), `EXPERIMENT`/`CSV` evaluation runs and batches, the audit log and the categories —
+  categories are re-adopted by the reload, not deleted (a category is deactivated, never deleted).
+  Entry points: `POST /api/admin/demo/reset` (ADMIN), the *Reset demonstration data* button on the
+  demonstration card, and the one-shot start-up flag `--wastems.demo.reset=true`
+  (`wastems.demo.reset: false` by default; `AuditAction.DEMO_RESET` in the audit log, trigger
+  `RESET` in the load report). Controlled exception to the S3/S7 rule that agents and vehicles
+  are never deleted, only made unavailable:
+  demo (`SYNTHETIC`-origin) vehicles and agents may be deleted by the reset — user-owned and
+  experiment data must never lose a referenced resource this way, hence the tour-reference guard.
+  The reloaded dataset is richer: 5 vehicles (`DEMO-01`–`DEMO-05`, one unavailable), 7 agents
+  (three linked to the demo accounts, one unavailable), 30 extra demand rows (Recyclables/Organics
+  on real MN01 baskets), and six tours covering every lifecycle state: draft (12 stops), planned
+  (8 stops, accepted proposal, routed 4962 m), planned (6 stops), in-progress (7 stops, first
+  three visited with one not-collected), completed (9 stops, one not-collected, one corrected
+  retained outcome), cancelled (6 stops from PLANNED). Every synthetic reason in stories carries
+  the "(synthetic demo ...)" marker (D-048), synthetic values are stable, and the load remains
+  idempotent (re-adoption, no duplicates).
+- **Rationale:** A reviewer should see the whole tour lifecycle — including cancellation and a
+  privileged correction — in one session without handcrafting data, and should be able to rebuild
+  that loss-free state in one action. The reset therefore touches only data the loader itself
+  created (origin `SYNTHETIC`, tracked via `demo_record`), keeps all accounts and imported
+  evidence, and checks the preconditions before deleting anything.

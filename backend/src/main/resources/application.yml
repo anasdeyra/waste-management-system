@@ -59,5 +59,8 @@ wastems:
     stale-after-minutes: 15
     max-plausible-speed-mph: 100
   # Synthetic demonstration operations on the real MN01 data (US-33); enabled in dev only.
+  # reset deletes the demonstration data before the load runs again (D-055); enable it only
+  # on the command line for one start, never commit it as true.
   demo:
     enabled: false
+    reset: false

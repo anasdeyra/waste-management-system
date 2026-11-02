@@ -635,7 +635,7 @@ export interface DemoTourState {
 
 /** web.dto.DemoLoadReportResponse (US-33) */
 export interface DemoLoadReport {
-  trigger: 'STARTUP' | 'MANUAL'
+  trigger: 'STARTUP' | 'MANUAL' | 'RESET'
   loadedAt: string
   categories: DemoCount
   demandEntries: DemoCount
