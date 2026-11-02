@@ -1,0 +1,56 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.16)
+
+2026-11-02T03:46:42.112+01:00  INFO 212843 --- [wastems-backend] [           main] com.ase.wastems.WasteMsApplication       : Starting WasteMsApplication v0.1.0-SNAPSHOT using Java 21.0.13 with PID 212843 (/home/anas/Desktop/project-ase/backend/target/wastems-backend-0.1.0-SNAPSHOT.jar started by anas in /home/anas/Desktop/project-ase)
+2026-11-02T03:46:42.116+01:00  INFO 212843 --- [wastems-backend] [           main] com.ase.wastems.WasteMsApplication       : The following 1 profile is active: "experiment"
+2026-11-02T03:46:42.893+01:00  INFO 212843 --- [wastems-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-11-02T03:46:42.971+01:00  INFO 212843 --- [wastems-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 70 ms. Found 12 JPA repository interfaces.
+2026-11-02T03:46:43.611+01:00  INFO 212843 --- [wastems-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 0 (http)
+2026-11-02T03:46:43.621+01:00  INFO 212843 --- [wastems-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-11-02T03:46:43.621+01:00  INFO 212843 --- [wastems-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.55]
+2026-11-02T03:46:43.639+01:00  INFO 212843 --- [wastems-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-11-02T03:46:43.640+01:00  INFO 212843 --- [wastems-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1456 ms
+2026-11-02T03:46:43.900+01:00  INFO 212843 --- [wastems-backend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-11-02T03:46:43.953+01:00  INFO 212843 --- [wastems-backend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.53.Final
+2026-11-02T03:46:43.975+01:00  INFO 212843 --- [wastems-backend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-11-02T03:46:44.147+01:00  INFO 212843 --- [wastems-backend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-11-02T03:46:44.173+01:00  INFO 212843 --- [wastems-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-11-02T03:46:44.336+01:00  INFO 212843 --- [wastems-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:file:/home/anas/Desktop/project-ase/metrics/experiment/db/wastems-experiment user=SA
+2026-11-02T03:46:44.337+01:00  INFO 212843 --- [wastems-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-11-02T03:46:44.379+01:00  INFO 212843 --- [wastems-backend] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-11-02T03:46:45.450+01:00  INFO 212843 --- [wastems-backend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-11-02T03:46:45.531+01:00  INFO 212843 --- [wastems-backend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-11-02T03:46:45.780+01:00  INFO 212843 --- [wastems-backend] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-11-02T03:46:47.483+01:00  INFO 212843 --- [wastems-backend] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name appUserDetailsService
+2026-11-02T03:46:47.677+01:00  INFO 212843 --- [wastems-backend] [           main] o.s.b.a.h2.H2ConsoleAutoConfiguration    : H2 console available at '/h2-console'. Database available at 'jdbc:h2:file:/home/anas/Desktop/project-ase/metrics/experiment/db/wastems-experiment'
+2026-11-02T03:46:47.760+01:00  INFO 212843 --- [wastems-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 44455 (http) with context path '/'
+2026-11-02T03:46:47.771+01:00  INFO 212843 --- [wastems-backend] [           main] com.ase.wastems.WasteMsApplication       : Started WasteMsApplication in 6.052 seconds (process running for 6.47)
+2026-11-02T03:46:47.774+01:00  INFO 212843 --- [wastems-backend] [           main] c.a.w.config.ExperimentCommandRunner     : Experiment run starting: 180 runs, output /home/anas/Desktop/project-ase/metrics/experiment
+2026-11-02T03:46:49.264+01:00  WARN 212843 --- [wastems-backend] [           main] com.graphhopper.osm_warnings             : Restriction relation 7296120 has disconnected member ways. tags: {restriction=no_u_turn, type=restriction}, members: [from way 420809439, via way 1319857417, to way 496982371]. Relation ignored.
+2026-11-02T03:46:49.267+01:00  WARN 212843 --- [wastems-backend] [           main] com.graphhopper.osm_warnings             : Restriction relation 13327499 has disconnected member ways. tags: {restriction=no_u_turn, type=restriction}, members: [from way 46116183, via way 496990645, to way 25562074]. Relation ignored.
+2026-11-02T03:46:49.268+01:00  WARN 212843 --- [wastems-backend] [           main] com.graphhopper.osm_warnings             : Restriction relation 13969589 has to-member ways that aren't split at the via-member node. tags: {restriction=only_right_turn, type=restriction}, members: [from way 249664807, via node 4379966340, to way 440268560]. Relation ignored.
+2026-11-02T03:46:49.269+01:00  WARN 212843 --- [wastems-backend] [           main] com.graphhopper.osm_warnings             : Restriction relation 13969590 has from-member ways that aren't split at the via-member node. tags: {restriction=only_straight_on, type=restriction}, members: [from way 440268560, via node 4379966340, to way 249664807]. Relation ignored.
+2026-11-02T03:46:49.271+01:00  WARN 212843 --- [wastems-backend] [           main] com.graphhopper.osm_warnings             : Restriction relation 18748032 has no member with role 'from'. tags: {restriction=no_u_turn, type=restriction}, members: [via way 5670896, to way 420809420]. Relation ignored.
+2026-11-02T03:46:49.280+01:00  WARN 212843 --- [wastems-backend] [           main] com.graphhopper.osm_warnings             : Restriction relation 7303612 has an 'except', but no 'restriction' or 'restriction:conditional' tag. tags: {restriction:hgv=no_left_turn, except=delivery, type=restriction}, members: [from way 451905565, via node 42430247, to way 497746842]. Relation ignored.
+2026-11-02T03:46:49.282+01:00  WARN 212843 --- [wastems-backend] [           main] com.graphhopper.osm_warnings             : Restriction relation 12359242 has an 'except', but no 'restriction' or 'restriction:conditional' tag. tags: {restriction:hgv=no_straight_on, except=delivery, type=restriction}, members: [via node 42430247, from way 420522444, to way 497746842]. Relation ignored.
+2026-11-02T03:46:50.211+01:00  INFO 212843 --- [wastems-backend] [           main] c.a.w.routing.GraphHopperRoadRouter      : Road graph osm-mn01-e1f2fabaa937 ready: 3411 nodes, 4467 edges
+2026-11-02T03:48:24.234+01:00  INFO 212843 --- [wastems-backend] [           main] c.a.w.config.ExperimentCommandRunner     : Experiment batch db69d12c-1c6e-401d-82f0-7842821e8c7a COMPLETED: runs 180, completed 180, routing failed 0, 96.5 s; output /home/anas/Desktop/project-ase/metrics/experiment
+2026-11-02T03:48:24.237+01:00  INFO 212843 --- [wastems-backend] [           main] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-11-02T03:48:24.244+01:00  INFO 212843 --- [wastems-backend] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2026-11-02T03:48:24.249+01:00  INFO 212843 --- [wastems-backend] [           main] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-11-02T03:48:24.250+01:00  INFO 212843 --- [wastems-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-11-02T03:48:24.296+01:00  INFO 212843 --- [wastems-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.

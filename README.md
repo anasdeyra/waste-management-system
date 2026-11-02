@@ -8,37 +8,25 @@ Lower Manhattan (MN01)**, with interactive maps for planning, execution, and com
 
 This repository is being developed as the deliverable of the Advanced Software Engineering
 course project. Its intended final contents are the problem analysis, literature review, UML
-models, prototype, Scrum artifacts, and software metrics; the status table below distinguishes
-completed artifacts from planned work.
+models, prototype, Scrum artifacts, and software metrics; the status table in §6 lists where
+each part lives.
 
-> **Current state: Sprint S8 delivered.** Session authentication with CSRF protection, the
-> ADMIN / PLANNER / AGENT roles, user administration, waste categories, collection points with
-> demand entries on a Leaflet/OpenStreetMap map (S2), and (S3) vehicles and operational agents
-> with availability, the ADMIN-only agent to AGENT-account link, and the idempotent import of
-> the included MN01 snapshots (449 baskets, of which 238 `DSNY ` types are
-> optimization-eligible, plus the MN01G depot) with snapshot identifiers are implemented
-> (backend API and React UI). **Tour drafts (S4):** planning date + depot, map/list stop
-> selection in an explicit input order, vehicle + driver + up to two collectors, live capacity
-> and structural validation. The map shows the input order as straight dashed lines, not a road
-> route. **Directed routing and three-method evaluation (S5):** embedded GraphHopper 11.1 on the
-> versioned OSM snapshot `osm-mn01-e1f2fabaa937`; `POST /api/tours/{id}/evaluations` runs input
-> order, nearest neighbor and NN + 2-opt on the frozen draft and retains the run (orders, road
-> legs, distance, duration, execution time, checks, snapshot IDs). **Review and planning
-> gate (S6):** the tour planner page compares the three road routes on a map and in an
-> indicator table. The planner accepts the NN + 2-opt proposal or keeps the input order, which
-> is refused when stale, and confirms a fully revalidated draft as `PLANNED`, which locks its
-> structure.
-> **Execution and demonstration (S7):** an assigned agent sees only their own planned,
-> in-progress and completed tours, starts a planned tour after a revalidation (availability,
-> active points, current route), records each stop as collected (quantities by category) or not
-> collected (reason), and completes the tour once every stop is resolved. A `dev` start loads a
-> reproducible MN01 demonstration (see §4.6). The real MN01 source extracts are under
-> `backend/src/main/resources/data/`.
->
-> **Corrections, history and audit (S8):** planners cancel a draft, planned or in-progress tour with
-> a reason, correct a recorded stop outcome (the previous values are kept), and search the history
-> of completed and cancelled tours. Administrators search an append-only audit log of sign-ins
-> and data changes (`/admin/audit`).
+> **Current state: all ten sprints (S1–S10) delivered.** The prototype covers session authentication
+> with CSRF protection and the ADMIN / PLANNER / AGENT roles, user administration, waste categories,
+> collection points with demand on a Leaflet/OpenStreetMap map, vehicles, agents and account links,
+> and the idempotent import of the included MN01 snapshots (449 baskets, of which 238 `DSNY ` types
+> are optimization-eligible, plus the MN01G depot). Tours are drafted on the map, evaluated on a
+> directed road network (embedded GraphHopper 11.1, snapshot `osm-mn01-e1f2fabaa937`) by three
+> methods (input order, nearest neighbor, NN + 2-opt), reviewed and confirmed by the planner,
+> executed by the assigned crew, corrected, searched in a history and audited. A `dev` start loads a
+> reproducible MN01 demonstration (§4.6). Dashboards, an evaluation explorer with CSV import and
+> export, a seeded experiment runner and a display-only NYC DOT traffic layer complete the product
+> (S9). **S10** adds the measurements and the presentation: the code metrics and the 60-scenario
+> campaign are in [`docs/06-metrics.md`](docs/06-metrics.md) with the committed data in
+> [`docs/results/`](docs/results/), requirements are traced to code and tests in
+> [`docs/traceability.md`](docs/traceability.md), and the HTML deck is
+> [`presentation/index.html`](presentation/index.html) (open it in a browser). The real MN01 source
+> extracts are under `backend/src/main/resources/data/`.
 
 The real-city sources, included snapshots, map interactions, routing rules, and attribution
 are documented in [`docs/geospatial-data.md`](docs/geospatial-data.md). Traffic is a timestamped
@@ -108,10 +96,13 @@ project-ase/
 │   ├── 02-literature-review.md
 │   ├── 03-uml/                # Part 3 — UML models (Mermaid)
 │   ├── 05-scrum.md            # Part 5 — Scrum artifacts
-│   └── 06-metrics.md          # Part 6 — software metrology
-├── tools/                     # toolchain installer, metric scripts, fetch-road-snapshot.sh,
-│                              # fetch-traffic-snapshot.py, run-experiment.sh
-└── presentation/              # final deck
+│   ├── 06-metrics.md          # Part 6 — software metrology and the research answer
+│   ├── traceability.md        # FR -> user story -> use case -> code -> test
+│   └── results/               # committed measured data: experiment/, experiment-stats/, metrics/
+├── tools/                     # toolchain installer, metrics.sh, experiment-stats.py, run-experiment.sh,
+│                              # capture-screenshots.mjs (optional), fetch-road-snapshot.sh,
+│                              # fetch-traffic-snapshot.py, PMD and oxlint configuration
+└── presentation/              # final HTML deck (index.html) and its assets
 ```
 
 ## 3. Prerequisites
@@ -406,25 +397,43 @@ and the log (`Demo load warning:`).
 ### 4.7 Evaluation experiment (for Part 6)
 
 ```bash
+# the fixed 60 scenarios once (about 1-2 minutes)
 bash tools/run-experiment.sh metrics/experiment
+
+# the campaign of docs/06-metrics.md: 3 repetitions = 180 runs = 540 rows, then the statistics
+bash tools/run-experiment.sh metrics/experiment --wastems.experiment.repetitions=3 \
+     --wastems.experiment.label="S10 canonical campaign"
+mkdir -p docs/results/experiment
+cp metrics/experiment/{results.csv,scenarios.csv,batch.json,run-info.txt,run.log} docs/results/experiment/
+python3 tools/experiment-stats.py docs/results/experiment docs/results/experiment-stats
 ```
 
-Runs the fixed 60 scenarios (3 demand profiles x seeds 1-5 x 10, 25, 50, 100 real MN01 baskets) once,
-in about 1-2 minutes, headless on its own database and a random port (never 8080). It writes
-`results.csv`, `scenarios.csv`, `batch.json`, `run-info.txt` and `run.log` into the output
-directory, which must be new or empty (`metrics/` is git-ignored). Add
-`--wastems.experiment.repetitions=3` for execution-time medians. Columns, formats and the generator
-are documented in [`docs/evaluation-csv.md`](docs/evaluation-csv.md).
+Runs the fixed 60 scenarios (3 demand profiles x seeds 1-5 x 10, 25, 50, 100 real MN01 baskets),
+headless on its own database and a random port (never 8080). It writes `results.csv`,
+`scenarios.csv`, `batch.json`, `run-info.txt` and `run.log` into the output directory, which must be
+new or empty (`metrics/` is git-ignored; the `db/` and `routing-cache/` it also writes are never
+committed). `tools/experiment-stats.py` checks the campaign and writes the statistics, tables and
+chart. The committed results of the S10 campaign are in [`docs/results/`](docs/results/); columns,
+formats and the generator are documented in [`docs/evaluation-csv.md`](docs/evaluation-csv.md).
 
-## 5. Tests and metrics
+## 5. Tests, metrics and the presentation
 
 ```bash
 cd backend && ./mvnw test                  # unit and integration tests
-bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
+cd frontend && npm run build && npm run lint
+bash tools/metrics.sh [--publish]          # LOC, CKJM, PMD, JDepend, oxlint (Part 6)
 ```
 
-`tools/metrics.sh` writes the raw reports to `metrics/`. Every number quoted in
-`docs/06-metrics.md` must come from that script so the results stay reproducible.
+`tools/metrics.sh` writes the raw reports and their summaries to `metrics/` (`loc*.txt`,
+`ckjm.txt`, `pmd.xml`, `pmd-cc-all.xml`, `jdepend-report.xml`, `ts-complexity.txt` and the
+`*-summary.txt` files); `--publish` also copies the summaries to `docs/results/metrics/`. Every number
+quoted in `docs/06-metrics.md` comes from those files or from the experiment statistics.
+
+Open `presentation/index.html` in a browser for the deck (arrow keys, Home / End, `#n` in the URL;
+add `?print` for a printable version). The screenshots in `presentation/assets/` can be regenerated
+with the optional `tools/capture-screenshots.mjs`; it needs a puppeteer installed outside the
+repository (`PUPPETEER_DIR`, for example `npm install --prefix ~/.cache/wastems-shots puppeteer`) and a
+running `dev` backend plus Vite dev server on a scratch database; see the header of the script.
 
 ## 6. Documentation
 
@@ -433,11 +442,14 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
 | 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
 | 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
-| 4 — Prototype | `backend/`, `frontend/` | S1–S9: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, three-method evaluation, review and confirmation, crew execution, MN01 demonstration, cancellation, outcome corrections, operational history, audit log, dashboard, evaluation explorer with CSV import/export, seeded experiment runner, display-only NYC DOT traffic layer |
-| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S9 executed, S10 planned |
-| 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
+| 4 — Prototype | `backend/`, `frontend/` | S1–S10: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, three-method evaluation, review and confirmation, crew execution, MN01 demonstration, cancellation, outcome corrections, operational history, audit log, dashboard, evaluation explorer with CSV import/export, seeded experiment runner, display-only NYC DOT traffic layer |
+| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S10 executed |
+| 6 — Metrology | [`docs/06-metrics.md`](docs/06-metrics.md) | complete (measured) |
+| Presentation | [`presentation/index.html`](presentation/index.html) | HTML deck complete |
+| Measured results | [`docs/results/`](docs/results/) | S10 campaign, statistics and metric summaries |
+| Traceability | [`docs/traceability.md`](docs/traceability.md) | FR to story, use case, code and test |
 | Evaluation CSV and experiment | [`docs/evaluation-csv.md`](docs/evaluation-csv.md) | S9: import, export, seeded generator `mn01-v1`, CLI |
-| Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; point map implemented; routing to do |
+| Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; map, routing and traffic overlay implemented |
 
 ## 7. Conventions
 

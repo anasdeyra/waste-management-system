@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WasteMS — ASE project</title>
+<style>
+:root{--bg:#f3f4f6;--paper:#ffffff;--ink:#111827;--muted:#4b5563;--accent:#15803d;--accent2:#1d4ed8;--line:#d1d5db;--soft:#ecfdf5}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{display:flex;align-items:center;justify-content:center;overflow:hidden}
+.stage{position:relative;width:min(100vw,177.78vh);aspect-ratio:16/9;background:var(--paper);container-type:size;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
+.slide{position:absolute;inset:0;display:none;padding:3.2cqw 4cqw 4.6cqw;font-size:1.6cqw;line-height:1.35;background:var(--paper);color:var(--ink)}
+.slide.active{display:block}
+.slide h1{font-size:4.6cqw;margin:6cqh 0 1.5cqh;line-height:1.1}
+.slide h2{font-size:3cqw;margin:0 0 1.6cqh;color:var(--accent);line-height:1.15}
+.slide p{margin:0 0 1.2cqh}
+.slide ul,.slide ol{margin:0 0 1.2cqh;padding-left:2.2cqw}
+.slide li{margin:0 0 .7cqh}
+.lead{font-size:2cqw;color:var(--muted)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4cqw;align-items:start}
+.cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.6cqw;align-items:start}
+.note{color:var(--muted);font-size:1.3cqw}
+.key{background:var(--soft);border-left:.5cqw solid var(--accent);padding:1.2cqh 1.6cqw;margin:1cqh 0}
+.big{font-size:2.2cqw;font-weight:600}
+table{border-collapse:collapse;font-size:1.35cqw;width:100%}
+th,td{border:1px solid var(--line);padding:.45cqh .7cqw;text-align:left;vertical-align:top}
+th{background:#f9fafb}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+img{display:block;max-width:100%;height:auto}
+img.fit{max-height:72cqh;margin:0 auto}
+img.fit2{max-height:48cqh;margin:0 auto}
+img.shot{max-height:72cqh;margin:0 auto;border:1px solid var(--line)}
+img.shot2{max-height:36cqh;margin:0 auto;border:1px solid var(--line)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;background:#f3f4f6;padding:0 .3em;border-radius:.3em}
+a{color:var(--accent2)}
+.foot{position:absolute;left:4cqw;right:4cqw;bottom:1.3cqh;display:flex;justify-content:space-between;font-size:1.1cqw;color:var(--muted)}
+.bar{position:absolute;left:0;bottom:0;height:.7cqh;background:var(--accent);width:0}
+.cap{font-size:1.2cqw;color:var(--muted);text-align:center;margin-top:.6cqh}
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html,body{height:auto;overflow:visible;background:#fff;display:block}
+  .stage{width:1280px;aspect-ratio:auto;height:auto;overflow:visible;box-shadow:none;container-type:normal}
+  .slide{display:block;position:relative;width:1280px;height:720px;page-break-after:always;font-size:20px;overflow:hidden}
+  .bar{display:none}
+}
+body.print{display:block;overflow:auto;height:auto}
+body.print .stage{width:1280px;height:auto;aspect-ratio:auto;overflow:visible;container-type:normal;box-shadow:none}
+body.print .slide{display:block;position:relative;width:1280px;height:720px;font-size:20px;page-break-after:always;border-bottom:1px solid var(--line)}
+body.print .bar{display:none}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+
+<section class="slide" data-part="title" id="s1">
+<h1>WasteMS — Intelligent Waste Management (NYC MN01)</h1>
+<p class="lead">Advanced Software Engineering course project — individual (D-005)</p>
+<p>Author: anasdeyra</p>
+<p>Java 21 + Spring Boot 3 · React 19 + Vite + TypeScript · Leaflet maps · embedded GraphHopper · H2</p>
+<p class="note">Use ← → (or click the sides of the slide) to navigate; Home / End jump to the first / last slide.</p>
+</section>
+
+<section class="slide" data-part="title" id="s2">
+<h2>Agenda</h2>
+<ol>
+<li>Part 1 — Problem analysis: context, users, requirements, research question</li>
+<li>Part 2 — Literature review</li>
+<li>Part 3 — UML modelling</li>
+<li>Part 4 — Prototype: architecture, maps, tour optimization, execution, demo</li>
+<li>Part 5 — Scrum: backlog, sprints, an AI-agent sprint model, retrospectives</li>
+<li>Part 6 — Metrology: code metrics, experiment, research answer, threats</li>
+<li>Conclusion: limitations and future work</li>
+</ol>
+</section>
+
+<section class="slide" data-part="part1" id="s3">
+<h2>Context and users</h2>
+<div class="cols">
+<div>
+<p>Waste collection coordinates scattered collection points, a limited fleet, available agents and different waste categories. Poorly planned tours waste travel and capacity.</p>
+<p>Case study: <strong>Lower Manhattan, DSNY district MN01</strong>, with real basket coordinates and the real MN01G depot from NYC Open Data. Demand and operations are synthetic and labelled as such.</p>
+<p>Straight-line routes hide one-way streets, so tours follow a directed OpenStreetMap road graph.</p>
+</div>
+<table>
+<tr><th>Role</th><th>What they do</th></tr>
+<tr><td>ADMIN</td><td>Accounts, roles, waste categories, audit log</td></tr>
+<tr><td>PLANNER</td><td>Points, vehicles, agents, tours, optimizer, corrections</td></tr>
+<tr><td>AGENT</td><td>Sees assigned tours, records stop outcomes</td></tr>
+<tr><td>Organization</td><td>Benefits from better resource use</td></tr>
+<tr><td>Course reviewer</td><td>Runs the demo, checks baseline versus optimized</td></tr>
+</table>
+</div>
+</section>
+
+<section class="slide" data-part="part1" id="s4">
+<h2>Requirements: 30 functional, 12 non-functional</h2>
+<div class="cols">
+<table>
+<tr><th>Group</th><th>FRs</th></tr>
+<tr><td>Access and administration</td><td>FR-01 to FR-03</td></tr>
+<tr><td>Collection points</td><td>FR-04 to FR-06</td></tr>
+<tr><td>Vehicles and agents</td><td>FR-07 to FR-10</td></tr>
+<tr><td>Tours and execution</td><td>FR-11 to FR-14</td></tr>
+<tr><td>Intelligent tour optimization</td><td>FR-15 to FR-18</td></tr>
+<tr><td>Impact measurement</td><td>FR-19 to FR-21</td></tr>
+<tr><td>Maps and real-city data</td><td>FR-22 to FR-26</td></tr>
+<tr><td>User administration, support</td><td>FR-27 to FR-30</td></tr>
+</table>
+<ul>
+<li><strong>NFR-01</strong> security: hashed passwords, server-side authorization</li>
+<li><strong>NFR-06</strong> explainability: inputs, order and indicators visible</li>
+<li><strong>NFR-07</strong> fair evaluation: same data and formulas for every method</li>
+<li><strong>NFR-09</strong> reproducibility: commands, snapshots, versions recorded</li>
+<li><strong>NFR-12</strong> provenance: real, imported and synthetic data distinguishable</li>
+</ul>
+</div>
+</section>
+
+<section class="slide" data-part="part1" id="s5">
+<h2>Problem statement and research question</h2>
+<p>Design and implement a coherent, map-centric waste-management prototype for a real Lower Manhattan case study. It must manage collection points, vehicles, agents, tours and waste, compute road-following tours, integrate an intelligent tour-optimization module, and evaluate it reproducibly, without presenting synthetic operations or partial traffic coverage as measured reality.</p>
+<div class="key"><p class="big">To what extent does integrating an intelligent tour-optimization module reduce total road-network travel distance and estimated collection duration compared with a documented baseline, while satisfying the same vehicle-capacity and collection-service constraints?</p></div>
+<p class="note">Supporting measures: execution time, scenario count and size, percentage change against the baseline, constraint violations (must be zero), identical coverage.</p>
+</section>
+
+<section class="slide" data-part="part2" id="s6">
+<h2>Literature review: approach</h2>
+<ul>
+<li>Focused narrative review tied to the research question, 10 peer-reviewed sources (papers, a classic book chapter and domain reviews), with DOIs.</li>
+<li>Four purposes: routing models and optimality limits; nearest-neighbor construction and 2-opt; capacity, service time and duration; waste-collection evaluation practice and reproducibility.</li>
+<li>The model is a directed (asymmetric) TSP sequencing core with a capacity check; it is not a simultaneous multi-vehicle CVRP.</li>
+<li>Sources include Dantzig and Ramser (1959), Clarke and Wright (1964), Croes (1958), Lin (1965) and Rosenkrantz et al. (1977).</li>
+</ul>
+</section>
+
+<section class="slide" data-part="part2" id="s7">
+<h2>What we borrow and what stays open</h2>
+<div class="cols">
+<div>
+<p><strong>Borrowed</strong></p>
+<ul>
+<li>Demand- and capacity-aware routing; identical capacity validation for every method</li>
+<li>Deterministic nearest-neighbor construction, measured separately</li>
+<li>Deterministic 2-opt on top; results labelled heuristic</li>
+<li>Explicit single-vehicle model; excluded real-world constraints are stated</li>
+</ul>
+</div>
+<div>
+<p><strong>Supported after measurement</strong></p>
+<ul>
+<li>NN + 2-opt versus input order on the specified seeded MN01 scenarios, with measured cost</li>
+</ul>
+<p><strong>Unsupported</strong></p>
+<ul>
+<li>Global optimality or state of the art</li>
+<li>Generalization to other cities or real DSNY operations</li>
+<li>Superiority over exact solvers or metaheuristics</li>
+<li>Live-traffic or IoT benefits</li>
+</ul>
+</div>
+</div>
+</section>
+
+<section class="slide" data-part="part3" id="s8">
+<h2>Use cases</h2>
+<img class="fit" src="assets/uml-use-cases.svg" alt="UML use case overview: actors and the grouped use cases of the waste management system">
+<p class="cap">25 use cases traced to 39 stories — docs/03-uml/01-use-cases.md</p>
+</section>
+
+<section class="slide" data-part="part3" id="s9">
+<h2>Operational class model and OCL</h2>
+<div class="cols" style="grid-template-columns:2fr 1fr">
+<img class="fit" src="assets/uml-class.svg" alt="UML class diagram of the operational domain: points, vehicles, agents, tours, stops, demand and outcomes">
+<div>
+<p><strong>OCL constraint</strong> (docs/03-uml/02-class-diagram.md §4)</p>
+<pre style="font-size:1.3cqw;white-space:pre-wrap;background:#f3f4f6;padding:1cqh 1cqw;margin:0">context DemandEntry
+inv PositiveDemand:
+  quantityKg &gt; 0</pre>
+<p class="note">Further invariants cover coordinates, crew and capacity, stop order and lifecycle operations.</p>
+</div>
+</div>
+</section>
+
+<section class="slide" data-part="part3" id="s10">
+<h2>Optimization sequence and tour lifecycle</h2>
+<div class="cols">
+<div><img class="fit" src="assets/uml-sequence.svg" alt="UML sequence diagram of the directed three-method evaluation and the planner decision"><p class="cap">Three-method evaluation and explicit acceptance</p></div>
+<div><img class="fit" src="assets/uml-activity.svg" alt="UML activity diagram of the tour lifecycle from draft to completion or cancellation"><p class="cap">Tour lifecycle: draft, planned, in progress, terminal</p></div>
+</div>
+</section>
+
+<section class="slide" data-part="part4" id="s11">
+<h2>Architecture</h2>
+<div class="cols" style="grid-template-columns:2.3fr 1fr">
+<img class="fit" src="assets/architecture.svg" alt="Architecture diagram: React single-page app, Vite proxy, Spring Boot packages, data sources and tools">
+<ul>
+<li><strong>Layers:</strong> web, service, domain, repository, with DTOs as Java records.</li>
+<li><strong>Embedded GraphHopper:</strong> routing runs in-process on a versioned OSM extract.</li>
+<li><strong>Isolated <code>optimization/</code>:</strong> pure Java, depends on <code>java.*</code> only.</li>
+</ul>
+</div>
+</section>
+
+<section class="slide" data-part="part4" id="s12">
+<h2>Technology stack and data</h2>
+<div class="cols">
+<ul>
+<li>Backend: Java 21, Spring Boot 3, Spring Security (session and CSRF), JPA, H2 file database, Maven</li>
+<li>Frontend: React 19, Vite, TypeScript strict, Tailwind v4, shadcn/ui, TanStack Query, React Leaflet</li>
+<li>Routing: GraphHopper 11.1 embedded, car profile, versioned OSM snapshot <code>osm-mn01-e1f2fabaa937</code></li>
+<li>Traffic: NYC DOT speeds as a timestamped display-only overlay</li>
+</ul>
+<table>
+<tr><th>Real</th><th>Synthetic</th></tr>
+<tr><td>449 MN01 basket locations and the MN01G garage, with source ids</td><td>Demand quantities, extra categories, demo vehicles, agents and accounts, demo tours and outcomes</td></tr>
+</table>
+</div>
+<p class="note">Attribution: NYC Open Data (DSNY, NYC DOT) and © OpenStreetMap contributors stay visible in the UI.</p>
+</section>
+
+<section class="slide" data-part="part4" id="s13">
+<h2>Collection points on the real map</h2>
+<img class="shot" src="assets/02-collection-points-map.png" alt="Screenshot: collection points list and Leaflet map of Lower Manhattan with basket markers">
+<p class="cap">Real DSNY baskets on an OpenStreetMap basemap; list and map stay synchronized</p>
+</section>
+
+<section class="slide" data-part="part4" id="s14">
+<h2>Three-method route evaluation</h2>
+<div class="cols" style="grid-template-columns:1.6fr 1fr">
+<img class="shot" src="assets/03-tour-route-evaluation.png" alt="Screenshot: route evaluation card comparing input order, nearest neighbor and NN plus 2-opt on a map">
+<div>
+<p>Demo draft tour of 8 baskets, directed road distance:</p>
+<ul>
+<li>Input order: 11.74 km</li>
+<li>Nearest neighbor: 10.21 km</li>
+<li>NN + 2-opt: 7.47 km</li>
+</ul>
+<p>The planner compares the routes and accepts the proposal or keeps the input order; nothing changes silently.</p>
+</div>
+</div>
+</section>
+
+<section class="slide" data-part="part4" id="s15">
+<h2>Crew execution</h2>
+<div class="cols" style="grid-template-columns:1fr 1fr">
+<img class="shot" src="assets/05-agent-tour-in-progress.png" alt="Screenshot: agent view of an in-progress tour with the route map and stop outcomes">
+<ul>
+<li>Agents see only their assigned tours (driver or collector).</li>
+<li>The map colours stops by state: pending, collected, not collected.</li>
+<li>Outcomes carry quantities per waste category and an incident reason.</li>
+<li>Planners can correct outcomes afterwards; the previous values stay visible and audited.</li>
+</ul>
+</div>
+</section>
+
+<section class="slide" data-part="part4" id="s16">
+<h2>Dashboard, evaluations, audit</h2>
+<div class="cols3">
+<div><img class="shot2" src="assets/06-dashboard.png" alt="Screenshot: operations dashboard with resources, tours by status and stop progress"><p class="cap">Operations dashboard</p></div>
+<div><img class="shot2" src="assets/07-evaluation-batch.png" alt="Screenshot: evaluation explorer with an experiment batch and its reproducibility details"><p class="cap">Evaluation explorer</p></div>
+<div><img class="shot2" src="assets/10-audit-log.png" alt="Screenshot: audit log with filters and recorded events"><p class="cap">Audit log</p></div>
+</div>
+<p>Also implemented: CSV import and export of evaluation data, the seeded experiment runner and the display-only NYC DOT traffic layer.</p>
+</section>
+
+<section class="slide" data-part="part4" id="s17">
+<h2>Demo script</h2>
+<p class="note">Start: <code>cd backend &amp;&amp; ./mvnw spring-boot:run</code> and <code>cd frontend &amp;&amp; npm run dev</code>; accounts <code>planner</code>, <code>agent</code>, <code>admin</code> (README §4.6).</p>
+<ol style="font-size:1.45cqw">
+<li>Sign in as <code>planner</code>, open Tours: four demo tours, one per state.</li>
+<li>Open the draft, Route evaluation: compare the three routes, accept the NN + 2-opt proposal, confirm as planned.</li>
+<li>Open the in-progress tour: stops coloured by state, execution progress.</li>
+<li>Sign in as <code>agent</code>: My tours; open the planned tour, start it, record outcomes, complete it.</li>
+<li>As <code>planner</code>, correct a not-collected stop; cancel a planned tour with a reason.</li>
+<li>Open History and filter by status; open the Dashboard and follow a count to the filtered list.</li>
+<li>As <code>admin</code>, open the Audit log and filter by action.</li>
+<li>As <code>admin</code>, run an experiment in Evaluations, export the CSV, import the scenarios again.</li>
+<li>Switch on the NYC DOT traffic layer: display only, routes do not change.</li>
+</ol>
+</section>
+
+<section class="slide" data-part="part5" id="s18">
+<h2>Product Backlog</h2>
+<div class="cols">
+<div>
+<p>39 user stories in 8 epics, prioritised with acceptance criteria and traceability to requirements.</p>
+<table>
+<tr><th>Priority</th><th class="n">Stories</th></tr>
+<tr><td>P0</td><td class="n">13</td></tr>
+<tr><td>P1</td><td class="n">17</td></tr>
+<tr><td>P2</td><td class="n">9</td></tr>
+</table>
+</div>
+<div class="key">
+<p><strong>US-23 — Compare route geometry and indicators (P1)</strong></p>
+<p>As a planner, I want to compare baseline, nearest-neighbor and optimized routes and indicators so that I can understand where the measured improvement comes from.</p>
+<ul>
+<li>Distinct map layers for ordered stops and road geometry</li>
+<li>Synchronized table: order, distance, duration, execution time, checks</li>
+<li>Changes computed on the same scenario with the same formulas</li>
+<li>Attribution visible; traffic is not an optimizer cost</li>
+</ul>
+</div>
+</div>
+</section>
+
+<section class="slide" data-part="part5" id="s19">
+<h2>Sprints S1 to S10</h2>
+<table style="font-size:1.25cqw">
+<tr><th>Sprint</th><th>Theme</th><th>Stories</th></tr>
+<tr><td>S1</td><td>Secure foundation: identities, roles, waste categories</td><td>US-01 to US-07</td></tr>
+<tr><td>S2</td><td>Collection points and demand on the real map</td><td>US-08 to US-12</td></tr>
+<tr><td>S3</td><td>Fleet, crew and MN01 import groundwork</td><td>US-13 to US-17, US-33 groundwork</td></tr>
+<tr><td>S4</td><td>Tour drafts: stops, order, crew, capacity</td><td>US-18 to US-20</td></tr>
+<tr><td>S5</td><td>Directed routing and the three-method optimizer</td><td>US-21, US-22</td></tr>
+<tr><td>S6</td><td>Optimization review, comparison, planning gate</td><td>US-23 to US-25</td></tr>
+<tr><td>S7</td><td>Agent execution loop and the complete MN01 demo</td><td>US-26 to US-29, US-33</td></tr>
+<tr><td>S8</td><td>Corrections, history and auditability</td><td>US-30 to US-32, US-39</td></tr>
+<tr><td>S9</td><td>Dashboards, evaluation explorer, CSV, traffic overlay</td><td>US-34 to US-38</td></tr>
+<tr><td>S10</td><td>Metrics campaign and project closure</td><td>Part 6, presentation</td></tr>
+</table>
+</section>
+
+<section class="slide" data-part="part5" id="s20">
+<h2>Sprint model for an AI agent</h2>
+<ul>
+<li><strong>Planner, executor, independent done-check</strong> (D-035): a planner refines the sprint, an executor implements it, and a separate scripted done-check verifies it.</li>
+<li><strong>One conventional commit per task and one branch per sprint</strong> (D-036), merged only after the done-check passes.</li>
+<li><strong>No calendar dates</strong> (D-006): sprints are ordered work packages, not time boxes.</li>
+<li>Every sprint ends with a review against a demo script and a retrospective with concrete process changes.</li>
+<li>Known deviation: the frontend was verified by build, lint and HTTP checks, not by a browser walkthrough (D-040).</li>
+</ul>
+</section>
+
+<section class="slide" data-part="part5" id="s21">
+<h2>Reviews and retrospectives: highlights</h2>
+<ul style="font-size:1.5cqw">
+<li><strong>S1:</strong> foreign dev servers occupied the default ports, so every sprint now uses spare ports and a scratch database.</li>
+<li><strong>S5:</strong> three done-check assertions were wrong, not the code; corrections are kept next to the original script and logged.</li>
+<li><strong>S6:</strong> rendering every diagram right after editing caught a real Mermaid error; assertions are counted from script output.</li>
+<li><strong>S7:</strong> a rollback-only transaction trap was avoided by checking before calling services inside a transaction.</li>
+<li><strong>S9:</strong> Hibernate itself converted the ENUM columns, contradicting the plan; determinism was proven by an independent re-implementation and a round-trip.</li>
+<li><strong>S10:</strong> JDepend silently skipped most Java 21 classes; the tool now fails loudly instead.</li>
+</ul>
+</section>
+
+<section class="slide" data-part="part6" id="s22">
+<h2>Code metrics</h2>
+<div class="cols" style="font-size:1.25em">
+<table>
+<tr><th>Metric</th><th class="n">Value</th></tr>
+<tr><td>Java main SLOC (239 files)</td><td class="n">11251</td></tr>
+<tr><td>Java test SLOC (70 files)</td><td class="n">10172</td></tr>
+<tr><td>TypeScript own SLOC (93 files)</td><td class="n">9308</td></tr>
+<tr><td>Class files / methods</td><td class="n">273 / 2432</td></tr>
+<tr><td>Cyclomatic complexity, mean / max</td><td class="n">2.18 / 39</td></tr>
+<tr><td>Methods with complexity of 10 or more</td><td class="n">33 of 897</td></tr>
+<tr><td>Mean CBO</td><td class="n">9.14</td></tr>
+<tr><td>PMD violations</td><td class="n">133</td></tr>
+</table>
+<div>
+<table>
+<tr><th>DIT</th><th class="n">1</th><th class="n">2</th><th class="n">3</th><th class="n">4</th><th class="n">5</th><th class="n">6</th></tr>
+<tr><td>Classes</td><td class="n">112</td><td class="n">147</td><td class="n">1</td><td class="n">9</td><td class="n">1</td><td class="n">3</td></tr>
+</table>
+<p class="note">Flat hierarchy: composition over inheritance; records have DIT 2. Vendored shadcn/ui excluded. Source: docs/results/metrics, command <code>bash tools/metrics.sh</code>.</p>
+</div>
+</div>
+</section>
+
+<section class="slide" data-part="part6" id="s23">
+<h2>Hot spots and coupling</h2>
+<ul style="font-size:1.5cqw">
+<li>Highest complexity: <code>ScenarioCsvImportService.checkRow</code> (39), <code>TourStop.correctOutcome</code> (33), <code>ExperimentSpec.of</code> (32), <code>DemoDataService.advance</code> (29).</li>
+<li>Classes in several top lists: <code>TourService</code>, <code>Tour</code>, <code>ScenarioCsvImportService</code>, <code>DemoDataService</code>, <code>TrafficSnapshotParser</code> — the candidates for splitting.</li>
+<li><code>optimization/</code> depends on <code>java.*</code> only (Ce internal 0), enforced by a test.</li>
+<li>JDepend finds one package cycle through <code>config/</code> (config, security, service, traffic, web.dto), caused by <code>*Properties</code> classes living beside the start-up runners. Future work.</li>
+<li>Highest CBO: <code>DemoDataService</code> (67), <code>SecurityConfig</code> (55), <code>TourService</code> (53).</li>
+</ul>
+</section>
+
+<section class="slide" data-part="part6" id="s24">
+<h2>Experiment design</h2>
+<ul>
+<li><strong>60 scenarios</strong> = 3 demand profiles x 5 seeds x 4 sizes (10, 25, 50, 100 points), <strong>3 repetitions</strong>, 3 methods: 540 rows.</li>
+<li>Real DSNY baskets from the MN01 snapshot (238-basket pool) with synthetic demand; real MN01G depot; capacity 10 000 kg; 600 s service per stop.</li>
+<li>Road graph <code>osm-mn01-e1f2fabaa937</code>, GraphHopper 11.1, directed legs.</li>
+<li>Baseline: input order (a random shuffle). Indicators: directed road distance and duration (travel time plus service).</li>
+</ul>
+<div class="key"><p>Capacity never binds, so the three profiles give identical routes: the 60 scenarios are only <strong>20 distinct routing instances</strong>. Paired statistics use n = 20, not 60.</p></div>
+</section>
+
+<section class="slide" data-part="part6" id="s25">
+<h2>Results</h2>
+<div class="cols">
+<div><img class="fit2" src="assets/distance-change-by-size.svg" alt="Bar chart of the mean distance change versus input order for NN and NN plus 2-opt at 10, 25, 50 and 100 points"></div>
+<table>
+<tr><th>Points</th><th class="n">NN (%)</th><th class="n">NN + 2-opt (%)</th></tr>
+<tr><td>10</td><td class="n">-37.78</td><td class="n">-43.89</td></tr>
+<tr><td>25</td><td class="n">-49.04</td><td class="n">-53.00</td></tr>
+<tr><td>50</td><td class="n">-66.20</td><td class="n">-67.72</td></tr>
+<tr><td>100</td><td class="n">-75.78</td><td class="n">-76.10</td></tr>
+<tr><td>all</td><td class="n">-57.20</td><td class="n">-60.18</td></tr>
+</table>
+</div>
+<p class="note">Mean directed distance change versus input order, 60 scenarios, repetition 1. Source: docs/results/experiment-stats/summary.md.</p>
+</section>
+
+<section class="slide" data-part="part6" id="s26">
+<h2>Key finding: the research question answered</h2>
+<div class="key">
+<p class="big">NN + 2-opt reduced the directed road distance by -60.18 % on average against the input order and the estimated duration by -10.88 %, with full coverage and no capacity violation.</p>
+</div>
+<ul>
+<li>NN alone already gives -57.20 %; 2-opt adds a further -5.58 % against NN, improving 17 of 20 instances and never worse (exact Wilcoxon p = 1.53e-05); against the input order p = 1.91e-06.</li>
+<li>Duration changes less because 600 s of service per stop is identical for every method.</li>
+<li>Execution time of the sequencing step: median 0.021 ms, maximum 1.989 ms (the road matrix is not in this timer).</li>
+</ul>
+<p class="note">Bounded claim: seeded MN01 scenarios only; no optimality or generalization claim (docs/06-metrics.md §6).</p>
+</section>
+
+<section class="slide" data-part="part6" id="s27">
+<h2>Threats to validity</h2>
+<ul style="font-size:1.5cqw">
+<li><strong>Weak baseline:</strong> the input order is a random shuffle, not a real DSNY sequence, so gains over it are overstated.</li>
+<li><strong>Objective versus legs:</strong> the optimizer minimizes distance while GraphHopper legs follow fastest paths; the <code>car</code> profile stands in for a truck.</li>
+<li><strong>Collapsed profiles:</strong> capacity never binds, so 60 scenarios are 20 distinct instances, and sizes are nested.</li>
+<li><strong>Synthetic demand, one district</strong> (MN01), one depot, one vehicle, no time windows.</li>
+<li><strong>Traffic is not in the costs;</strong> durations are base travel time plus service.</li>
+<li><strong>Execution time covers sequencing only,</strong> not the road matrix; the first repetition shows JIT warm-up.</li>
+</ul>
+</section>
+
+<section class="slide" data-part="closing" id="s28">
+<h2>Limitations and future work</h2>
+<div class="cols">
+<div>
+<p><strong>Limitations</strong></p>
+<ul>
+<li>Single vehicle per tour, no reload, no time windows</li>
+<li>Traffic is display only; no GPS or IoT, no live rerouting</li>
+<li>Frontend verified by build, lint and HTTP checks, no browser tests (D-040)</li>
+<li>Synthetic demand and operations</li>
+</ul>
+</div>
+<div>
+<p><strong>Future work</strong></p>
+<ul>
+<li>Or-opt, 3-opt or a metaheuristic; an exact solver for the optimality gap</li>
+<li>Multi-vehicle CVRP, truck profile, time windows</li>
+<li>Realistic baseline and capacity-binding demand</li>
+<li>Traffic-aware costs as a separate experiment</li>
+<li>Break the package cycle; split <code>TourService</code> and <code>ScenarioCsvImportService</code></li>
+</ul>
+</div>
+</div>
+</section>
+
+<section class="slide" data-part="closing" id="s29">
+<h2>Questions</h2>
+<ul>
+<li><code>README.md</code> — setup, run, demo walkthrough</li>
+<li><code>docs/</code> — analysis, literature review, UML, Scrum, decisions, traceability</li>
+<li><code>docs/06-metrics.md</code> — metrics, experiment and research answer</li>
+<li><code>docs/results/</code> — committed measured data (campaign, statistics, metric summaries)</li>
+<li><code>presentation/</code> — this deck and its assets</li>
+</ul>
+<p class="note">Data: NYC Open Data (DSNY, NYC DOT). Map data © OpenStreetMap contributors.</p>
+</section>
+
+<div class="bar" id="bar"></div>
+</main>
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
+  var total = slides.length;
+  var names = {title: 'WasteMS', part1: 'Part 1 · Problem analysis', part2: 'Part 2 · Literature review',
+    part3: 'Part 3 · UML', part4: 'Part 4 · Prototype', part5: 'Part 5 · Scrum', part6: 'Part 6 · Metrology',
+    closing: 'Conclusion'};
+  slides.forEach(function (s, i) {
+    var f = document.createElement('div');
+    f.className = 'foot';
+    f.innerHTML = '<span>' + names[s.getAttribute('data-part')] + '</span><span>' + (i + 1) + ' / ' + total + '</span>';
+    s.appendChild(f);
+  });
+  var bar = document.getElementById('bar');
+  var current = 0;
+  function show(n, store) {
+    current = Math.max(0, Math.min(total - 1, n));
+    slides.forEach(function (s, i) { s.classList.toggle('active', i === current); });
+    bar.style.width = (100 * (current + 1) / total) + '%';
+    if (store !== false) {
+      try { history.replaceState(null, '', '#' + (current + 1)); } catch (e) { /* file:// restrictions */ }
+    }
+  }
+  function fromHash() {
+    var n = parseInt(location.hash.replace('#', ''), 10);
+    show(isNaN(n) ? 0 : n - 1, false);
+  }
+  if (/[?&]print\b/.test(location.search)) { document.body.className = 'print'; }
+  window.addEventListener('hashchange', fromHash);
+  window.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'n') { show(current + 1); e.preventDefault(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'p') { show(current - 1); e.preventDefault(); }
+    else if (k === 'Home') { show(0); e.preventDefault(); }
+    else if (k === 'End') { show(total - 1); e.preventDefault(); }
+  });
+  document.getElementById('stage').addEventListener('click', function (e) {
+    if (e.target.closest('a')) { return; }
+    var r = this.getBoundingClientRect();
+    var x = (e.clientX - r.left) / r.width;
+    if (x > 2 / 3) { show(current + 1); } else if (x < 1 / 3) { show(current - 1); }
+  });
+  fromHash();
+})();
+</script>
+</body>
+</html>

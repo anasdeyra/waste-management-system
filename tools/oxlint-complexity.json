@@ -1,0 +1,6 @@
+{
+  "$schema": "../frontend/node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": { "correctness": "off" },
+  "rules": { "eslint/complexity": ["warn", { "max": 0 }] }
+}

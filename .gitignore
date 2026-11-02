@@ -42,3 +42,7 @@ coverage/
 
 # Part 6 metric reports (regenerate with `bash tools/metrics.sh`)
 metrics/
+
+# Committed Part 6 results (docs/results/) keep their run logs
+!docs/results/**/*.log
+!docs/results/metrics/

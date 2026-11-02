@@ -1,0 +1,14 @@
+PASS row count = scenarios x repetitions x 3 methods: 540 rows = 60 x 3 x 3
+PASS scenario grid = 3 profiles x 5 seeds x 4 sizes: 3 profiles, 5 seeds, sizes [10, 25, 50, 100], 60 scenarios
+PASS one row per scenario, repetition and method
+PASS every method present in every run
+PASS every run_status is COMPLETED
+PASS every run is feasible, covers every stop and respects the capacity
+PASS one road graph version: osm-mn01-e1f2fabaa937
+PASS stored distance_change_pct recalculates from distance_m
+PASS stored duration_change_pct recalculates from duration_s
+PASS duration_s = travel_time_s + service_time_total_s
+PASS total demand <= vehicle capacity in every row
+PASS deterministic across repetitions (distance, duration, visit order)
+INFO profile_invariant: true
+INFO paired basis: 20 instances (profile UNIFORM_LOW, repetition 1)

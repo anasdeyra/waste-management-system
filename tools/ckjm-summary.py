@@ -73,6 +73,22 @@ def package_of(class_name: str) -> str:
     return ".".join(parts[:-1]) if len(parts) > 1 else class_name
 
 
+def short(name: str) -> str:
+    """Class name without the ``com.ase.wastems.`` prefix."""
+    return name.removeprefix("com.ase.wastems.")
+
+
+def short_package(name: str) -> str:
+    return "(root)" if name == "com.ase.wastems" else short(name)
+
+
+def median(values: list[float]) -> float:
+    ordered = sorted(values)
+    n = len(ordered)
+    mid = n // 2
+    return float(ordered[mid]) if n % 2 else (ordered[mid - 1] + ordered[mid]) / 2
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", help="path to the raw CKJM report")
@@ -84,34 +100,54 @@ def main() -> int:
         print("No class found in the report.", file=sys.stderr)
         return 1
 
+    nested = [r for r in classes if "$" in r["class"]]
+    print("## Totals")
+    print(f"class files: {len(classes)}")
+    print(f"top-level classes: {len(classes) - len(nested)}")
+    print(f"nested classes: {len(nested)}")
+    print(f"methods (sum of WMC): {sum(r['WMC'] for r in classes)}")
+    for column in CORE:
+        values = [r[column] for r in classes]
+        top = max(classes, key=lambda r: (r[column], r["class"]))
+        print(
+            f"{column}: mean {sum(values) / len(values):.2f}, median {median(values):.2f}, "
+            f"max {max(values)} ({short(top['class'])})"
+        )
+
+    print()
+    print("## DIT distribution")
+    for value in sorted({r["DIT"] for r in classes}):
+        print(f"DIT={value}: {sum(1 for r in classes if r['DIT'] == value)}")
+
     packages: dict[str, list[dict]] = defaultdict(list)
     for record in classes:
         packages[package_of(record["class"])].append(record)
 
-    print("Per-package aggregates (mean per class):")
-    header = f"{'package':<52}" + "".join(f"{c:>9}" for c in CORE)
+    print()
+    print("## Per package (mean per class)")
+    header = f"{'package':<18}{'classes':>8}" + "".join(f"{c:>9}" for c in CORE)
     print(header)
     print("-" * len(header))
-    for package in sorted(packages):
+    for package in sorted(packages, key=short_package):
         records = packages[package]
-        row = f"{package:<52}"
+        row = f"{short_package(package):<18}{len(records):>8}"
         for column in CORE:
             mean = sum(r[column] for r in records) / len(records)
             row += f"{mean:>9.2f}"
         print(row)
 
-    print()
-    print(f"Total classes analysed: {len(classes)}")
-    print()
-    print(f"Top {args.top} classes by WMC (weighted method per class):")
-    print(f"{'class':<62}{'WMC':>6}{'DIT':>5}{'NOC':>5}{'CBO':>5}{'RFC':>5}{'LCOM':>6}")
-    print("-" * 94)
-    for record in sorted(classes, key=lambda r: r["WMC"], reverse=True)[: args.top]:
-        print(
-            f"{record['class']:<62}{record['WMC']:>6}{record['DIT']:>5}"
-            f"{record['NOC']:>5}{record['CBO']:>5}{record['RFC']:>5}{record['LCOM']:>6}"
-        )
+    for column in ("WMC", "CBO", "LCOM"):
+        print()
+        print(f"## Top {args.top} classes by {column}")
+        header = f"{'class':<56}" + "".join(f"{c:>8}" for c in CORE)
+        print(header)
+        print("-" * len(header))
+        ranked = sorted(classes, key=lambda r: (-r[column], r["class"]))[: args.top]
+        for record in ranked:
+            print(f"{short(record['class']):<56}" + "".join(f"{record[c]:>8}" for c in CORE))
 
+    print()
+    print("note: WMC = number of methods (CKJM weight 1); records have DIT 2 (java.lang.Record).")
     return 0
 
 

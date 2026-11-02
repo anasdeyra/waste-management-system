@@ -162,6 +162,9 @@ person performs both roles during a demonstration.
   timestamp, action, entity type and identifier, outcome, and concise details. The administrator
   shall be able to consult and filter the log; field-level before/after diffs are not required.
 
+Each requirement is traced to its user stories, use cases, code and tests in
+[`traceability.md`](traceability.md).
+
 ## 5. Non-functional requirements
 
 - **NFR-01 — Security:** Passwords shall not be stored in plain text, and protected

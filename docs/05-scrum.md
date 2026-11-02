@@ -363,7 +363,7 @@ on the same scenario so that I can review an optimized proposal and measure its 
 - A failed run does not modify or corrupt the existing operational tour.
 
 **Traceability:** FR-15, FR-16, FR-19, FR-20, FR-21; NFR-04 to NFR-09.
-**Status:** Done in S5 (engine, retention and API); review UI in S6; seeded experiment batches and CSV scenarios reuse the same retention (S9).
+**Status:** Done in S5 (engine, retention and API); review UI in S6; seeded experiment batches and CSV scenarios reuse the same retention (S9); canonical 60-scenario campaign executed in S10 (`docs/results/`).
 
 #### US-22 — Understand an infeasible or failed optimization — P1
 
@@ -704,7 +704,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S9 executed; S10 planned.** Review and retrospective slots of S10 stay empty until the sprint actually closes. |
+| Status | **S1–S10 executed.** Every sprint has its review and retrospective notes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -758,7 +758,7 @@ Differences from a human-team sprint backlog, and why:
 | S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
-| S10 | Metrics campaign and project closure | Part 6 execution + presentation content | Not started |
+| S10 | Metrics campaign and project closure | Part 6 execution + presentation | Done (metrics tooling, 540-row campaign, `docs/06-metrics.md`, HTML deck and traceability verified by the scripted done-check; deck checked in a headless browser) |
 
 Notes on the selection:
 
@@ -2273,36 +2273,110 @@ scope, the session model and the verification level.
 
 ### 3.13 Sprint S10 — Metrics campaign and project closure
 
-**Sprint goal.** Part 6 is *answered with measured data* (tooling executes, reports exist)
-and presentation content is ready; the prototype is coherent end-to-end for the reviewer.
+**Sprint goal.** Part 6 is *answered with measured data* (tooling executes, reports exist and are
+committed), the HTML deck is ready, requirements are traceable to code and tests, and the
+prototype and its documentation are coherent end to end for the reviewer.
 
-**Entrance criteria.** S9 done. **Blocked on open decision:** presentation date and deck
-format (PowerPoint vs HTML, AGENTS.md §4) — the agent prepares format-agnostic content and
-asks before rendering.
+**Entrance criteria.** S9 done (merged at `c2c7ef0`; 406 tests green, build and lint clean). The
+deck format is fixed by D-041 (self-contained HTML); the presentation **date** is still open
+(AGENTS.md §4) and does not block building the deck, which carries no date.
+
+**Planning findings.** `tools/metrics.sh` had never run on the full codebase. It runs, but JDepend
+2.9.1 cannot read Java 21 class files (183 `Unknown constant: 18` errors, 90 of 273 classes
+analysed), PMD reports complexity only above the threshold, LOC mixes data files with code, and the
+TypeScript side had no complexity measure. In the canonical matrix the three demand profiles of a
+seed and size share the same points and the 10 000 kg capacity never binds, so the 60 scenarios
+contain 20 distinct routing instances; paired statistics use those 20.
 
 **Task backlog**
 
-1. (L) Execute the fixed 60-scenario campaign with `bash tools/run-experiment.sh metrics/experiment`
-   (S9 runner; formats in `docs/evaluation-csv.md`) and store all outputs under
-   `metrics/` next to the `tools/metrics.sh` reports. Run `bash tools/metrics.sh` for LOC,
-   CKJM, PMD, JDepend; keep every number reproducible by a listed command.
-2. (M) Write `docs/06-metrics.md` from the real outputs: metric tables pointing at their
-   commands, generator parameters, and the research question **answered with the measured
-   data**. Do not report placeholder numbers (AGENTS.md §10).
-3. (M) Presentation content, deck-agnostic: outline following the six parts, architecture
-   diagram, demo script with screenshots, metrics table + key finding, limitations and future
-   work. Escalate deck format/date to the owner before rendering.
-4. (S) Final sweep: README accuracy, `docs/05-scrum.md` story statuses, backlog
-   traceability, `AGENTS.md` §3/§5, decisions log; full regression run (all tests + builds)
-   and one scripted end-to-end reviewer walkthrough.
+1. (M) Metrics tooling: JDepend fork `guru.nidi:jdepend` 2.9.5 as a plugin dependency of the
+   `metrics` profile, a second PMD execution for the full cyclomatic-complexity distribution,
+   TypeScript complexity with oxlint `eslint/complexity` (vendored `components/ui` excluded),
+   per-language LOC, extended CKJM/JDepend summaries, new PMD and TypeScript summaries, a stale-class
+   guard and `--publish` (copies the summaries to `docs/results/metrics/`).
+2. (S) `tools/experiment-stats.py` (stdlib only): validity checks, descriptive statistics per size,
+   profile and method, NN versus NN + 2-opt, execution time, paired comparisons with an exact
+   Wilcoxon signed-rank test over the 20 instances, Markdown/CSV/JSON outputs and an SVG chart.
+3. (S) `tools/capture-screenshots.mjs`, an optional tool using a puppeteer installed outside the
+   repository (`PUPPETEER_DIR`); no project dependency (D-040).
+4. (M) Run the fixed campaign on a clean tree: `bash tools/run-experiment.sh metrics/experiment
+   --wastems.experiment.repetitions=3` (60 scenarios × 3 repetitions = 180 runs, 540 method rows),
+   then `tools/experiment-stats.py` and `bash tools/metrics.sh --publish`; commit the small result
+   files under `docs/results/` (never the H2 database or the graph cache).
+5. (M) Write `docs/06-metrics.md` from those files only: metric tables with their commands,
+   interpretation (hot spots, package coupling, `optimization/` independence), experiment design,
+   results, statistics, the research question answered, threats to validity and limitations.
+6. (M) Presentation assets: architecture diagram (Mermaid source + SVG), UML exports, twelve real
+   screenshots of the running prototype.
+7. (M) `presentation/index.html`: self-contained deck following the six parts, keyboard navigation,
+   demo script, metrics table and key finding, Scrum backlog/sprints/retrospective highlights,
+   limitations and future work.
+8. (S) `docs/traceability.md`: FR → user story → use case → code → test.
+9. (S) Final sweep: full regression, scripted reviewer walkthrough, README, `AGENTS.md` §3/§5, story
+   statuses, D-051.
 
 **Automated done checks**
 
-- `bash tools/metrics.sh` produces complete reports; the experiment runner output files exist
-  with scenario/method counts (60 scenarios × 3 methods).
-- `docs/06-metrics.md` contains only measured values with command references.
-- `./mvnw test` and `npm run build` green.
+- `bash tools/metrics.sh` exits 0 with no JDepend parse error, JDepend covering every class file,
+  and summaries identical to the committed `docs/results/metrics/`.
+- `docs/results/experiment/results.csv` has 540 rows (60 scenarios × 3 repetitions × 3 methods), all
+  completed and feasible; `run-info.txt` shows exit 0 on a clean tree; an independent recomputation
+  agrees with `docs/results/experiment-stats/`; a fresh partial re-run reproduces the distances.
+- Every decimal number in `docs/06-metrics.md` and in the deck occurs in a committed results file
+  or document; no placeholder text.
+- The deck opens offline from `file://`, navigates by keyboard, loads every image and has no
+  overflowing slide at 1280×720.
+- `./mvnw test`, `npm run build`, `npm run lint` green; all diagrams render; the README §4.6
+  walkthrough passes over HTTP on spare ports.
 
-**Review.** *To be filled at sprint close.*
+**Review.** Held 2026-11-02 against the automated done-check (phases A to J, 169 `PASS` lines,
+`FAILS=0`; phase K, the close-out texts, is run after these notes).
 
-**Retrospective.** *To be filled at sprint close.*
+| Deliverable | Observed result |
+|---|---|
+| Regression | `./mvnw test`: 406 tests, 0 failures, 0 errors, 0 skipped; `npm run build` exit 0; `npm run lint` exit 0 with 3 warnings, all in vendored `src/components/ui/` |
+| Metrics tooling | `bash tools/metrics.sh` exits 0 in 13 s; JDepend now reads all 273 class files (0 parse errors); published summaries identical to a fresh run |
+| Campaign | `docs/results/experiment/`: 540 rows, 180 runs, 60 scenarios, 3 repetitions, all completed and feasible, deterministic across repetitions, run on a clean tree (103 s wall time); an independent recomputation and a fresh 4-scenario re-run agree |
+| Code metrics | Java main 11251 SLOC in 239 files, 273 class files, 2432 methods; mean cyclomatic complexity 2.18, 33 of 897 methods at 10 or more; 133 PMD violations; `optimization/` depends on `java.*` only; one package cycle through `config/` |
+| Research answer | NN + 2-opt: -60.18 % distance and -10.88 % duration against the input order; NN alone -57.20 %; 2-opt improves NN in 17 of 20 instances (exact Wilcoxon p = 1.53e-05) |
+| Deck | `presentation/index.html`, 29 slides, self-contained, keyboard navigation, no overflow at 1280x720, no console error from `file://` |
+| Screenshots | 12 PNG files in `presentation/assets/` (login, collection points map, route evaluation, planner overview, agent execution, dashboard, evaluation batch and full page, run routes, history, audit log, traffic overlay), plus the architecture diagram and four UML exports |
+| Traceability | `docs/traceability.md`: FR-01 to FR-30, all 39 stories and 25 use cases, every path exists; gaps listed |
+| Reviewer walkthrough | README section 4.6 steps 1 to 15 scripted over HTTP on spare ports (26 `PASS` lines in phase J), the SPA routes served by Vite and the capture script producing 12 images |
+
+*Acceptance of the sprint goal.* Part 6 is answered with measured data, the deck and the traceability
+matrix exist, and the prototype and its documentation are consistent. The only open decision is the
+presentation date.
+
+*Known gaps.* The demand never exceeds the capacity, so the three profiles collapse to 20 distinct
+instances and capacity-bound behaviour is not measured; the baseline is a random shuffle; the frontend has
+no automated browser tests (D-040), so the deck screenshots and the walkthrough are the only UI evidence;
+`backend/routing-cache/` was absent when the done-check ran (the cache is created lazily and no S10 run
+used the default cache directory); the architecture diagram in the deck is dense because it draws every
+measured package dependency.
+
+**Retrospective.**
+
+- *Went well.* The planner's spikes held: the JDepend fork, the second PMD execution and oxlint worked on
+  the first run; the statistics script reproduced the planner's reference distances exactly (the
+  deterministic values), so the pipeline from `results.csv` to the tables and the chart is trustworthy.
+  Generating `docs/06-metrics.md` from the results files kept every number traceable, and the number-trace
+  check caught the one value that had been taken from the reference run instead of the committed one
+  (an execution-time maximum). The honest findings (weak baseline, 20 instances, sequencing-only timer)
+  made the research answer stronger, not weaker.
+- *Went badly.* The summary-script formats were fixed in the plan but one expression missed `async`
+  functions and constructors in the TypeScript report (13 of 709 functions) until the numbers were compared.
+  Three done-check expectations were wrong (a `grep` on a negative number read as an option, a `BAD*`
+  count that matched the script's own total line, and a capture step that ran after the walkthrough had
+  cancelled the only draft); the original script is kept as `s10-done-check.orig.sh`. The screenshot
+  capture is slow (about three minutes for 12 images) because it waits for network idle on every page. A
+  network interruption cost one restart of the executor, which was recoverable because each task is a commit.
+  The UI was again verified without an automated browser test, only through the scripted walkthrough and the
+  captured images.
+- *Process changes (recommendations for future work on the project).* Add real browser tests (Playwright
+  or Cypress) outside the main build; make the experiment capacity-bound so that demand profiles matter;
+  replace the random baseline by a realistic one; record the experiment commit and the metrics commit in
+  the committed results (done) and keep one commit per task; let the done-check start its servers once and
+  reuse them; split `TourService` and `ScenarioCsvImportService` and move the `*Properties` classes out of
+  `config/`.
