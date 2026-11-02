@@ -363,7 +363,7 @@ on the same scenario so that I can review an optimized proposal and measure its 
 - A failed run does not modify or corrupt the existing operational tour.
 
 **Traceability:** FR-15, FR-16, FR-19, FR-20, FR-21; NFR-04 to NFR-09.
-**Status:** Done in S5 (engine, retention and API); review UI in S6; seeded experiment batches and CSV scenarios reuse the same retention (S9).
+**Status:** Done in S5 (engine, retention and API); review UI in S6; seeded experiment batches and CSV scenarios reuse the same retention (S9); canonical 60-scenario campaign executed in S10 (`docs/results/`).
 
 #### US-22 — Understand an infeasible or failed optimization — P1
 
@@ -704,7 +704,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S9 executed; S10 planned.** Review and retrospective slots of S10 stay empty until the sprint actually closes. |
+| Status | **S1–S10 executed.** Every sprint has its review and retrospective notes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -758,7 +758,7 @@ Differences from a human-team sprint backlog, and why:
 | S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
-| S10 | Metrics campaign and project closure | Part 6 execution + presentation content | Not started |
+| S10 | Metrics campaign and project closure | Part 6 execution + presentation | Done (metrics tooling, 540-row campaign, `docs/06-metrics.md`, HTML deck and traceability verified by the scripted done-check; deck checked in a headless browser) |
 
 Notes on the selection:
 

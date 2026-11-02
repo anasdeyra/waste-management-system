@@ -258,6 +258,8 @@ The experiment can support bounded statements such as:
 > measured coverage and capacity constraints; its additional computational cost was also
 > measured.
 
+The measured answer is in `docs/06-metrics.md` §6.
+
 ### Unsupported conclusions
 
 The experiment alone cannot establish that:

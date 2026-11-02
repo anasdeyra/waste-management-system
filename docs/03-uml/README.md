@@ -12,6 +12,8 @@
 
 S9: no diagram change (UC21-UC24 implemented).
 
+S10: no diagram change; all diagrams re-rendered and embedded in the deck.
+
 ## Modeling conventions
 
 - Diagram sources are Mermaid blocks inside Markdown (D-032), so the Markdown files are the

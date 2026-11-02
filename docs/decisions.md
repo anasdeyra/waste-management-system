@@ -1046,3 +1046,65 @@ artifacts, metrics, and presentation remain consistent.
     `TrafficOverlay`, `/api/traffic`, `useTrafficOverlay`, the traffic components); (3) phase C logged in
     right after the port opened, before the `dev` runner had created the accounts, and now waits for the
     seeder. No expected value of the plan was weakened; the final run has 162 `PASS` lines and `FAILS=0`.
+
+## D-051 — S10 conventions
+
+- **Date:** 2026-11-02
+- **Decision:**
+  - **Campaign.** One canonical batch with three repetitions
+    (`bash tools/run-experiment.sh metrics/experiment --wastems.experiment.repetitions=3
+    --wastems.experiment.label="S10 canonical campaign"`): 60 scenarios x 3 repetitions = 180 runs = 540
+    rows, exactly at the 180-run limit of D-050. Distances, durations, orders and feasibility are read from
+    repetition 1 (`tools/experiment-stats.py` proves that all repetitions are identical); execution time
+    uses all repetitions. The run is made on a clean tracked tree so `run-info.txt` records
+    `tracked_changes: 0`.
+  - **Committed results.** `docs/results/experiment/` (`results.csv`, `scenarios.csv`, `batch.json`,
+    `run-info.txt`, `run.log`; never the H2 `db/` or `routing-cache/`), `docs/results/experiment-stats/`
+    (outputs of `tools/experiment-stats.py`) and `docs/results/metrics/` (summaries copied by
+    `bash tools/metrics.sh --publish`). The raw tool reports stay in the git-ignored `metrics/`.
+    `.gitignore` gets `!docs/results/**/*.log` and `!docs/results/metrics/` (the existing `metrics/` rule
+    would otherwise ignore the published summaries too). Nothing under `docs/results/` is edited by hand.
+  - **JDepend.** The `metrics` profile adds `guru.nidi:jdepend` 2.9.5 as a dependency of
+    `jdepend-maven-plugin` 2.1: JDepend 2.9.1 cannot read Java 8+ constant-pool entries (183
+    `Unknown constant: 18` errors, 90 of 273 class files analysed). `tools/metrics.sh` now fails when
+    that message appears and guards against stale classes in `backend/target/classes`.
+  - **Complexity.** Java: a second PMD execution (`pmd-cc-all`, `tools/pmd/wastems-cc-all.xml`,
+    `methodReportLevel` 1) gives the full distribution; the quality ruleset gives the hot spots (10 or
+    more). TypeScript: oxlint `eslint/complexity` with `max: 0` (`tools/oxlint-complexity.json`),
+    vendored `components/ui` excluded. CKJM's bytecode complexity is not reported; CK and coupling metrics
+    are Java-only.
+  - **Statistics.** Descriptive statistics over the 60 scenarios; paired comparisons over the 20 distinct
+    routing instances (the three profiles are identical because the capacity never binds) with an exact
+    two-sided Wilcoxon signed-rank test, plain Python (`tools/experiment-stats.py`, with `--self-test`).
+  - **Screenshots.** `tools/capture-screenshots.mjs` is an optional tool; it needs a puppeteer installed
+    outside the repository (`PUPPETEER_DIR`) and is not a dependency (D-040 holds). The 12 images are
+    committed under `presentation/assets/`.
+  - **Deck.** One self-contained `presentation/index.html` (inline CSS and JS, no CDN, no web font),
+    images as files in `presentation/assets/`, keyboard navigation, `#n` in the URL, print CSS. The
+    architecture diagram is the Mermaid source `presentation/assets/architecture.mmd` rendered to
+    `architecture.svg`. The deck carries no date: the presentation date stays open (AGENTS.md section 4).
+  - **Traceability.** `docs/traceability.md` maps FR-01 to FR-30 to user stories, use cases, code and
+    tests, with the gaps listed.
+- **Rationale:** Committed, small result files let a reviewer check every number without re-running
+  anything, and one fixed batch keeps the report reproducible (NFR-09). Using the 20 instances instead of 60
+  scenarios avoids pseudo-replication. Failing loudly on the JDepend parse error prevents a silently
+  partial coupling report.
+- **Deviations from the plan:**
+  - An extra commit `chore: let git track the committed Part 6 results` carries the `.gitignore` change,
+    so that the metrics run recorded in `docs/results/metrics/environment.txt` has `tracked_changes: 0`.
+    The campaign itself ran at commit `5b2e9cf` (the campaign commit is in `run-info.txt`).
+  - `tools/ts-complexity-summary.py` also matches `async function` and `constructor` lines (the plan's
+    expression missed 13 of the 709 reported functions) and exits 1 on any unparsed complexity line.
+  - `tools/jdepend-summary.py` prints the strongly connected packages computed from the dependency graph
+    in addition to JDepend's cycle paths, which list the same cycle once per package.
+  - `tools/capture-screenshots.mjs` takes the card screenshot with `element.screenshot()` (a clip with
+    `captureBeyondViewport: false` failed with a 0-height error for a card taller than the viewport). The
+    screenshots committed in T6 come from a capture run on the same source tree (scratch database, 18 OSM
+    tile responses failed and 69 succeeded; every committed image shows its tiles).
+  - The execution-time maximum of the committed campaign (all sizes, NN + 2-opt) differs from the
+    planner's timing run; only distances are deterministic, as expected.
+  - Done-check correction (original kept as `s10-done-check.orig.sh`): the two checks that grep for the
+    all-size mean now use `grep -qF --`, because the value starts with `-` and was read as an option; no
+    expected value was changed.
+  - `docs/06-metrics.md` was assembled by a throw-away script that copies the tables and summaries
+    verbatim from `docs/results/`; the script is not part of the repository.
