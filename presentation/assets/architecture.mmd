@@ -1,0 +1,59 @@
+flowchart LR
+  subgraph Browser["Browser"]
+    SPA["React 19 SPA<br/>pages, TanStack Query,<br/>React Leaflet maps, shadcn/ui"]
+  end
+  Proxy["Vite dev proxy /api<br/>session cookie + CSRF"]
+  subgraph Backend["Spring Boot 3 backend (Java 21)"]
+    security["security"]
+    web["web + web.dto"]
+    service["service"]
+    domain["domain"]
+    repository["repository"]
+    optimization["optimization<br/>input order, NN, directed 2-opt<br/>depends on java.* only"]:::core
+    routing["routing<br/>embedded GraphHopper 11.1"]
+    traffic["traffic<br/>display-only snapshot"]
+    config["config<br/>start-up importer, demo loader,<br/>experiment runner"]
+  end
+  subgraph Data["Data"]
+    H2[("H2 file database")]
+    OSM["mn01-roads.osm<br/>osm-mn01-e1f2fabaa937"]
+    DSNY["DSNY basket and depot CSV snapshots"]
+    DOT["NYC DOT traffic snapshot JSON"]
+  end
+  Tiles["OSM tile server<br/>basemap, browser only"]
+  subgraph Tools["Tools"]
+    RunExp["tools/run-experiment.sh"] --> CSV["results.csv"] --> Stats["tools/experiment-stats.py"]
+    Metrics["tools/metrics.sh<br/>CKJM, PMD, JDepend, oxlint"]
+  end
+  SPA --> Proxy --> web
+  SPA -.-> Tiles
+  security --> domain
+  security --> repository
+  security --> web
+  web --> service
+  web --> domain
+  web --> repository
+  web --> routing
+  web --> traffic
+  service --> config
+  service --> domain
+  service --> repository
+  service --> routing
+  service --> optimization
+  config --> service
+  config --> security
+  config --> routing
+  config --> optimization
+  config --> domain
+  config --> repository
+  domain --> optimization
+  repository --> domain
+  repository --> optimization
+  routing --> optimization
+  traffic --> config
+  repository --> H2
+  routing --> OSM
+  config --> DSNY
+  traffic --> DOT
+  RunExp -.-> config
+  classDef core fill:#dcfce7,stroke:#16a34a,stroke-width:2px;
