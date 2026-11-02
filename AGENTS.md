@@ -46,7 +46,7 @@ An agent's job is to help produce **all** of these, coherently, not only the cod
 | Metrics + research answer (Part 6) | ✅ `docs/06-metrics.md`; measured data under `docs/results/` (`bash tools/metrics.sh --publish`, 60-scenario campaign with 3 repetitions and four methods (720 rows), answer NN + 2-opt vs sweep (S11), `tools/experiment-stats.py`) |
 | Presentation | ✅ Self-contained HTML deck `presentation/index.html` (30 slides, 12 screenshots (four evaluation screenshots still show the S10 interface), architecture and UML diagrams); the presentation date is still open |
 
-**Last updated:** 2026-11-02 (S11 closed)
+**Last updated:** 2026-11-02 (S11 closed; `tools/demo.sh` added, D-056)
 
 Update this table whenever the state changes. Do not claim something is done unless the
 artifact exists in the repo.
@@ -97,7 +97,7 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [x] Interactive maps for point editing/selection, tour display/comparison, and execution (point display/editing done in S2; stop selection done in S4; route comparison and attached routes done in S6; execution map S7; verified by build/bundle/proxy checks, D-040)
 - [x] Versioned OSM/GraphHopper routing and timestamped NYC DOT traffic overlay (routing S5; traffic snapshot overlay S9; verified by the S9 done-check)
 - [x] Dashboards, CSV import/export, audit log (dashboards, CSV and traffic snapshot S9; audit S8)
-- [x] Import the included real MN01 basket/depot snapshots and add demo operations so a reviewer can try them immediately (snapshot import S3; demo operations S7, `dev` start or `POST /api/admin/demo`)
+- [x] Import the included real MN01 basket/depot snapshots and add demo operations so a reviewer can try them immediately (snapshot import S3; demo operations S7, `dev` start or `POST /api/admin/demo`; one command from a fresh clone: `tools/demo.sh`, D-056)
 
 ### Part 5 — Scrum → `docs/05-scrum.md`
 - [x] Product Backlog as user stories ("As a …, I want …, so that …")
@@ -174,6 +174,7 @@ project-ase/
 │   └── results/              # committed measured data: experiment/, experiment-stats/, metrics/
 ├── tools/
 │   ├── setup-toolchain.sh    # installs JDK / Maven / CKJM into ~/.local/opt
+│   ├── demo.sh               # portable one-command seeded demo for a fresh clone (D-056); --reset rebuilds it
 │   ├── dev.sh                # backend + frontend side by side in one tmux session (start/stop/status)
 │   ├── fetch-road-snapshot.sh # refreshes the OSM road snapshot (new routing version)
 │   ├── fetch-traffic-snapshot.py # refreshes the NYC DOT traffic snapshot (new version)

@@ -1284,3 +1284,22 @@ artifacts, metrics, and presentation remain consistent.
   that loss-free state in one action. The reset therefore touches only data the loader itself
   created (origin `SYNTHETIC`, tracked via `demo_record`), keeps all accounts and imported
   evidence, and checks the preconditions before deleting anything.
+
+## D-056 — One-command seeded demo from a fresh clone (`tools/demo.sh`)
+
+- **Date:** 2026-11-02
+- **Decision:** The repository ships `tools/demo.sh`, a portable launcher that takes a fresh clone
+  to a working, pre-seeded demo. It checks JDK 21+ and Node 20.19+/22.12+ (sourcing
+  `~/.local/opt/ase-env.sh` only as a fallback), runs `npm ci` when `frontend/node_modules` is
+  missing, starts the backend with the `dev` profile (accounts, MN01 import, demonstration load,
+  D-023/D-048/D-055), waits until `GET /api/admin/demo/report` answers 200 for the current run, then
+  starts the frontend and prints the URL and the accounts. `--reset` passes the one-shot
+  `--wastems.demo.reset=true`. Ports come from `ASE_BACKEND_PORT` / `ASE_FRONTEND_PORT`. Ctrl-C
+  stops both process groups. No application code changed: the seeding itself is still the `dev`
+  profile's start-up runners; the script only orchestrates and verifies it.
+- **Rationale:** The demonstration already seeded itself on a default `dev` start, but a reviewer
+  who cloned the repository still had to know the toolchain, install the frontend dependencies and
+  start two servers, and `tools/dev.sh` depends on tmux, fnm and the author's `~/.local/opt` layout.
+  The HTTP port opens before the start-up runners finish, so a port check alone would report ready
+  too early; the demonstration report only exists once the load of this run completed, which makes it
+  a reliable readiness signal. `tools/dev.sh` stays as the author's tmux workflow.

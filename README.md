@@ -33,6 +33,29 @@ The real-city sources, included snapshots, map interactions, routing rules, and 
 are documented in [`docs/geospatial-data.md`](docs/geospatial-data.md). Traffic is a timestamped
 map overlay; it does not drive dynamic rerouting or the controlled optimization experiment.
 
+## Quick start: a working, pre-seeded demo from a fresh clone
+
+```bash
+git clone https://github.com/anasdeyra/waste-management-system.git
+cd waste-management-system
+tools/demo.sh
+```
+
+Needs JDK 21+ and Node.js 20.19+/22.12+ (§3). The script installs the frontend dependencies, starts
+the backend and seeds it (accounts, the 449 real MN01 baskets and the depot, and the synthetic demo
+operations: vehicles, agents and six tours in every lifecycle state), waits until the seeding is
+confirmed through the API, then starts the frontend and prints the URL (<http://localhost:5173>) and
+the accounts (`planner` / `planner123` to start). The first run also downloads the Maven
+dependencies, which can take a few minutes. Ctrl-C stops both servers.
+
+- `tools/demo.sh --reset` rebuilds the pristine demonstration data (D-055); accounts and the MN01
+  import are kept.
+- Seeding is idempotent: starting again keeps the data and the progress already in `backend/data/`.
+  To start from scratch, stop the script and delete `backend/data/`.
+- `ASE_BACKEND_PORT` and `ASE_FRONTEND_PORT` change the ports; logs go to
+  `backend/data/demo-backend.log` and `backend/data/demo-frontend.log`.
+- The walkthrough of what the demo contains is §4.6.
+
 ---
 
 ## 1. Technology stack
@@ -100,7 +123,8 @@ project-ase/
 │   ├── 06-metrics.md          # Part 6 — software metrology and the research answer
 │   ├── traceability.md        # FR -> user story -> use case -> code -> test
 │   └── results/               # committed measured data: experiment/, experiment-stats/, metrics/
-├── tools/                     # toolchain installer, metrics.sh, experiment-stats.py, run-experiment.sh,
+├── tools/                     # demo.sh (one-command seeded demo), toolchain installer, metrics.sh,
+│                              # experiment-stats.py, run-experiment.sh,
 │                              # capture-screenshots.mjs (optional), fetch-road-snapshot.sh,
 │                              # fetch-traffic-snapshot.py, PMD and oxlint configuration
 └── presentation/              # final HTML deck (index.html) and its assets
