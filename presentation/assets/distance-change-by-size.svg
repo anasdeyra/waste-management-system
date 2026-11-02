@@ -1,42 +1,50 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" width="720" height="400" font-family="system-ui, sans-serif">
 <rect width="720" height="400" fill="#ffffff"/>
 <text x="360" y="26" text-anchor="middle" font-size="18" font-weight="600" fill="#111827">Mean distance change vs input order (60 scenarios)</text>
-<rect x="250" y="42" width="14" height="14" fill="#2563eb"/>
-<text x="270" y="54" font-size="14" fill="#111827">NN</text>
-<rect x="370" y="42" width="14" height="14" fill="#16a34a"/>
-<text x="390" y="54" font-size="14" fill="#111827">NN + 2-opt</text>
+<rect x="180" y="42" width="14" height="14" fill="#9333ea"/>
+<text x="200" y="54" font-size="14" fill="#111827">Sweep</text>
+<rect x="300" y="42" width="14" height="14" fill="#2563eb"/>
+<text x="320" y="54" font-size="14" fill="#111827">NN</text>
+<rect x="420" y="42" width="14" height="14" fill="#16a34a"/>
+<text x="440" y="54" font-size="14" fill="#111827">NN + 2-opt</text>
+<line x1="80" y1="340.0" x2="680" y2="340.0" stroke="#d1d5db" stroke-width="1"/>
+<text x="72" y="344.0" text-anchor="end" font-size="12" fill="#374151">-80.0</text>
+<line x1="80" y1="277.5" x2="680" y2="277.5" stroke="#d1d5db" stroke-width="1"/>
+<text x="72" y="281.5" text-anchor="end" font-size="12" fill="#374151">-60.0</text>
+<line x1="80" y1="215.0" x2="680" y2="215.0" stroke="#d1d5db" stroke-width="1"/>
+<text x="72" y="219.0" text-anchor="end" font-size="12" fill="#374151">-40.0</text>
+<line x1="80" y1="152.5" x2="680" y2="152.5" stroke="#d1d5db" stroke-width="1"/>
+<text x="72" y="156.5" text-anchor="end" font-size="12" fill="#374151">-20.0</text>
 <line x1="80" y1="90.0" x2="680" y2="90.0" stroke="#111827" stroke-width="1.5"/>
-<text x="72" y="94.0" text-anchor="end" font-size="12" fill="#374151">0</text>
-<line x1="80" y1="138.0" x2="680" y2="138.0" stroke="#d1d5db" stroke-width="1"/>
-<text x="72" y="142.0" text-anchor="end" font-size="12" fill="#374151">-20</text>
-<line x1="80" y1="186.0" x2="680" y2="186.0" stroke="#d1d5db" stroke-width="1"/>
-<text x="72" y="190.0" text-anchor="end" font-size="12" fill="#374151">-40</text>
-<line x1="80" y1="234.0" x2="680" y2="234.0" stroke="#d1d5db" stroke-width="1"/>
-<text x="72" y="238.0" text-anchor="end" font-size="12" fill="#374151">-60</text>
-<line x1="80" y1="282.0" x2="680" y2="282.0" stroke="#d1d5db" stroke-width="1"/>
-<text x="72" y="286.0" text-anchor="end" font-size="12" fill="#374151">-80</text>
-<line x1="80" y1="330.0" x2="680" y2="330.0" stroke="#d1d5db" stroke-width="1"/>
-<text x="72" y="334.0" text-anchor="end" font-size="12" fill="#374151">-100</text>
-<text transform="translate(18 210) rotate(-90)" text-anchor="middle" font-size="12" fill="#374151">Distance change (%)</text>
-<rect x="97.0" y="90" width="54" height="90.7" fill="#2563eb"/>
-<text x="124.0" y="195.7" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-37.8</text>
-<rect x="159.0" y="90" width="54" height="105.3" fill="#16a34a"/>
-<text x="186.0" y="210.3" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-43.9</text>
-<text x="155.0" y="82" text-anchor="middle" font-size="14" fill="#111827">10 points</text>
-<rect x="247.0" y="90" width="54" height="117.7" fill="#2563eb"/>
-<text x="274.0" y="222.7" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-49.0</text>
-<rect x="309.0" y="90" width="54" height="127.2" fill="#16a34a"/>
-<text x="336.0" y="232.2" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-53.0</text>
-<text x="305.0" y="82" text-anchor="middle" font-size="14" fill="#111827">25 points</text>
-<rect x="397.0" y="90" width="54" height="158.9" fill="#2563eb"/>
-<text x="424.0" y="263.9" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-66.2</text>
-<rect x="459.0" y="90" width="54" height="162.5" fill="#16a34a"/>
-<text x="486.0" y="267.5" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-67.7</text>
-<text x="455.0" y="82" text-anchor="middle" font-size="14" fill="#111827">50 points</text>
-<rect x="547.0" y="90" width="54" height="181.9" fill="#2563eb"/>
-<text x="574.0" y="286.9" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-75.8</text>
-<rect x="609.0" y="90" width="54" height="182.6" fill="#16a34a"/>
-<text x="636.0" y="287.6" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-76.1</text>
-<text x="605.0" y="82" text-anchor="middle" font-size="14" fill="#111827">100 points</text>
-<text x="360" y="385" text-anchor="middle" font-size="12" fill="#4b5563">Source: docs/results/experiment-stats/summary.json</text>
+<text x="72" y="94.0" text-anchor="end" font-size="12" fill="#374151">0.0</text>
+<text transform="translate(18 215) rotate(-90)" text-anchor="middle" font-size="12" fill="#374151">Distance change (%)</text>
+<rect x="89.0" y="90.0" width="40.0" height="79.6" fill="#9333ea"/>
+<text x="109.0" y="183.6" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-25.5</text>
+<rect x="135.0" y="90.0" width="40.0" height="118.1" fill="#2563eb"/>
+<text x="155.0" y="222.1" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-37.8</text>
+<rect x="181.0" y="90.0" width="40.0" height="137.1" fill="#16a34a"/>
+<text x="201.0" y="241.1" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-43.9</text>
+<text x="155.0" y="362" text-anchor="middle" font-size="14" fill="#111827">10 points</text>
+<rect x="239.0" y="90.0" width="40.0" height="65.5" fill="#9333ea"/>
+<text x="259.0" y="169.5" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-21.0</text>
+<rect x="285.0" y="90.0" width="40.0" height="153.3" fill="#2563eb"/>
+<text x="305.0" y="257.3" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-49.0</text>
+<rect x="331.0" y="90.0" width="40.0" height="165.6" fill="#16a34a"/>
+<text x="351.0" y="269.6" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-53.0</text>
+<text x="305.0" y="362" text-anchor="middle" font-size="14" fill="#111827">25 points</text>
+<rect x="389.0" y="90.0" width="40.0" height="65.6" fill="#9333ea"/>
+<text x="409.0" y="169.6" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-21.0</text>
+<rect x="435.0" y="90.0" width="40.0" height="206.9" fill="#2563eb"/>
+<text x="455.0" y="310.9" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-66.2</text>
+<rect x="481.0" y="90.0" width="40.0" height="211.6" fill="#16a34a"/>
+<text x="501.0" y="315.6" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-67.7</text>
+<text x="455.0" y="362" text-anchor="middle" font-size="14" fill="#111827">50 points</text>
+<rect x="539.0" y="90.0" width="40.0" height="49.0" fill="#9333ea"/>
+<text x="559.0" y="153.0" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-15.7</text>
+<rect x="585.0" y="90.0" width="40.0" height="236.8" fill="#2563eb"/>
+<text x="605.0" y="340.8" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-75.8</text>
+<rect x="631.0" y="90.0" width="40.0" height="237.8" fill="#16a34a"/>
+<text x="651.0" y="341.8" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">-76.1</text>
+<text x="605.0" y="362" text-anchor="middle" font-size="14" fill="#111827">100 points</text>
+<text x="360" y="388" text-anchor="middle" font-size="12" fill="#4b5563">Source: docs/results/experiment-stats/summary.json</text>
 </svg>
