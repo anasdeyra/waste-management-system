@@ -1198,3 +1198,30 @@ artifacts, metrics, and presentation remain consistent.
 - **Impact:** Amends D-008 (four methods instead of three; the "baseline" of the research answer
   is now sweep). Refines D-022 (same scenarios and directed matrix; sweep additionally uses the
   real WGS84 coordinates already retained). D-050 and D-051 formats change as stated above.
+
+## D-053 — S11 conventions (deviations from the S11 plan)
+
+- **Date:** 2026-11-02
+- **Decision:** The executor followed D-052 and the S11 plan with these deviations only.
+  - **Literature count.** At the owner's ruling source 9 (Liang et al., 2022) was replaced by Gillett
+    and Miller (1974) instead of adding an eleventh source; the review keeps ten sources and the
+    ranges `[7-10]` and `[6-10]` became `[7, 8, 10]` and `[6-8, 10]`.
+  - **Refactor after the campaign.** The `PlanningScenario` constructor reached CC 35; its validation
+    was split into two helpers (`bd77433`) after the campaign and the first metrics run. The refactor
+    is behaviour-neutral (419 tests; a 144-row re-run reproduced all distances, durations, orders and
+    sweep distances) so the campaign was not repeated; the code metrics were re-run afterwards.
+  - **Result commits.** The campaign (`a52c957`) and the two metrics runs (`586cfcd`, `367d114`) are
+    separate commits, so that the metrics run on a clean tree.
+  - **Order of T5.** `docs/evaluation-csv.md` was written after the campaign because its example is
+    copied from the real `results.csv`; its column list was compared with `RESULT_COLUMNS` by script.
+  - **Sweep colour.** `#9333ea` instead of `#7c3aed`, which the depot marker already uses.
+  - **Statistics.** The tool prints a second chart (`distance-change-vs-sweep-by-size.svg`); the
+    Holm adjustment covers all nine paired tests; a count of beats, ties and loses is added for NN
+    and NN + 2-opt against sweep and for sweep against NN.
+  - **Deck.** One slide was added (results against the input order), so the deck has 30 slides; only
+    the sequence and activity SVGs changed and were copied; the four evaluation screenshots were not
+    re-captured and the slide states that they show the S10 interface.
+  - **Demo values.** The sweep distance of the demo draft (8.44 km) was taken from an evaluation over
+    HTTP on a fresh `dev` start on a scratch database.
+- **Rationale:** Each change keeps the measured data honest and the repository runnable; none changes
+  the D-052 design.

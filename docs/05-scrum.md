@@ -457,7 +457,7 @@ over a random input order.**
 
 **Traceability:** FR-15, FR-16, FR-19, FR-20, FR-21; NFR-04 to NFR-09; D-052.
 
-**Status:** Planned for S11.
+**Status:** Done in S11 (2026-11-02).
 
 ### 1.6 Epic E05 — Collection execution and history
 
@@ -730,7 +730,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S10 executed.** Every sprint has its review and retrospective notes. |
+| Status | **S1–S11 executed.** Every sprint has its review and retrospective notes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -785,7 +785,7 @@ Differences from a human-team sprint backlog, and why:
 | S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S10 | Metrics campaign and project closure | Part 6 execution + presentation | Done (metrics tooling, 540-row campaign, `docs/06-metrics.md`, HTML deck and traceability verified by the scripted done-check; deck checked in a headless browser) |
-| S11 | Sweep baseline and the revised research answer | US-40 + Part 6 re-run | Planned (D-052) |
+| S11 | Sweep baseline and the revised research answer | US-40 + Part 6 re-run | Done (D-052, D-053) |
 
 Notes on the selection:
 
@@ -2681,6 +2681,64 @@ old run still loads (`GET /api/evaluations/{oldRunId}` 200 with three results) a
   `research1.txt` and `research2.txt` are untracked and unchanged (SHA-256 at planning time:
   `b800c7c0a305…` and `cf96e1bbda2e…`; `sha256sum research1.txt research2.txt`).
 
-**Review.** *(to be written by the executor after the done checks)*
+**Review.** Held 2026-11-02 against the done checks of the plan.
 
-**Retrospective.** *(to be written by the executor)*
+- *Delivered.* `SWEEP` is a fourth planning method (`optimization/SweepBaseline`, framework-free;
+  `OptimizationIndependenceTest` green and the `springframework|graphhopper|jakarta` grep on the
+  package empty). Every evaluation retains it; the comparisons, aggregates, explorer, CSV export (41
+  columns), statistics tool and the UI carry it. Acceptance is unchanged: accept NN + 2-opt or keep
+  the input order. `SchemaUpgrade` and `VARCHAR` mappings were committed before `SWEEP` existed.
+- *Tests.* 419 backend tests green (406 before; `SweepBaselineTest` cases a to g with a 60-instance
+  brute-force comparison, module, aggregate, explorer, export and schema tests). Frontend
+  `npm run build` and `npm run lint` pass (only the three vendored-component warnings); the bundle
+  contains `Sweep (Gillett & Miller)` and `ChangeVsSweepPct`.
+- *Schema check on a copy of the owner's database.* Both columns were `ENUM` before and
+  `CHARACTER VARYING` after the start; an old run answered 200 with three results and exported three
+  rows; a fresh evaluation stored four results (`SWEEP` row present). The original file was not
+  touched.
+- *Fresh `dev` start.* Evaluating the demo draft over HTTP gave four results in the order
+  `INPUT_ORDER, SWEEP, NEAREST_NEIGHBOR, NN_PLUS_2_OPT`: 11.74 km, 8.44 km, 10.21 km, 7.47 km; the
+  sweep configuration names its ray (`start stop 2, CW`).
+- *Campaign* (`docs/results/experiment/`): 720 rows, 41 columns, `exit: 0`, `tracked_changes: 0`,
+  no `FAIL` in `checks.txt`, `--self-test` ok. An independent script agreed with `summary.json`
+  within 0.01 on the mean NN + 2-opt change against sweep and against the input order, and
+  recomputed the minimum over the 2n sweep rays from the stored matrix of one scenario per size
+  (four of four equal). `docs/results/metrics/` was regenerated on a clean tree.
+- *Measured answer.* NN + 2-opt against sweep: -48.42 % distance (from -17.11 % to -74.15 % per
+  scenario), -7.29 % duration; shorter than sweep in 20 of 20 instances (Wilcoxon p = 1.91e-06, Holm
+  1.72e-05 over nine tests). Against the input order: -60.18 % and -10.88 % (identical to S10, as
+  the instances are deterministic). Sweep itself: -20.78 % against the input order, longer than
+  plain NN in 20 of 20 instances. NN + 2-opt against NN: -5.58 %, 17 of 20 improved (p = 1.53e-05).
+  The research conclusion is unchanged in direction; the gain against a realistic baseline is
+  smaller than the S10 figure and sweep is a weaker baseline than expected because it ignores the
+  road network.
+- *Campaign versus refactor.* The campaign (commit `1a1d474`) precedes the behaviour-neutral refactor
+  `bd77433`. A 144-row re-run (seeds 1 to 3) of the refactored jar reproduced every distance,
+  duration, visit order and sweep distance of the committed `results.csv`, and 419 tests pass.
+- *Documents.* Literature review: source 9 (Liang et al.) replaced by Gillett and Miller (1974) at
+  the owner's ruling, ten sources kept, in-text ranges `[7-10]` and `[6-10]` rewritten to exclude 9;
+  Part 6 rewritten from the result files (a script found no decimal in prose absent from the
+  committed results); UML sequence, activity, use cases, OCL (`RouteMethodIsDecidable`) updated and
+  re-rendered (exit 0, no syntax error); traceability, README and the deck updated (30 slides, the
+  owner's image viewer kept).
+- *Not verified or deferred.* The four deck screenshots (`03`, `07`, `07b`, `08`) were not
+  re-captured and still show the three-method UI of S10 (the slide says so); the deck was not opened
+  in a browser (offline start, keyboard navigation, no overflow at 1280x720 and the viewer were not
+  re-checked); the presentation date is still open; the capacity never binds in the campaign, so a
+  sweep with capacity-driven route splits is not exercised. Deviations are in D-053.
+
+**Retrospective.**
+
+- *Went well.* Committing the schema guard before the enum value existed proved the upgrade on the
+  old three-value type; hand-computed tests (including a brute-force comparison over the 2n rays)
+  caught nothing wrong but made the independent campaign check cheap; the number-trace script on
+  the prose of Part 6 and the deck replaced manual proofreading.
+- *Went badly.* The new `PlanningScenario` constructor reached a cyclomatic complexity of 35 before
+  the metrics run showed it, so the metrics had to be run twice and the refactor came after the
+  campaign; the export row builder grew to CC 28. The deck was updated without a browser, so layout
+  and screenshots remain unverified. Sweep turned out to be a weak baseline on this network, which
+  the plan had not anticipated.
+- *Process changes.* Run `bash tools/metrics.sh` before the campaign, not after, so refactors do not
+  follow the measured commit; capture screenshots in the same sprint that changes the UI; keep a
+  scripted number-trace for every document that quotes results.
+
