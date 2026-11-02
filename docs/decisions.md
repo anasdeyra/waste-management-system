@@ -1106,5 +1106,12 @@ artifacts, metrics, and presentation remain consistent.
   - Done-check correction (original kept as `s10-done-check.orig.sh`): the two checks that grep for the
     all-size mean now use `grep -qF --`, because the value starts with `-` and was read as an option; no
     expected value was changed.
+  - Further done-check corrections, same original kept: (1) the C check counted `grep '^BAD'` and matched the
+    checker's own total line `BADS 0`, so it now counts `^BAD `; (2) the J capture step ran after the
+    walkthrough had cancelled the only draft tour and so could not find a `DRAFT` tour; the Vite start, the SPA
+    route checks and the capture now run right after J step 1 (no assertion removed); (3) the A check for
+    `backend/routing-cache/` assumed the owner's cache exists; it is created lazily, was absent, and nothing in
+    S10 deleted it (every S10 run used an explicit scratch cache directory), so it is now an `INFO` line
+    while `backend/data/` is still required. Final run: 169 `PASS` lines in phases A to J, `FAILS=0`.
   - `docs/06-metrics.md` was assembled by a throw-away script that copies the tables and summaries
     verbatim from `docs/results/`; the script is not part of the repository.

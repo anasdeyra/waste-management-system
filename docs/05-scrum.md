@@ -2330,6 +2330,53 @@ contain 20 distinct routing instances; paired statistics use those 20.
 - `./mvnw test`, `npm run build`, `npm run lint` green; all diagrams render; the README §4.6
   walkthrough passes over HTTP on spare ports.
 
-**Review.** *To be filled at sprint close.*
+**Review.** Held 2026-11-02 against the automated done-check (phases A to J, 169 `PASS` lines,
+`FAILS=0`; phase K, the close-out texts, is run after these notes).
 
-**Retrospective.** *To be filled at sprint close.*
+| Deliverable | Observed result |
+|---|---|
+| Regression | `./mvnw test`: 406 tests, 0 failures, 0 errors, 0 skipped; `npm run build` exit 0; `npm run lint` exit 0 with 3 warnings, all in vendored `src/components/ui/` |
+| Metrics tooling | `bash tools/metrics.sh` exits 0 in 13 s; JDepend now reads all 273 class files (0 parse errors); published summaries identical to a fresh run |
+| Campaign | `docs/results/experiment/`: 540 rows, 180 runs, 60 scenarios, 3 repetitions, all completed and feasible, deterministic across repetitions, run on a clean tree (103 s wall time); an independent recomputation and a fresh 4-scenario re-run agree |
+| Code metrics | Java main 11251 SLOC in 239 files, 273 class files, 2432 methods; mean cyclomatic complexity 2.18, 33 of 897 methods at 10 or more; 133 PMD violations; `optimization/` depends on `java.*` only; one package cycle through `config/` |
+| Research answer | NN + 2-opt: -60.18 % distance and -10.88 % duration against the input order; NN alone -57.20 %; 2-opt improves NN in 17 of 20 instances (exact Wilcoxon p = 1.53e-05) |
+| Deck | `presentation/index.html`, 29 slides, self-contained, keyboard navigation, no overflow at 1280x720, no console error from `file://` |
+| Screenshots | 12 PNG files in `presentation/assets/` (login, collection points map, route evaluation, planner overview, agent execution, dashboard, evaluation batch and full page, run routes, history, audit log, traffic overlay), plus the architecture diagram and four UML exports |
+| Traceability | `docs/traceability.md`: FR-01 to FR-30, all 39 stories and 25 use cases, every path exists; gaps listed |
+| Reviewer walkthrough | README section 4.6 steps 1 to 15 scripted over HTTP on spare ports (26 `PASS` lines in phase J), the SPA routes served by Vite and the capture script producing 12 images |
+
+*Acceptance of the sprint goal.* Part 6 is answered with measured data, the deck and the traceability
+matrix exist, and the prototype and its documentation are consistent. The only open decision is the
+presentation date.
+
+*Known gaps.* The demand never exceeds the capacity, so the three profiles collapse to 20 distinct
+instances and capacity-bound behaviour is not measured; the baseline is a random shuffle; the frontend has
+no automated browser tests (D-040), so the deck screenshots and the walkthrough are the only UI evidence;
+`backend/routing-cache/` was absent when the done-check ran (the cache is created lazily and no S10 run
+used the default cache directory); the architecture diagram in the deck is dense because it draws every
+measured package dependency.
+
+**Retrospective.**
+
+- *Went well.* The planner's spikes held: the JDepend fork, the second PMD execution and oxlint worked on
+  the first run; the statistics script reproduced the planner's reference distances exactly (the
+  deterministic values), so the pipeline from `results.csv` to the tables and the chart is trustworthy.
+  Generating `docs/06-metrics.md` from the results files kept every number traceable, and the number-trace
+  check caught the one value that had been taken from the reference run instead of the committed one
+  (an execution-time maximum). The honest findings (weak baseline, 20 instances, sequencing-only timer)
+  made the research answer stronger, not weaker.
+- *Went badly.* The summary-script formats were fixed in the plan but one expression missed `async`
+  functions and constructors in the TypeScript report (13 of 709 functions) until the numbers were compared.
+  Three done-check expectations were wrong (a `grep` on a negative number read as an option, a `BAD*`
+  count that matched the script's own total line, and a capture step that ran after the walkthrough had
+  cancelled the only draft); the original script is kept as `s10-done-check.orig.sh`. The screenshot
+  capture is slow (about three minutes for 12 images) because it waits for network idle on every page. A
+  network interruption cost one restart of the executor, which was recoverable because each task is a commit.
+  The UI was again verified without an automated browser test, only through the scripted walkthrough and the
+  captured images.
+- *Process changes (recommendations for future work on the project).* Add real browser tests (Playwright
+  or Cypress) outside the main build; make the experiment capacity-bound so that demand profiles matter;
+  replace the random baseline by a realistic one; record the experiment commit and the metrics commit in
+  the committed results (done) and keep one commit per task; let the done-check start its servers once and
+  reuse them; split `TourService` and `ScenarioCsvImportService` and move the `*Properties` classes out of
+  `config/`.
