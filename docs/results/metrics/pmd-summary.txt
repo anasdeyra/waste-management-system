@@ -1,13 +1,13 @@
 ## Violations
-total: 135
+total: 137
 files: 35
 
 ## Violations by rule
 rule                                category         count
-CyclomaticComplexity                Design              38
+CyclomaticComplexity                Design              39
 NullAssignment                      Error Prone         16
+TooManyMethods                      Design              14
 NPathComplexity                     Design              13
-TooManyMethods                      Design              13
 ExcessiveImports                    Design              10
 ExcessiveParameterList              Design               9
 UselessPureMethodCall               Error Prone          9
@@ -26,7 +26,7 @@ package          count
 service             75
 domain              26
 traffic             13
-optimization         7
+optimization         9
 web                  7
 routing              5
 config               1
@@ -40,14 +40,13 @@ domain/Tour.java                                            12
 service/DemoDataService.java                                11
 traffic/TrafficSnapshotParser.java                          11
 domain/EvaluationRun.java                                    5
+optimization/PlanningScenario.java                           5
 service/EvaluationService.java                               5
 domain/EvaluationBatch.java                                  4
 service/EvaluationExportService.java                         4
-service/Mn01ImportService.java                               4
 
 ## Methods with cyclomatic complexity >= 10
  39  ScenarioCsvImportService.checkRow
- 35  PlanningScenario.PlanningScenario
  33  TourStop.correctOutcome
  32  ExperimentSpec.of
  29  DemoDataService.advance
@@ -60,6 +59,7 @@ service/Mn01ImportService.java                               4
  20  ScenarioCsvImportService.crossChecks
  17  SimpleCsv.records
  17  TourService.decidableResult
+ 16  PlanningScenario.validateCoordinates
  15  DemoDataService.load
  15  TourOptimizationModule.plan
  14  AuditEventController.search
@@ -69,6 +69,7 @@ service/Mn01ImportService.java                               4
  13  Mn01ImportService.importBaskets
  13  TwoOptImprovement.improve
  12  DemoDataService.doCreateTour
+ 12  PlanningScenario.validateMatrixAndDemand
  12  RoadNetworkMatrixProvider.buildMatrix
  12  StopOutcomeRequest.validateOutcome
  11  EvaluationExportService.scenariosCsv
@@ -79,28 +80,28 @@ service/Mn01ImportService.java                               4
  10  PolylineDecoder.decode
  10  TourService.correctOutcome
  10  TourService.loadDraftAndBuildScenario
-count: 33
+count: 34
 
 ## Cyclomatic complexity distribution (all methods and constructors)
-methods: 907
+methods: 909
 mean: 2.22
 median: 1.00
 p90: 5
 max: 39 (ScenarioCsvImportService.checkRow)
->= 10: 33 (3.64 %)
-bucket 1: 688 (75.85 %)
-bucket 2: 57 (6.28 %)
-bucket 3-4: 71 (7.83 %)
-bucket 5-9: 58 (6.39 %)
-bucket 10-19: 21 (2.32 %)
-bucket >= 20: 12 (1.32 %)
+>= 10: 34 (3.74 %)
+bucket 1: 688 (75.69 %)
+bucket 2: 57 (6.27 %)
+bucket 3-4: 71 (7.81 %)
+bucket 5-9: 59 (6.49 %)
+bucket 10-19: 23 (2.53 %)
+bucket >= 20: 11 (1.21 %)
 
 ## Cyclomatic complexity per package
 package          methods    mean  median  max  >= 10
 (root)                 1    1.00    1.00    1      0
 config                29    1.55    1.00    6      0
 domain               325    1.40    1.00   33      2
-optimization          34    4.09    1.00   35      5
+optimization          36    3.92    1.00   16      6
 repository            53    1.00    1.00    1      0
 routing               36    2.17    1.00   14      2
 security               8    1.62    1.00    6      0
@@ -119,5 +120,5 @@ domain.TourStop                                     83      33
 traffic.TrafficSnapshotParser                       72      27
 service.EvaluationExportService                     56      28
 service.Mn01ImportService                           49      13
+optimization.PlanningScenario                       48      16
 domain.EvaluationRun                                47       4
-optimization.PlanningScenario                       46      35

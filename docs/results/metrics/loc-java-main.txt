@@ -3,7 +3,7 @@ group                                             files     sloc  comments  blan
 backend/src/main/java/com/ase/wastems                 1       11         6       3
 backend/src/main/java/com/ase/wastems/config         13      560        51      73
 backend/src/main/java/com/ase/wastems/domain         36     2527       163     583
-backend/src/main/java/com/ase/wastems/optimization     12      474        66      65
+backend/src/main/java/com/ase/wastems/optimization     12      481        66      67
 backend/src/main/java/com/ase/wastems/repository     14      304        14      81
 backend/src/main/java/com/ase/wastems/routing        10      334        30      59
 backend/src/main/java/com/ase/wastems/security        4      128         7      20
@@ -12,4 +12,4 @@ backend/src/main/java/com/ase/wastems/traffic        11      365        25      
 backend/src/main/java/com/ase/wastems/web            17     1089        40     160
 backend/src/main/java/com/ase/wastems/web/dto        65     1183        75     178
 ----------------------------------------------------------------------------------
-TOTAL                                               240    11434       697    1697
+TOTAL                                               240    11441       697    1699
