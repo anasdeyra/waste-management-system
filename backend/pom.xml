@@ -98,6 +98,18 @@
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>jdepend-maven-plugin</artifactId>
             <version>2.1</version>
+            <!--
+              jdepend 2.9.1 (the plugin's default) cannot read Java 8+ constant-pool entries
+              ("Unknown constant: 18") and silently skips most Java 21 classes; the maintained
+              fork reads them (D-051).
+            -->
+            <dependencies>
+              <dependency>
+                <groupId>guru.nidi</groupId>
+                <artifactId>jdepend</artifactId>
+                <version>2.9.5</version>
+              </dependency>
+            </dependencies>
             <executions>
               <execution>
                 <id>jdepend-analysis</id>
@@ -133,6 +145,20 @@
                 <goals>
                   <goal>pmd</goal>
                 </goals>
+              </execution>
+              <execution>
+                <!-- Every method's cyclomatic complexity (distribution for docs/06-metrics.md). -->
+                <id>pmd-cc-all</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>pmd</goal>
+                </goals>
+                <configuration>
+                  <targetDirectory>${project.build.directory}/pmd-cc-all</targetDirectory>
+                  <rulesets>
+                    <ruleset>${project.basedir}/../tools/pmd/wastems-cc-all.xml</ruleset>
+                  </rulesets>
+                </configuration>
               </execution>
               <execution>
                 <!--

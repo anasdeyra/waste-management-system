@@ -44,7 +44,7 @@
   <rule ref="category/java/bestpractices.xml/MissingOverride"/>
   <rule ref="category/java/bestpractices.xml/UseCollectionIsEmpty"/>
   <rule ref="category/java/bestpractices.xml/UseTryWithResources"/>
-  <rule ref="category/java/bestpractices.xml/SwitchStmtsShouldHaveDefault"/>
+  <rule ref="category/java/bestpractices.xml/NonExhaustiveSwitch"/>
   <rule ref="category/java/bestpractices.xml/LiteralsFirstInComparisons"/>
   <rule ref="category/java/bestpractices.xml/PreserveStackTrace"/>
 
