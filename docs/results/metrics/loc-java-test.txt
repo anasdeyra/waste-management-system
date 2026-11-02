@@ -1,12 +1,12 @@
 group                                             files     sloc  comments  blanks
 ----------------------------------------------------------------------------------
-backend/src/test/java/com/ase/wastems/config          5      220         3      34
+backend/src/test/java/com/ase/wastems/config          5      222         3      34
 backend/src/test/java/com/ase/wastems/domain          2      614         2      62
-backend/src/test/java/com/ase/wastems/optimization      4      293         6      39
+backend/src/test/java/com/ase/wastems/optimization      5      488        21      56
 backend/src/test/java/com/ase/wastems/repository      6      399         5      58
 backend/src/test/java/com/ase/wastems/routing         2      221         0      32
-backend/src/test/java/com/ase/wastems/service        15     1797         8     193
+backend/src/test/java/com/ase/wastems/service        15     1853        12     195
 backend/src/test/java/com/ase/wastems/traffic         4      293         1      35
-backend/src/test/java/com/ase/wastems/web            32     6335        38     617
+backend/src/test/java/com/ase/wastems/web            32     6404        38     619
 ----------------------------------------------------------------------------------
-TOTAL                                                70    10172        63    1070
+TOTAL                                                71    10494        82    1091

@@ -1,16 +1,16 @@
 ## Functions
-functions: 709
-named: 296
-mean: 2.26
+functions: 712
+named: 297
+mean: 2.27
 median: 1.00
 p90: 5
 max: 32 (src/pages/tour-planner-page.tsx:39 TourPlannerPage)
->= 10: 27 (3.81 %)
-bucket 1: 465 (65.59 %)
-bucket 2: 103 (14.53 %)
-bucket 3-4: 65 (9.17 %)
-bucket 5-9: 49 (6.91 %)
-bucket 10-19: 23 (3.24 %)
+>= 10: 27 (3.79 %)
+bucket 1: 466 (65.45 %)
+bucket 2: 105 (14.75 %)
+bucket 3-4: 64 (8.99 %)
+bucket 5-9: 50 (7.02 %)
+bucket 10-19: 23 (3.23 %)
 bucket >= 20: 4 (0.56 %)
 
 ## Per directory
@@ -18,12 +18,12 @@ directory                            functions    mean  max  >= 10
 src                                          4    2.50    3      0
 src/components/agents                       13    3.00    8      0
 src/components/collection-points            50    2.52   19      2
-src/components/evaluations                  58    2.26   12      3
+src/components/evaluations                  60    2.32   13      3
 src/components/execution                    44    2.27   19      1
 src/components/fleet                         5    4.60    8      0
 src/components/maps                         54    2.06   12      2
 src/components/shared                        5    4.60   15      1
-src/components/tours                       123    2.20   26      4
+src/components/tours                       124    2.19   26      4
 src/hooks                                  133    1.29    5      0
 src/lib                                     34    2.88    9      0
 src/pages                                  186    2.69   32     14

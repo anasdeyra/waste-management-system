@@ -1,11 +1,11 @@
 ## Violations
-total: 133
+total: 135
 files: 35
 
 ## Violations by rule
 rule                                category         count
 CyclomaticComplexity                Design              38
-NullAssignment                      Error Prone         14
+NullAssignment                      Error Prone         16
 NPathComplexity                     Design              13
 TooManyMethods                      Design              13
 ExcessiveImports                    Design              10
@@ -26,8 +26,8 @@ package          count
 service             75
 domain              26
 traffic             13
+optimization         7
 web                  7
-optimization         5
 routing              5
 config               1
 web.dto              1
@@ -47,30 +47,30 @@ service/Mn01ImportService.java                               4
 
 ## Methods with cyclomatic complexity >= 10
  39  ScenarioCsvImportService.checkRow
+ 35  PlanningScenario.PlanningScenario
  33  TourStop.correctOutcome
  32  ExperimentSpec.of
  29  DemoDataService.advance
+ 28  EvaluationExportService.appendRows
  27  ScenarioCsvImportService.importCsv
  27  TrafficSnapshotParser.parse
  25  TourService.assign
  25  TrafficSnapshotParser.classify
- 20  EvaluationExportService.appendRows
+ 20  EvaluationAggregates.addGroup
  20  ScenarioCsvImportService.crossChecks
- 18  PlanningScenario.PlanningScenario
  17  SimpleCsv.records
  17  TourService.decidableResult
  15  DemoDataService.load
+ 15  TourOptimizationModule.plan
  14  AuditEventController.search
  14  GraphHopperRoadRouter.init
  14  Tour.structuralIssues
  13  ArrayCostMatrix.copyValidated
- 13  EvaluationAggregates.addGroup
  13  Mn01ImportService.importBaskets
  13  TwoOptImprovement.improve
  12  DemoDataService.doCreateTour
  12  RoadNetworkMatrixProvider.buildMatrix
  12  StopOutcomeRequest.validateOutcome
- 12  TourOptimizationModule.plan
  11  EvaluationExportService.scenariosCsv
  11  ExperimentService.run
  11  NearestNeighborConstruction.construct
@@ -82,32 +82,32 @@ service/Mn01ImportService.java                               4
 count: 33
 
 ## Cyclomatic complexity distribution (all methods and constructors)
-methods: 897
-mean: 2.18
+methods: 907
+mean: 2.22
 median: 1.00
-p90: 4
+p90: 5
 max: 39 (ScenarioCsvImportService.checkRow)
->= 10: 33 (3.68 %)
-bucket 1: 680 (75.81 %)
-bucket 2: 57 (6.35 %)
-bucket 3-4: 71 (7.92 %)
-bucket 5-9: 56 (6.24 %)
-bucket 10-19: 23 (2.56 %)
-bucket >= 20: 10 (1.11 %)
+>= 10: 33 (3.64 %)
+bucket 1: 688 (75.85 %)
+bucket 2: 57 (6.28 %)
+bucket 3-4: 71 (7.83 %)
+bucket 5-9: 58 (6.39 %)
+bucket 10-19: 21 (2.32 %)
+bucket >= 20: 12 (1.32 %)
 
 ## Cyclomatic complexity per package
 package          methods    mean  median  max  >= 10
 (root)                 1    1.00    1.00    1      0
 config                29    1.55    1.00    6      0
 domain               325    1.40    1.00   33      2
-optimization          25    4.00    1.00   18      5
+optimization          34    4.09    1.00   35      5
 repository            53    1.00    1.00    1      0
 routing               36    2.17    1.00   14      2
 security               8    1.62    1.00    6      0
-service              253    3.55    2.00   39     19
+service              254    3.60    1.50   39     19
 traffic               14    6.71    3.00   27      3
 web                  108    1.36    1.00   14      1
-web.dto               45    1.69    1.00   12      1
+web.dto               45    1.73    1.00   12      1
 
 ## Classes by total cyclomatic complexity (top 10)
 class                                            total highest
@@ -117,7 +117,7 @@ service.DemoDataService                            110      29
 domain.Tour                                        107      14
 domain.TourStop                                     83      33
 traffic.TrafficSnapshotParser                       72      27
+service.EvaluationExportService                     56      28
 service.Mn01ImportService                           49      13
-service.EvaluationExportService                     48      20
 domain.EvaluationRun                                47       4
-domain.EvaluationBatch                              41       3
+optimization.PlanningScenario                       46      35
