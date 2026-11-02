@@ -37,16 +37,16 @@ An agent's job is to help produce **all** of these, coherently, not only the cod
 | Tech stack chosen | ✅ Java 21 + Spring Boot 3 (REST API) + React 19 + Vite + TypeScript + Tailwind v4 + shadcn/ui + H2 (file) + Maven; Leaflet/React Leaflet installed (S2); GraphHopper 11.1 embedded behind `routing/` (S5) |
 | Project mode | ✅ Individual |
 | Prototype scope | ✅ Extended; multiple single-vehicle tours per day |
-| Optimization model | ✅ Directed road-network input-order baseline, NN + directed-cost 2-opt; 60 real-location scenarios fixed; NYC traffic overlay only; implemented in S5 (`optimization/`, `routing/`) |
+| Optimization model | ✅ Directed road-network input-order baseline, NN + directed-cost 2-opt; 60 real-location scenarios fixed; NYC traffic overlay only; implemented in S5 (`optimization/`, `routing/`); seeded experiment generator and runner ready (S9), campaign in S10 |
 | Repository scaffold | ✅ `backend/`, `frontend/`, `docs/`, `tools/`, `README.md` |
 | Toolchain | ✅ JDK 21 + Maven 3.9 + CKJM installed locally by `tools/setup-toolchain.sh` |
-| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog + sprint plan complete, S1–S8 executed (reviews + retrospectives written), S9–S10 planned; Part 6 not started |
+| Documentation (Parts 1, 2, 5, 6) | 🟡 Parts 1 and 2 complete; Part 5 Product Backlog + sprint plan complete, S1–S9 executed (reviews + retrospectives written), S10 planned; Part 6 not started |
 | UML diagrams (Part 3) | ✅ Use case, operational class, optimization sequence, tour-lifecycle activity, and OCL complete; all Mermaid sources rendered successfully; S6 and S7 changes rendered with Mermaid CLI; S8 changes rendered with Mermaid CLI |
-| Prototype (Part 4) | 🟡 S1–S8 implemented: auth/roles/users/categories, collection points + demand on a Leaflet map, vehicles/agents with availability and account links, idempotent MN01 import (449 baskets, 238 DSNY-eligible, MN01G depot, snapshot identity), tour drafts with map/list stop selection, explicit input order, vehicle/crew assignment and capacity validation, directed road routing on the versioned OSM snapshot and the retained three-method evaluation API, route comparison, proposal acceptance and the planning gate (S6: accept or keep input order, confirm to PLANNED, lock); crew execution (assigned-tour list, start with revalidation, stop outcomes, completion) and the idempotent MN01 demonstration (S7); cancellation, retained outcome corrections, operational history and the audit log (S8); dashboards, CSV and traffic pending |
-| Metrics + research answer (Part 6) | ❌ Not started (`tools/metrics.sh` is ready) |
+| Prototype (Part 4) | 🟡 S1–S9 implemented: auth/roles/users/categories, collection points + demand on a Leaflet map, vehicles/agents with availability and account links, idempotent MN01 import (449 baskets, 238 DSNY-eligible, MN01G depot, snapshot identity), tour drafts with map/list stop selection, explicit input order, vehicle/crew assignment and capacity validation, directed road routing on the versioned OSM snapshot and the retained three-method evaluation API, route comparison, proposal acceptance and the planning gate (S6: accept or keep input order, confirm to PLANNED, lock); crew execution (assigned-tour list, start with revalidation, stop outcomes, completion) and the idempotent MN01 demonstration (S7); cancellation, retained outcome corrections, operational history and the audit log (S8); dashboards, the evaluation explorer, evaluation CSV import/export, the seeded experiment runner and the display-only NYC DOT traffic overlay (S9) |
+| Metrics + research answer (Part 6) | ❌ Not started (`tools/metrics.sh` and `tools/run-experiment.sh` are ready) |
 | Presentation | ❌ Not started |
 
-**Last updated:** 2026-11-01 (S8 closed)
+**Last updated:** 2026-11-02 (S9 closed)
 
 Update this table whenever the state changes. Do not claim something is done unless the
 artifact exists in the repo.
@@ -95,16 +95,16 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [x] Collection points, vehicles, agents, tours, waste categories (CRUD) (waste categories + users done in S1; collection points + demand done in S2; vehicles and agents done in S3; tour drafts done in S4; tour lifecycle: confirm S6, execution S7, cancel S8)
 - [ ] Intelligent tour optimization on directed NYC road-network costs and impact measurement (engine, routing and retained runs S5; review/acceptance S6; 60-scenario campaign S10)
 - [x] Interactive maps for point editing/selection, tour display/comparison, and execution (point display/editing done in S2; stop selection done in S4; route comparison and attached routes done in S6; execution map S7; verified by build/bundle/proxy checks, D-040)
-- [ ] Versioned OSM/GraphHopper routing and timestamped NYC DOT traffic overlay (routing S5; traffic overlay S9)
-- [ ] Dashboards, CSV import/export, audit log (audit log done in S8; dashboards and CSV in S9)
+- [x] Versioned OSM/GraphHopper routing and timestamped NYC DOT traffic overlay (routing S5; traffic snapshot overlay S9; verified by the S9 done-check)
+- [x] Dashboards, CSV import/export, audit log (dashboards, CSV and traffic snapshot S9; audit S8)
 - [x] Import the included real MN01 basket/depot snapshots and add demo operations so a reviewer can try them immediately (snapshot import S3; demo operations S7, `dev` start or `POST /api/admin/demo`)
 
 ### Part 5 — Scrum → `docs/05-scrum.md`
 - [x] Product Backlog as user stories ("As a …, I want …, so that …")
 - [x] Prioritized, with acceptance criteria
 - [x] Sprint Backlog(s) — ten sprints (S1–S10) planned for AI-agent execution, `docs/05-scrum.md` §3; S1–S8 executed
-- [ ] Sprint review notes (S1–S8 recorded; S9–S10 pending)
-- [ ] Retrospective notes (what went well / badly) (S1–S8 recorded; S9–S10 pending)
+- [ ] Sprint review notes (S1–S9 recorded; S10 pending)
+- [ ] Retrospective notes (what went well / badly) (S1–S9 recorded; S10 pending)
 
 ### Part 6 — Metrology → `docs/06-metrics.md`
 > Tooling is in place (`bash tools/metrics.sh`); the measurements are not started.
@@ -116,7 +116,7 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [ ] Number of classes / methods
 - [ ] Depth of inheritance
 - [ ] Code smells
-- [ ] Generate and execute the fixed 60 real-location MN01 scenarios, retaining directed-road results and snapshot identifiers
+- [ ] Generate and execute the fixed 60 real-location MN01 scenarios, retaining directed-road results and snapshot identifiers (generator and runner ready in S9: `tools/run-experiment.sh`)
 - [ ] A research question **answered with the measured data**, not just stated
 
 ### Presentation → `presentation/`
@@ -163,6 +163,7 @@ project-ase/
 ├── docs/
 │   ├── decisions.md          # decision log
 │   ├── geospatial-data.md    # NYC sources, snapshots, maps, routing, attribution
+│   ├── evaluation-csv.md     # evaluation CSV import/export, seeded experiment, CLI
 │   ├── 01-analysis.md
 │   ├── 02-literature-review.md
 │   ├── 03-uml/
@@ -171,6 +172,8 @@ project-ase/
 ├── tools/
 │   ├── setup-toolchain.sh    # installs JDK / Maven / CKJM into ~/.local/opt
 │   ├── fetch-road-snapshot.sh # refreshes the OSM road snapshot (new routing version)
+│   ├── fetch-traffic-snapshot.py # refreshes the NYC DOT traffic snapshot (new version)
+│   ├── run-experiment.sh     # headless seeded experiment (S10 campaign)
 │   ├── toolchain.env
 │   ├── metrics.sh            # Part 6 entry point
 │   ├── count-loc.py          # language-aware LOC counter
@@ -180,7 +183,7 @@ project-ase/
 
 The top-level shape is stable: `backend/` and `frontend/` replace the single `src/` folder
 because the prototype is two independently built applications (D-018). The domain packages
-(`domain/`, `repository/`, `service/`, `web/`, `optimization/`, `routing/`) are created as the
+(`domain/`, `repository/`, `service/`, `web/`, `optimization/`, `routing/`, `traffic/`) are created as the
 feature sprints are implemented. D-019–D-022 fix the NYC/MN01, map, and road-network direction.
 
 ## 7. Conventions

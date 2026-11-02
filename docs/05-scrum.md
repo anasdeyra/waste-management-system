@@ -363,7 +363,7 @@ on the same scenario so that I can review an optimized proposal and measure its 
 - A failed run does not modify or corrupt the existing operational tour.
 
 **Traceability:** FR-15, FR-16, FR-19, FR-20, FR-21; NFR-04 to NFR-09.
-**Status:** Done in S5 (engine, retention and API); review UI in S6.
+**Status:** Done in S5 (engine, retention and API); review UI in S6; seeded experiment batches and CSV scenarios reuse the same retention (S9).
 
 #### US-22 — Understand an infeasible or failed optimization — P1
 
@@ -584,6 +584,7 @@ routing costs.**
   automatic rerouting.
 
 **Traceability:** FR-25; NFR-07, NFR-10, NFR-12.
+**Status:** Done in S9 (committed timestamped NYC DOT snapshot; display-only overlay with observation time, coverage note, attribution and disclaimer; never a cost input).
 
 ### 1.8 Epic E07 — Dashboards and evaluation CSV exchange
 
@@ -600,6 +601,7 @@ current operational work at a glance.**
 - The dashboard does not imply real-time GPS tracking or live municipal operations.
 
 **Traceability:** FR-07, FR-09, FR-11, FR-13, FR-28; NFR-03.
+**Status:** Done in S9 (resource, tour and stop-progress summaries for a planning period with links to filtered views).
 
 #### US-36 — Explore retained evaluation comparisons — P2
 
@@ -618,6 +620,7 @@ that I can inspect the optimizer's measured impact and reproducibility informati
   demo into the fixed 60-scenario experiment.
 
 **Traceability:** FR-20, FR-21, FR-28; NFR-04, NFR-06, NFR-07, NFR-09.
+**Status:** Done in S9 (explorer of retained runs and batches with per-method comparisons, reproducibility fields and per-batch aggregates; demo excluded from aggregates).
 
 #### US-37 — Import an evaluation scenario CSV — P2
 
@@ -635,6 +638,7 @@ I can reproduce a controlled experiment without manually re-entering every point
   planning methods; this story does not import operational tours or general master data.
 
 **Traceability:** FR-15, FR-29; NFR-02, NFR-07, NFR-09, NFR-12.
+**Status:** Done in S9 (documented CSV schema; strict atomic validation with row errors; three-method evaluation of imported scenarios).
 
 #### US-38 — Export evaluation results CSV — P2
 
@@ -654,6 +658,7 @@ and analyze the baseline, intermediate, and optimized measurements.**
   export.
 
 **Traceability:** FR-20, FR-21, FR-29; NFR-07, NFR-09.
+**Status:** Done in S9 (one row per run and method including failures; values sufficient to recompute changes).
 
 ### 1.9 Epic E08 — Auditability
 
@@ -699,7 +704,7 @@ The backlog covers FR-01 through FR-30. In particular:
 | Cadence | Scope-bounded sprints with **no calendar dates** (D-006). A sprint ends when every committed story's done checks pass and the review/retrospective notes are written. |
 | Selection | Stories are selected in backlog priority order, adjusted by hard dependencies; each sprint states its entrance criteria. |
 | Sizing | Relative task complexity (XS/S/M/L), because plan-based elapsed time is meaningless for an AI agent. The task backlog, not a calendar, defines the sprint length. |
-| Status | **S1–S8 executed; S9–S10 planned.** Review and retrospective slots of S9–S10 stay empty until each sprint actually closes. |
+| Status | **S1–S9 executed; S10 planned.** Review and retrospective slots of S10 stay empty until the sprint actually closes. |
 
 Differences from a human-team sprint backlog, and why:
 
@@ -752,7 +757,7 @@ Differences from a human-team sprint backlog, and why:
 | S6 | Optimization review, comparison, planning gate | US-23…US-25 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S7 | Agent execution loop and the complete MN01 demo | US-26…US-29, US-33 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
-| S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Not started |
+| S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S10 | Metrics campaign and project closure | Part 6 execution + presentation content | Not started |
 
 Notes on the selection:
@@ -2183,9 +2188,88 @@ scope, the session model and the verification level.
   "unavailable" state without a snapshot, and evaluation matrices are identical before and after
   reading it.
 
-**Review.** *To be filled at sprint close.*
+**Review.** 2026-11-02.
 
-**Retrospective.** *To be filled at sprint close.*
+- **Tests.** `./mvnw test`: **406 tests, 0 failures, 0 errors, 0 skipped** (326 from S1-S8 plus 80 new:
+  schema upgrade 3, batch 4, generator 11, experiment 10, explorer 11, export 8, import 9, CLI 3,
+  dashboard 5, traffic 16). `npm run build` exits 0; `npm run lint` reports only the three
+  pre-existing warnings in the vendored `src/components/ui/`.
+- **Done-check.** `s9-done-check.sh` ran against the S9 jar on port 8081 with scratch H2 databases and a
+  scratch routing cache, the headless CLI on a random port, and Vite on 5174. Final run: **162 `PASS`
+  lines (counted from the output), `FAILS=0`**. The owner's servers on 8080 and 5173, `backend/data/`
+  (only a copy was opened, phase A4 ran: a 3-point experiment on the copy answered 201 `COMPLETED`) and
+  `backend/routing-cache/` were untouched. The hand-run experiment (8 runs) took 1.3 s over HTTP; the CLI
+  run (2 scenarios, including JVM start and graph import) took 10 s. The four diagrams render with the
+  Mermaid CLI (exit 0, SVG written, no syntax error). The canonical 60-scenario campaign was **not** run.
+- **Script corrections** (original kept as `s9-done-check.orig.sh`, see D-050): two text greps matched
+  pre-existing prose ("Traffic never enters (D-021)" in a comment, a note in the indicator table) and
+  now look for code references; the A2 check expected three `SchemaUpgrade` log lines although
+  Hibernate 6.6 had already altered the three ENUM columns (it now asserts the resulting `VARCHAR`
+  types); phase C logged in before the start-up runner had seeded the accounts (it now waits for the
+  seeder). The first two runs, with `FAILS=3` and `FAILS=2`, are in `s9-done-check.run1.out` and
+  `s9-done-check.run2.out`.
+
+| Check | Observed |
+|---|---|
+| Static and docs | optimization independence and GraphHopper confinement unchanged; traffic package isolated (no reference from `optimization/`, `routing/`, `service/`, `domain/`, `repository/`, `config/`; only `TrafficController` and its DTO in `web/`); traffic snapshot SHA-256 `2a1b9f1f...`; fetch tool unchanged; 40 audit actions; both `SecurityConfig` matchers; no dependency change against `main`; docs name every column; four diagrams render |
+| S8 database upgraded (A1-A3) | S8 demo loaded; S9 jar: point count back-filled for the 4 old runs, demo creates nothing, old runs listed (demo draft 8 points), experiment 201 and CSV import 201 (new enum values stored), both audit actions present, the three columns are `VARCHAR`; restart: no conversion, both batches kept |
+| Owner database copy (A4) | run on a copy: 3-point experiment 201 `COMPLETED` |
+| Dashboard | vehicles 3/2/1, agents 5/4/1, points 449/448/1, tours one per state, stops 14 (8 pending, 4 collected, 2 not collected), `collectedKg` equal to the sum over the tours; today-only period 4 tours, tomorrow empty; inverted period 400 on `to`; roles 200/403/401 |
+| Hand-run experiment and independent checks | 8 runs 201 `COMPLETED`; 15 aggregate rows in group order; independent Python port of `java.util.Random` reproduces the stops and demand of every run; every distance and travel time recomputed from the retained matrix and visit order; permutations; NN + 2-opt <= NN |
+| Determinism | the same request again: identical stops, matrices, visit orders, distances and durations for 8 scenarios |
+| Explorer API | kind, profile, size, seed and status filters; paging; 400s on `page`, `size`, `pointCount`, `kind`; run detail with scenario fields and change values; batch 404/400; agent 403, anonymous 401 |
+| Results export | 24 rows, header, recalculation of every change within 0.001, duration identity, source and snapshot ids, no operational column; `kind=TOUR_DRAFT` export 12 rows; scenario export 140 rows in the import format |
+| CSV round trip | the scenario export imported again: 8 runs, `EQUAL 24` rows per scenario key and method |
+| CSV validation | three bad rows give 400 with exactly those rows (2 `category`, 3 `latitude`, 4 `demand_kg`); header error row 1 `demand_kg`; empty body 400 `file`; JSON content type 415; refused imports created no batch and no audit row |
+| Failure and infeasible rows | Queens point `ROUTING_FAILED` / `POINT_NOT_ROUTABLE`; 5 kg capacity all methods infeasible; export rows with empty indicators; aggregates with 0 comparable runs |
+| Audit | two `EVALUATION_EXPERIMENT_RUN` by `admin` (`SUCCESS`); two `EVALUATION_SCENARIOS_IMPORTED` (round trip `SUCCESS`, Queens batch `FAILURE`); `TOUR_EVALUATED` only for tour runs |
+| Traffic overlay | snapshot id `nyc-dot-i4gi-tjb9:12:2a1b9f1faa7f`, observed `2026-11-01T20:08:05Z` (`15:08:05` NYC), 8 observed / 4 without reading, bands, geometry sources, truncated link with 12 coordinates, GeoJSON order inside NYC, the four texts; roles and `POST` 405; matrices identical before and after reading the overlay, tour revision unchanged |
+| Traffic unavailable (C) | 200, `available: false`, "Traffic snapshot not found", no links; the rest of the app answers |
+| CLI and cross-database determinism (D) | exit 0 in 10 s; `results.csv` 6 rows, `scenarios.csv` 35 rows, `batch.json` 2 runs `COMPLETED` by `system`, `run-info.txt` with `commit:` and `exit: 0`; rows `EQUAL` to the API batch of another database; second run into the same directory exits 64 |
+| Restart (B2) | demo creates nothing; batches, runs and audit rows persist; an experiment run is still readable |
+| Frontend, bundle, proxy | `api.ts` mirrors the S9 records; hooks call the new endpoints; three PLANNER routes; no traffic reference in the evaluation and tour hooks and components; build 0; lint clean outside `components/ui`; all 30 literal UI strings in the bundle; through Vite 5174: dashboard, batches, CSV import with CSRF 201, `text/csv` export, traffic overlay and the three SPA routes |
+
+- **Acceptance.**
+  - **US-34** met: official link geometry and attributes with observation time, age, coverage note,
+    attribution and the DOT disclaimer; unsensed streets are not coloured; stale, no-reading, invalid and
+    unavailable states are visible; display only, shown by identical matrices and the isolation test.
+    Limits: D-040 (no browser walkthrough) and the overlay is a committed snapshot refreshed by a tool,
+    not live.
+  - **US-35** met: resource and tour summaries, stop progress for a selected period, links to filtered
+    views and the explicit "not live tracking" text. Limit: D-040.
+  - **US-36** met: batch and run selection, per-method distance, duration, execution time, coverage and
+    checks, change only for comparable results, profile, seed and size, configuration, snapshots, road
+    graph version and visit order; aggregates per batch exclude the hand-crafted demo. Limit: D-040.
+  - **US-37** met: documented schema and example; header, type, range, kilogram, category, duplicate
+    point/order and required-field validation with row errors; atomic; provenance; the three methods
+    use the same frozen scenario; no operational import.
+  - **US-38** met: one row per run and method including failures; all required columns; recalculation
+    verified; no operational data.
+  - Fixed-matrix experiment support done: generator, determinism, runner and CLI for S10; the 60
+    canonical scenarios were **not** run in S9.
+- **Deferred.** The canonical 60-scenario campaign, the metrics and the research answer (S10).
+- **Known gaps.** No browser walkthrough (D-040). The traffic overlay is a stored snapshot (refresh by
+  `tools/fetch-traffic-snapshot.py` and a commit), not live. Experiment batches run synchronously in the
+  HTTP request (bounded to 180 runs). CSV import references existing collection points only. Capacity is
+  a fixed assumption (10 000 kg) under which every canonical scenario is feasible.
+- **Reviewer walkthrough.** README section 4.6 steps 12-15 and section 4.7.
+
+**Retrospective.**
+
+- *Went well.* 406 tests passed and the generator golden values (computed by the planner with a port of
+  `java.util.Random`) matched on the first try; the independent Python re-implementation, the CSV round
+  trip and the cross-database CLI comparison all agreed, so determinism is demonstrated, not assumed.
+  Computing a batch in memory first and saving it in one transaction (import) or one transaction per run
+  (experiment) avoided the rollback-only pitfall. Rendering every diagram right after its edit again
+  cost nothing.
+- *Went badly.* The plan stated that `ddl-auto: update` never changes a column type; Hibernate 6.6 does
+  alter the ENUM columns on H2, so the planned `SchemaUpgrade` conversion is only a safety net and the
+  matching done-check expectation was wrong. Two further done-check expectations (text greps over
+  pre-existing prose, a start-up race) needed correcting, so the first two runs failed. The traffic service has two constructors (one for tests) and first failed to start until the public one carried `@Autowired`. The UI was again verified without a browser.
+- *Process changes for S10.* Probe framework behaviour on a copy of the old database before relying on
+  it in a plan; have done-check scripts wait for start-up runners, not only for the port; run the
+  canonical campaign with `bash tools/run-experiment.sh metrics/experiment` on an otherwise idle machine
+  and keep `run-info.txt` and `run.log`.
 
 ### 3.13 Sprint S10 — Metrics campaign and project closure
 
@@ -2198,7 +2282,8 @@ asks before rendering.
 
 **Task backlog**
 
-1. (L) Execute the fixed 60-scenario campaign (S9 runner) and store all outputs under
+1. (L) Execute the fixed 60-scenario campaign with `bash tools/run-experiment.sh metrics/experiment`
+   (S9 runner; formats in `docs/evaluation-csv.md`) and store all outputs under
    `metrics/` next to the `tools/metrics.sh` reports. Run `bash tools/metrics.sh` for LOC,
    CKJM, PMD, JDepend; keep every number reproducible by a listed command.
 2. (M) Write `docs/06-metrics.md` from the real outputs: metric tables pointing at their

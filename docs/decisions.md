@@ -950,3 +950,99 @@ artifacts, metrics, and presentation remain consistent.
     dialog needs `tour.correctable`.
   - The done-check ran unmodified: 173 `PASS` lines, `FAILS=0` on the first run, no
     `s8-done-check.orig.sh`.
+
+## D-050 — S9 implementation conventions
+
+- **Date:** 2026-11-02
+- **Decision:**
+  - **Roles.** Dashboard, explorer reads, CSV import and export and the traffic overlay: PLANNER and ADMIN
+    (two new `SecurityConfig` matchers, `/api/dashboard/**` and `/api/traffic/**`). Running an experiment
+    batch (`POST /api/admin/experiments`): ADMIN only. AGENT 403, anonymous 401.
+  - **Scenario kinds and batches.** `ScenarioKind` is `TOUR_DRAFT`, `EXPERIMENT`, `CSV_IMPORT`. A new
+    entity `EvaluationBatch` (table `evaluation_batch`, outside the D-033 class diagram) records one
+    experiment execution or one CSV import; runs reference it by a plain `batch_id`. A batch is
+    *canonical* iff it has all three profiles, seeds exactly 1-5 and sizes exactly 10, 25, 50, 100 (any
+    repetitions). Aggregates exist per batch only, so the demo tour evaluations never enter them.
+  - **Generator `mn01-v1`.** Pool: the 238 DSNY baskets of the committed snapshot sorted by `basketid`
+    (`String.compareTo`). Locations: `java.util.Random(seed)` Fisher-Yates prefix; the first `size`
+    entries are the input order. Demand: `java.util.Random(31*seed+code)` per point in input order;
+    `UNIFORM_LOW`(1) 10-30 kg, `UNIFORM_HIGH`(2) 30-60 kg, `HOTSPOT`(3) one point in five 60-120 kg else
+    5-20 kg, whole kilograms, category `Mixed litter`, synthetic. Vehicle capacity fixed at 10 000 kg (an
+    assumed rear-loader payload; the largest canonical total is 4 639 kg, so every canonical scenario is
+    feasible and the experiment measures sequencing); service time 600 s; depot MN01G. Scenario key
+    `mn01-<PROFILE>-s<seed>-n<size>`. Sizes are nested and the profiles of a seed and size share the
+    points. The same profile, seed and size give identical stops, matrices, orders, distances and
+    durations on any database (only execution time, ids and timestamps differ).
+  - **Experiment trigger.** `POST /api/admin/experiments` (synchronous, at most 180 runs, field-level
+    400s, 201 with `Location`) and `tools/run-experiment.sh OUT_DIR [--wastems.experiment.NAME=VALUE]`
+    (profile `experiment`, random port, own H2 database and routing cache under `OUT_DIR`, writes
+    `results.csv`, `scenarios.csv`, `batch.json`, `run-info.txt`, `run.log`; exit codes 0 completed, 1
+    error, 2 aborted, 64 non-empty directory; `WASTEMS_SKIP_BUILD=1` skips the rebuild). Each run is saved in
+    its own transaction; a routing outage aborts the batch and audits it as `FAILURE`.
+  - **CSV import (US-37).** `POST /api/evaluations/imports` with a raw `text/csv` body; strict whole-file
+    validation first (columns, types, ranges, kilograms with at most two decimals, category, point
+    identity, duplicate point/category/order, constant capacity/profile/seed per scenario, limits 1 MiB,
+    5 000 rows, 10 scenarios, 100 points); any error is a 400 with at most 100 `rowErrors` and nothing is
+    created; then 409 (no MN01G depot) or 503; then the batch, its runs and one audit event are saved in
+    one transaction. Imported points must already exist and keep their ids and source keys.
+  - **CSV export (US-38).** One row per run and planning method (37 columns, `docs/evaluation-csv.md`);
+    routing-failed runs give three rows with empty indicators; the percent change
+    `(value - inputOrder) / inputOrder x 100` is computed only in `EvaluationComparison` and is empty
+    unless the run is completed, both results are feasible and the baseline is above 0. The batch
+    scenarios export uses the import format (round trip).
+  - **Aggregates.** Per batch, grouped all / by size / by profile and per method: mean of the per-run
+    changes over comparable runs (not a ratio of sums), min and max, mean distance and duration, mean
+    execution time, runs, comparable and excluded runs.
+  - **Dashboard.** `GET /api/dashboard/operations?from&to` over planning dates; resource counts are
+    current; tour counts by status for tours planned in the period; stop progress and collected kilograms
+    over PLANNED, IN_PROGRESS and COMPLETED tours only; links to filtered lists; no stop list view; the
+    page states that it is recorded data, not live tracking.
+  - **Traffic overlay.** A committed, timestamped snapshot
+    (`backend/src/main/resources/traffic/mn01-traffic-links.json`, SHA-256 `2a1b9f1f...`, snapshot id
+    `nyc-dot-i4gi-tjb9:12:2a1b9f1faa7f`, feed time 2026-11-01T20:08:05Z), refreshed only by
+    `tools/fetch-traffic-snapshot.py`; the running application never calls the feed. Links are `OBSERVED`
+    (no more than 15 minutes older than the feed time), `STALE`, `NO_DATA` or `INVALID` (blank id,
+    unparsable time, unusable geometry, speed above 100 mph; counted, not drawn); bands under 10, 10-25,
+    25 mph and over; geometry from the decoded polyline (doubled backslashes reduced) else `link_points`
+    (last token dropped at 255 characters); times converted from `America/New_York`; a missing snapshot
+    answers 200 with `available: false`. The package `traffic/` is isolated (enforced by
+    `TrafficIsolationTest`); the texts are the coverage note, the display-only note, the attribution and
+    the NYC DOT disclaimer.
+  - **H2 ENUM finding and schema.** Hibernate maps string enums to native H2 `ENUM` columns. The three
+    affected columns (`audit_event.action`, `audit_event.entity_type`, `evaluation_run.scenario_kind`) and
+    the new enum columns are mapped with `@JdbcTypeCode(SqlTypes.VARCHAR)`; `SchemaUpgrade` converts any
+    remaining `ENUM` column of those three at start-up and back-fills `evaluation_run.point_count`. New
+    nullable columns `evaluation_run.batch_id`, `scenario_key`, `repetition`, `point_count`,
+    `evaluation_stop.demand_breakdown` and the table `evaluation_batch`. A fresh Hibernate VARCHAR enum
+    column carries a `CHECK (col in (...))` constraint, so a future enum value would need `SchemaUpgrade`
+    to drop it.
+  - **Audit.** Two new actions (catalogue 40), `EVALUATION_EXPERIMENT_RUN` and
+    `EVALUATION_SCENARIOS_IMPORTED`, entity type `EVALUATION_BATCH` (9 types), one event per batch written
+    in the transaction that saves the batch; outcome `FAILURE` when a run is `ROUTING_FAILED` or the batch
+    was aborted. Reads, exports and the overlay are not audited.
+- **Rationale:** One generator, one runner and one export format make the S10 campaign reproducible and
+  checkable by an independent recomputation. A committed snapshot keeps the traffic layer reproducible and
+  offline and makes the D-021 boundary structural. Validating the whole CSV before writing anything keeps
+  imports atomic; a single percent-change function keeps the explorer, the aggregates and the export
+  consistent.
+- **Deviations from the plan.**
+  - Hibernate 6.6 (Spring Boot 3.5) itself alters the three existing `ENUM` columns to `VARCHAR` on
+    `ddl-auto: update` (the plan said it never changes a column type), so the `SchemaUpgrade` conversion
+    never logs on an S8 database; it remains as a safety net and is covered by its unit test. The done-check
+    assertion expecting three `Schema upgrade: ... converted` log lines was replaced by a check that the
+    three columns are `VARCHAR` afterwards.
+  - The `ExperimentCommandRunnerTest` case with properties `[HOTSPOT]`, `[2]`, `[5, 3]` and two repetitions
+    asserts 4 runs (1 x 1 x 2 sizes x 2 repetitions); the plan said 2.
+  - `TrafficOverlayService` has two constructors (one with a `Clock` for tests); the public one carries
+    `@Autowired`.
+  - The tests that import MN01 clean the imported baskets, depot and source snapshots after themselves
+    (the plan only asked for cleanup before), so later test classes see the database they expect.
+  - `ExperimentOutputWriter` reads the batch through `EvaluationExplorerService` rather than a repository.
+  - The commit trailer is `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`, as the executing
+    environment instructs.
+  - Done-check corrections (original kept as `s9-done-check.orig.sh`): (1) the A2 ENUM check above; (2)
+    two greps for the word "traffic" matched pre-existing prose in `RoadNetworkMatrixProvider.java` and
+    `evaluation-indicator-table.tsx` and now look for code references (`com.ase.wastems.traffic`,
+    `TrafficOverlay`, `/api/traffic`, `useTrafficOverlay`, the traffic components); (3) phase C logged in
+    right after the port opened, before the `dev` runner had created the accounts, and now waits for the
+    seeder. No expected value of the plan was weakened; the final run has 162 `PASS` lines and `FAILS=0`.
