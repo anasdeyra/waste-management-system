@@ -37,8 +37,10 @@ export function RunTable({ items }: { items: EvaluationRunListItem[] }) {
             <TableHead>Points</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Input-order distance</TableHead>
+            <TableHead>Sweep change</TableHead>
             <TableHead>NN change</TableHead>
             <TableHead>NN + 2-opt change</TableHead>
+            <TableHead>NN + 2-opt change vs sweep</TableHead>
             <TableHead>NN + 2-opt duration change</TableHead>
             <TableHead>NN + 2-opt execution time</TableHead>
           </TableRow>
@@ -46,6 +48,7 @@ export function RunTable({ items }: { items: EvaluationRunListItem[] }) {
         <TableBody>
           {items.map((r) => {
             const io = method(r, 'INPUT_ORDER')
+            const sweep = method(r, 'SWEEP')
             const nn = method(r, 'NEAREST_NEIGHBOR')
             const opt = method(r, 'NN_PLUS_2_OPT')
             return (
@@ -60,8 +63,10 @@ export function RunTable({ items }: { items: EvaluationRunListItem[] }) {
                   </Badge>
                 </TableCell>
                 <TableCell>{io?.feasible ? formatDistanceKm(io.distanceM) : '—'}</TableCell>
+                <TableCell><Change value={sweep?.distanceChangePct} /></TableCell>
                 <TableCell><Change value={nn?.distanceChangePct} /></TableCell>
                 <TableCell><Change value={opt?.distanceChangePct} /></TableCell>
+                <TableCell><Change value={opt?.distanceChangeVsSweepPct} /></TableCell>
                 <TableCell><Change value={opt?.durationChangePct} /></TableCell>
                 <TableCell>{opt ? formatExecutionMs(opt.executionTimeMs) : '—'}</TableCell>
               </TableRow>

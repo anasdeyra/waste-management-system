@@ -36,6 +36,7 @@ import type { EvaluationBatchDetail } from '@/types/api'
 type Group = 'ALL' | 'SIZE' | 'PROFILE'
 
 const chartConfig: ChartConfig = {
+  SWEEP: { label: METHOD_LABELS.SWEEP, color: METHOD_STYLES.SWEEP.color },
   NEAREST_NEIGHBOR: { label: METHOD_LABELS.NEAREST_NEIGHBOR, color: METHOD_STYLES.NEAREST_NEIGHBOR.color },
   NN_PLUS_2_OPT: { label: METHOD_LABELS.NN_PLUS_2_OPT, color: METHOD_STYLES.NN_PLUS_2_OPT.color },
 }
@@ -61,6 +62,7 @@ export function BatchSummary({ detail }: { detail: EvaluationBatchDetail }) {
   const sizes = aggregates.filter((a) => a.group === 'SIZE')
   const chartData = [...new Set(sizes.map((a) => a.value))].map((size) => ({
     size,
+    SWEEP: sizes.find((a) => a.value === size && a.method === 'SWEEP')?.meanDistanceChangePct,
     NEAREST_NEIGHBOR: sizes.find((a) => a.value === size && a.method === 'NEAREST_NEIGHBOR')?.meanDistanceChangePct,
     NN_PLUS_2_OPT: sizes.find((a) => a.value === size && a.method === 'NN_PLUS_2_OPT')?.meanDistanceChangePct,
   }))
@@ -123,6 +125,8 @@ export function BatchSummary({ detail }: { detail: EvaluationBatchDetail }) {
                   <TableHead>Mean distance</TableHead>
                   <TableHead>Mean distance change</TableHead>
                   <TableHead>Min / max</TableHead>
+                  <TableHead>Comparable vs sweep</TableHead>
+                  <TableHead>Mean distance change vs sweep</TableHead>
                   <TableHead>Mean duration change</TableHead>
                   <TableHead>Mean execution time</TableHead>
                 </TableRow>
@@ -140,6 +144,8 @@ export function BatchSummary({ detail }: { detail: EvaluationBatchDetail }) {
                     <TableCell>
                       {formatChangePct(a.minDistanceChangePct)} / {formatChangePct(a.maxDistanceChangePct)}
                     </TableCell>
+                    <TableCell>{a.method === 'NEAREST_NEIGHBOR' || a.method === 'NN_PLUS_2_OPT' ? a.comparableVsSweepRuns : '—'}</TableCell>
+                    <TableCell>{formatChangePct(a.meanDistanceChangeVsSweepPct)}</TableCell>
                     <TableCell>{formatChangePct(a.meanDurationChangePct)}</TableCell>
                     <TableCell>
                       {a.meanExecutionTimeMs === undefined ? '—' : formatExecutionMs(a.meanExecutionTimeMs)}
@@ -150,7 +156,7 @@ export function BatchSummary({ detail }: { detail: EvaluationBatchDetail }) {
             </Table>
           </div>
           <p className="text-xs text-muted-foreground">
-            Change vs input order is shown only when both results are feasible.
+            Change vs input order (and, for NN and NN + 2-opt, vs sweep) is shown only when both results are feasible; a run retained before the sweep baseline existed is not comparable with sweep.
           </p>
         </section>
 
@@ -164,6 +170,9 @@ export function BatchSummary({ detail }: { detail: EvaluationBatchDetail }) {
                 <YAxis tickFormatter={(v: number) => `${v}%`} width={50} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="SWEEP" fill={METHOD_STYLES.SWEEP.color} radius={3}>
+                  <LabelList dataKey="SWEEP" position="top" formatter={(v: unknown) => formatChangePct(v as number | undefined)} />
+                </Bar>
                 <Bar dataKey="NEAREST_NEIGHBOR" fill={METHOD_STYLES.NEAREST_NEIGHBOR.color} radius={3}>
                   <LabelList dataKey="NEAREST_NEIGHBOR" position="top" formatter={(v: unknown) => formatChangePct(v as number | undefined)} />
                 </Bar>

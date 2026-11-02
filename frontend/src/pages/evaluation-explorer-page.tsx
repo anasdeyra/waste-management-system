@@ -60,7 +60,7 @@ export default function EvaluationExplorerPage() {
       <div>
         <h1 className="text-xl font-semibold">Evaluation explorer</h1>
         <p className="text-sm text-muted-foreground">
-          Retained three-method comparisons. The hand-crafted demo tours are listed as tour evaluations and are never part of an experiment summary.
+          Retained four-method comparisons. The hand-crafted demo tours are listed as tour evaluations and are never part of an experiment summary.
         </p>
       </div>
 
