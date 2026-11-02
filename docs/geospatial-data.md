@@ -92,6 +92,34 @@ out body;
 - The GraphHopper graph cache is derived data in `backend/routing-cache/` (git-ignored, rebuilt
   automatically in about 2 s).
 
+### 3.2 Traffic snapshot (NYC DOT, D-050)
+
+The traffic overlay reads one committed, timestamped snapshot instead of calling the DOT at run
+time (reproducible, works offline, tests need no network; the D-021 boundary is structural).
+
+- **File:** `backend/src/main/resources/traffic/mn01-traffic-links.json` (9 705 bytes), SHA-256
+  `2a1b9f1faa7fdffe63b547971e68d0eadbdad65b7c68f92b52be532549a19467`.
+- **Snapshot id:** `nyc-dot-i4gi-tjb9:12:2a1b9f1faa7f` (`nyc-dot-i4gi-tjb9:<records>:<first 12 hex of the
+  SHA-256>`).
+- **Source:** DOT Traffic Speeds, NYC Open Data (Socrata `i4gi-tjb9`), no API key needed. The query is
+  stored in the file (`query`): rows with `data_as_of` in a 120-minute window, newest first.
+- **Retrieved:** 2026-11-01T21:53:38Z. **Feed time:** `2026-11-01T15:08:05` America/New_York
+  = 2026-11-01T20:08:05Z (EST, after the DST change of that morning).
+- **Window and selection:** 120 minutes, 4 301 rows, 125 links, **12 kept**: the newest row per
+  `link_id`, keeping links with at least one vertex inside the bounding box of the §3.1 road extract
+  (south 40.695, west -74.025, north 40.735, east -73.985); row fields unmodified.
+- **Classification of this snapshot:** 8 observed, 0 stale, 4 without a valid reading, 0 invalid.
+- **Refresh:** `python3 tools/fetch-traffic-snapshot.py backend/src/main/resources/traffic/mn01-traffic-links.json`
+  (stdlib only). A refresh is a **new snapshot version**: replace the file, update this section (SHA-256,
+  counts, times) and the pinned counts in the tests, then run the tests. The running application never
+  fetches the feed.
+- **Limitations seen when the snapshot was prepared:** NYC Open Data publishes the feed about 1.5-3 hours
+  late; replicas can disagree on the newest `data_as_of`; the `status` field is documented by the DOT
+  as an artifact and is ignored; very low speeds can come from missing travel-time data (DOT
+  metadata); `encoded_poly_line` carries doubled backslashes and `link_points` is cut at 255
+  characters (both handled by the rules in §4); the DOT's own feed host was not reachable from the
+  development machine.
+
 ## 4. Geospatial and routing rules
 
 - Coordinates are stored and exchanged as **WGS84 longitude and latitude**. GeoJSON arrays use
@@ -110,10 +138,18 @@ out body;
   outside the algorithm's core sequencing logic.
 - The `car` profile approximates a collection truck: truck-specific restrictions (height,
   weight, turning radius) and kerbside constraints are not modelled.
-- NYC DOT traffic is an **overlay**, not a live rerouting input. Its timestamp and limited
-  coverage are visible, and experimental comparisons do not change traffic input between
-  methods. A refresh retrieves a bounded current per-link snapshot rather than the full
-  historical table, retains each record's `data_as_of`, and rejects invalid/stale observations.
+- NYC DOT traffic is a **display-only overlay**, not a rerouting input (implemented in S9, D-050).
+  It is served from the committed snapshot of §3.2. Each link is classified: `OBSERVED` (a valid
+  reading no more than 15 minutes older than the feed time), `STALE` (older than that), `NO_DATA`
+  (a sensor link without a valid speed or travel time) or `INVALID` (blank id, unparsable time,
+  unusable geometry or an implausible speed above 100 mph; counted, never drawn). Geometry comes from
+  the decoded `encoded_poly_line` (precision 1e5, after reducing doubled backslashes), else from
+  `link_points` (the last token is dropped when the field reaches 255 characters). Observed speeds
+  fall into the bands under 10 mph, 10-25 mph and 25 mph and over. Times are converted from
+  `America/New_York`. The package `com.ase.wastems.traffic` is isolated (no reference to
+  optimization, routing, services, domain or persistence, enforced by a test) and never changes route
+  costs or results. A missing snapshot is shown as unavailable. Timestamps and limited coverage are
+  visible, and experimental comparisons never change traffic input between methods.
 - Vehicle GPS tracking, automatic incident avoidance, and traffic-aware dynamic rerouting are
   outside the current scope.
 
@@ -143,6 +179,12 @@ coloured by execution state (pending, collected, not collected) and the attached
 same states colour the planner map of a non-draft tour. The ordered stop list carries the same
 information without the map (NFR-03). There is no live vehicle position (D-020).
 
+Implemented in S9: item 7 - a `NYC DOT traffic (display only)` switch on the collection-point and
+tour planner maps draws only the sensor links of the committed snapshot, coloured by speed band
+(stale and no-reading links in grey, dashed), with the observation time, the snapshot age, counts,
+the coverage note, attribution and the DOT disclaimer. Unsensed streets get no colour. The layer never
+changes routes or optimization (D-021).
+
 The map is not merely a static illustration: selection, editing, planning, execution, and
 comparison workflows must remain synchronized with the underlying REST resources.
 
@@ -161,3 +203,6 @@ NYC DOT requests the following disclaimer for applications using its data:
 > information provided by this application or the information's suitability for any purpose and
 > disclaim any liability for omissions or errors that may be contained therein. The public is
 > advised to observe posted signage for compliance with applicable laws and regulations.
+
+The disclaimer and the attribution `Traffic speeds: NYC DOT, NYC Open Data (i4gi-tjb9)` are shown in
+the traffic panel under the maps whenever the layer is switched on.

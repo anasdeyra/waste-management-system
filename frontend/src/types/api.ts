@@ -76,6 +76,14 @@ export interface ApiError {
   message: string
   fieldErrors?: FieldErrorDetail[]
   issues?: TourIssue[]
+  rowErrors?: CsvRowError[]
+}
+
+/** web.dto.CsvRowErrorResponse (row 1 is the CSV header) */
+export interface CsvRowError {
+  row: number
+  column?: string
+  message: string
 }
 
 /** domain.CollectionPointStatus */
@@ -460,7 +468,7 @@ export type PlanningMethod = 'INPUT_ORDER' | 'NEAREST_NEIGHBOR' | 'NN_PLUS_2_OPT
 export type EvaluationStatus = 'COMPLETED' | 'ROUTING_FAILED'
 
 /** domain.ScenarioKind */
-export type ScenarioKind = 'TOUR_DRAFT'
+export type ScenarioKind = 'TOUR_DRAFT' | 'EXPERIMENT' | 'CSV_IMPORT'
 
 /** Properties of one road leg feature (node 0 is the depot) */
 export interface RoadLegProperties {
@@ -520,6 +528,7 @@ export interface EvaluationStop {
   longitude: number
   latitude: number
   demandKg: number
+  demandBreakdown?: string
 }
 
 /** web.dto.MethodResultResponse */
@@ -536,6 +545,8 @@ export interface MethodResult {
   coverageOk: boolean
   capacityOk: boolean
   algorithmConfiguration: string
+  distanceChangePct?: number
+  durationChangePct?: number
   legs?: RoadLegCollection
 }
 
@@ -545,6 +556,11 @@ export interface EvaluationRun {
   scenarioKind: ScenarioKind
   tourId?: string
   tourRevision?: number
+  batchId?: string
+  scenarioKey?: string
+  demandProfile?: string
+  seed?: number
+  repetition?: number
   status: EvaluationStatus
   failureCode?: string
   failureMessage?: string
@@ -668,6 +684,8 @@ export type AuditAction =
   | 'TOUR_CANCELLED'
   | 'STOP_OUTCOME_CORRECTED'
   | 'DEMO_LOADED'
+  | 'EVALUATION_EXPERIMENT_RUN'
+  | 'EVALUATION_SCENARIOS_IMPORTED'
 
 /** domain.AuditEntityType */
 export type AuditEntityType =
@@ -679,6 +697,7 @@ export type AuditEntityType =
   | 'TOUR'
   | 'DATA_IMPORT'
   | 'DEMO_DATA'
+  | 'EVALUATION_BATCH'
 
 /** domain.AuditOutcome */
 export type AuditOutcome = 'SUCCESS' | 'FAILURE'
@@ -702,4 +721,219 @@ export interface AuditEventPage {
   size: number
   totalElements: number
   totalPages: number
+}
+
+/** service.DemandProfile */
+export type DemandProfile = 'UNIFORM_LOW' | 'UNIFORM_HIGH' | 'HOTSPOT'
+
+/** domain.BatchStatus */
+export type BatchStatus = 'RUNNING' | 'COMPLETED' | 'ABORTED'
+
+/** web.dto.ExperimentRequest */
+export interface ExperimentRequest {
+  profiles?: DemandProfile[]
+  seeds?: number[]
+  sizes?: number[]
+  repetitions?: number
+  label?: string
+}
+
+/** web.dto.EvaluationBatchResponse */
+export interface EvaluationBatch {
+  id: string
+  kind: ScenarioKind
+  label: string
+  status: BatchStatus
+  canonical: boolean
+  parameters?: string
+  demandProfiles: string[]
+  seeds: number[]
+  sizes: number[]
+  repetitions?: number
+  vehicleCapacityKg?: number
+  sourceSnapshotIds: string[]
+  roadGraphVersion?: string
+  routingEngine?: string
+  environment?: string
+  fileName?: string
+  fileSha256?: string
+  fileRowCount?: number
+  scenarioCount: number
+  runCount: number
+  completedRunCount: number
+  failedRunCount: number
+  createdAt: string
+  createdBy: string
+  finishedAt?: string
+  failureMessage?: string
+}
+
+/** web.dto.EvaluationMethodBriefResponse */
+export interface EvaluationMethodBrief {
+  method: PlanningMethod
+  feasible: boolean
+  distanceM?: number
+  durationS?: number
+  executionTimeMs: number
+  coverageOk: boolean
+  capacityOk: boolean
+  distanceChangePct?: number
+  durationChangePct?: number
+}
+
+/** web.dto.EvaluationRunListItemResponse */
+export interface EvaluationRunListItem {
+  id: string
+  scenarioKind: ScenarioKind
+  batchId?: string
+  scenarioKey?: string
+  demandProfile?: string
+  seed?: number
+  repetition?: number
+  tourId?: string
+  pointCount: number
+  status: EvaluationStatus
+  failureCode?: string
+  createdAt: string
+  createdBy: string
+  roadGraphVersion: string
+  totalDemandKg: number
+  vehicleCapacityKg: number
+  results: EvaluationMethodBrief[]
+}
+
+/** web.dto.EvaluationRunPageResponse */
+export interface EvaluationRunPage {
+  items: EvaluationRunListItem[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+/** web.dto.EvaluationAggregateResponse */
+export interface EvaluationAggregate {
+  group: 'ALL' | 'SIZE' | 'PROFILE'
+  value: string
+  method: PlanningMethod
+  runs: number
+  comparableRuns: number
+  excludedRuns: number
+  meanDistanceM?: number
+  meanDurationS?: number
+  meanDistanceChangePct?: number
+  minDistanceChangePct?: number
+  maxDistanceChangePct?: number
+  meanDurationChangePct?: number
+  minDurationChangePct?: number
+  maxDurationChangePct?: number
+  meanExecutionTimeMs?: number
+}
+
+/** web.dto.EvaluationBatchDetailResponse */
+export interface EvaluationBatchDetail {
+  batch: EvaluationBatch
+  aggregates: EvaluationAggregate[]
+  scenarioKeys: string[]
+}
+
+/** web.dto.OperationsDashboardResponse.ResourceCountsResponse */
+export interface ResourceCounts {
+  total: number
+  available: number
+  unavailable: number
+}
+
+/** web.dto.OperationsDashboardResponse.PointCountsResponse */
+export interface PointCounts {
+  total: number
+  active: number
+  inactive: number
+}
+
+/** web.dto.OperationsDashboardResponse.TourCountsResponse */
+export interface TourCounts {
+  total: number
+  draft: number
+  planned: number
+  inProgress: number
+  completed: number
+  cancelled: number
+}
+
+/** web.dto.OperationsDashboardResponse.StopCountsResponse */
+export interface StopCounts {
+  total: number
+  pending: number
+  collected: number
+  notCollected: number
+}
+
+/** web.dto.OperationsDashboardResponse: recorded data, not live tracking */
+export interface OperationsDashboard {
+  from?: string
+  to?: string
+  generatedAt: string
+  vehicles: ResourceCounts
+  agents: ResourceCounts
+  collectionPoints: PointCounts
+  tours: TourCounts
+  stops: StopCounts
+  collectedKg: number
+}
+
+/** traffic.TrafficLinkStatus */
+export type TrafficLinkStatus = 'OBSERVED' | 'STALE' | 'NO_DATA'
+
+/** traffic.SpeedBand */
+export type SpeedBand = 'BELOW_10_MPH' | 'FROM_10_TO_25_MPH' | 'FROM_25_MPH'
+
+/** traffic.GeometrySource */
+export type GeometrySource = 'ENCODED_POLYLINE' | 'LINK_POINTS'
+
+/** web.dto.TrafficOverlayResponse.TrafficCountsResponse */
+export interface TrafficCounts {
+  total: number
+  observed: number
+  stale: number
+  noData: number
+  invalid: number
+}
+
+/** web.dto.TrafficOverlayResponse.TrafficLinkResponse (display only) */
+export interface TrafficLink {
+  linkId: string
+  name?: string
+  borough?: string
+  owner?: string
+  status: TrafficLinkStatus
+  speedMph?: number
+  travelTimeS?: number
+  speedBand?: SpeedBand
+  dataAsOf: string
+  dataAsOfLocal: string
+  geometrySource: GeometrySource
+  geometryTruncated: boolean
+  geometry: { type: 'LineString'; coordinates: [number, number][] }
+}
+
+/** web.dto.TrafficOverlayResponse: stored NYC DOT snapshot, never a cost input */
+export interface TrafficOverlay {
+  available: boolean
+  unavailableReason?: string
+  snapshotId?: string
+  source?: string
+  sourceUrl?: string
+  retrievedAt?: string
+  observedAt?: string
+  observedAtLocal?: string
+  timeZone?: string
+  ageMinutes?: number
+  staleAfterMinutes: number
+  counts: TrafficCounts
+  coverageNote: string
+  displayOnlyNote: string
+  attribution: string
+  disclaimer: string
+  links: TrafficLink[]
 }

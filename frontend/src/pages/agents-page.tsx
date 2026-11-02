@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { AgentFormDialog } from '@/components/agents/agent-form-dialog'
@@ -30,6 +31,7 @@ import {
 import { useAgents, useSetAgentStatus, useUnlinkAgentAccount } from '@/hooks/use-agents'
 import { useCurrentUser } from '@/hooks/use-auth'
 import { hasRole } from '@/lib/auth'
+import { enumParam } from '@/lib/url-filters'
 import type { Agent, ResourceStatus } from '@/types/api'
 
 const ALL = 'ALL'
@@ -38,7 +40,10 @@ const ALL = 'ALL'
 export default function AgentsPage() {
   const { data: user } = useCurrentUser()
   const isAdmin = hasRole(user, 'ADMIN')
-  const [filter, setFilter] = useState<ResourceStatus | undefined>(undefined)
+  const [params] = useSearchParams()
+  const [filter, setFilter] = useState<ResourceStatus | undefined>(() =>
+    enumParam(params.get('status'), ['AVAILABLE', 'UNAVAILABLE'] as const),
+  )
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Agent | undefined>(undefined)
   const [linking, setLinking] = useState<Agent | null>(null)

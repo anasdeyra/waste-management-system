@@ -3,6 +3,9 @@ import { toast } from 'sonner'
 import { Link, useParams } from 'react-router-dom'
 
 import { BaseMap } from '@/components/maps/base-map'
+import { TrafficLayer } from '@/components/maps/traffic-layer'
+import { TrafficPanel } from '@/components/maps/traffic-panel'
+import { useTrafficOverlay } from '@/hooks/use-traffic'
 import type { LonLat } from '@/components/maps/geo'
 import { MapFocus } from '@/components/maps/map-focus'
 import { TourRouteLayer } from '@/components/maps/route-layers'
@@ -43,6 +46,8 @@ export default function TourPlannerPage() {
   const addStop = useAddTourStop()
   const removeStop = useRemoveTourStop()
   const reorder = useReorderTourStops()
+  const [showTraffic, setShowTraffic] = useState(false)
+  const traffic = useTrafficOverlay(showTraffic)
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null)
   const [focusTarget, setFocusTarget] = useState<LonLat | null>(null)
 
@@ -105,6 +110,7 @@ export default function TourPlannerPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-2">
           <BaseMap className="h-[520px]">
+            {showTraffic && traffic.data?.available && <TrafficLayer links={traffic.data.links} />}
             <TourStopsLayer
               tour={t}
               candidates={candidates.data ?? []}
@@ -117,6 +123,13 @@ export default function TourPlannerPage() {
             {t.route && <TourRouteLayer route={t.route} />}
             <MapFocus target={focusTarget} />
           </BaseMap>
+          <TrafficPanel
+            enabled={showTraffic}
+            onToggle={setShowTraffic}
+            loading={traffic.isPending}
+            overlay={traffic.data}
+            error={traffic.error}
+          />
           <p className="text-xs text-muted-foreground">
             Numbers show the current stop order. Dashed lines connect the stops in that order; they
             are straight lines, not a route ({INPUT_ORDER_LABEL}). Compare the road routes in Route

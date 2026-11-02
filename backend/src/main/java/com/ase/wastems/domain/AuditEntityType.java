@@ -9,5 +9,6 @@ public enum AuditEntityType {
     AGENT,
     TOUR,
     DATA_IMPORT,
-    DEMO_DATA
+    DEMO_DATA,
+    EVALUATION_BATCH
 }

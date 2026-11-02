@@ -36,10 +36,21 @@ public class EvaluationStop {
     @Column(name = "demand_kg", nullable = false, precision = 12, scale = 2)
     private BigDecimal demandKg;
 
+    @Column(name = "demand_breakdown", length = 500)
+    private String demandBreakdown;
+
     protected EvaluationStop() {}
 
     public EvaluationStop(int inputIndex, UUID collectionPointId, String sourceDataset,
             String sourceIdentifier, String name, double longitude, double latitude, BigDecimal demandKg) {
+        this(inputIndex, collectionPointId, sourceDataset, sourceIdentifier, name, longitude, latitude, demandKg,
+                null);
+    }
+
+    public EvaluationStop(int inputIndex, UUID collectionPointId, String sourceDataset,
+            String sourceIdentifier, String name, double longitude, double latitude, BigDecimal demandKg,
+            String demandBreakdown) {
+        this.demandBreakdown = demandBreakdown;
         this.inputIndex = inputIndex;
         this.collectionPointId = collectionPointId;
         this.sourceDataset = sourceDataset;
@@ -80,5 +91,9 @@ public class EvaluationStop {
 
     public BigDecimal getDemandKg() {
         return demandKg;
+    }
+
+    public String getDemandBreakdown() {
+        return demandBreakdown;
     }
 }

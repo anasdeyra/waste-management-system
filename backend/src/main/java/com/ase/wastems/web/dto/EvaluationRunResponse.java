@@ -2,7 +2,9 @@ package com.ase.wastems.web.dto;
 
 import com.ase.wastems.domain.EvaluationRun;
 import com.ase.wastems.domain.EvaluationStatus;
+import com.ase.wastems.domain.MethodResult;
 import com.ase.wastems.domain.ProposalDecision;
+import com.ase.wastems.optimization.PlanningMethod;
 import com.ase.wastems.domain.ScenarioKind;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,6 +17,11 @@ public record EvaluationRunResponse(
         ScenarioKind scenarioKind,
         UUID tourId,
         Long tourRevision,
+        UUID batchId,
+        String scenarioKey,
+        String demandProfile,
+        Long seed,
+        Integer repetition,
         EvaluationStatus status,
         String failureCode,
         String failureMessage,
@@ -36,13 +43,22 @@ public record EvaluationRunResponse(
 
     public static EvaluationRunResponse from(EvaluationRun r) {
         return new EvaluationRunResponse(r.getId(), r.getScenarioKind(), r.getTourId(), r.getTourRevision(),
+                r.getBatchId(), r.getScenarioKey(), r.getDemandProfile(), r.getSeed(), r.getRepetition(),
                 r.getStatus(), r.getFailureCode(), r.getFailureMessage(), r.getCreatedAt(), r.getCreatedBy(),
                 r.getRoadGraphVersion(), r.getRoutingEngine(), r.sourceSnapshotIdList(),
                 new EvaluationDepotResponse(r.getDepotName(), r.getDepotLongitude(), r.getDepotLatitude(),
                         r.getDepotSourceIdentifier()),
                 r.getVehicleCapacityKg(), r.getServiceTimeSeconds(), r.getPointCount(), r.getTotalDemandKg(),
                 r.getStops().stream().map(EvaluationStopResponse::from).toList(),
-                r.getResults().stream().map(m -> MethodResultResponse.from(m, r.getStops())).toList(),
+                r.getResults().stream()
+                        .map(m -> MethodResultResponse.from(m, r.getStops(), inputOrder(r),
+                                r.getStatus() == EvaluationStatus.COMPLETED))
+                        .toList(),
                 r.getDecision(), r.getDecidedBy(), r.getDecidedAt());
+    }
+
+    private static MethodResult inputOrder(EvaluationRun r) {
+        return r.getResults().stream().filter(m -> m.getMethod() == PlanningMethod.INPUT_ORDER).findFirst()
+                .orElse(null);
     }
 }

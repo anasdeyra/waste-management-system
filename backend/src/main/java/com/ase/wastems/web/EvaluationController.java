@@ -1,7 +1,24 @@
 package com.ase.wastems.web;
 
+import com.ase.wastems.domain.EvaluationBatch;
 import com.ase.wastems.domain.EvaluationRun;
+import com.ase.wastems.domain.EvaluationStatus;
 import com.ase.wastems.domain.EvaluationStop;
+import com.ase.wastems.domain.ScenarioKind;
+import com.ase.wastems.repository.RunListRow;
+import com.ase.wastems.repository.RunMethodRow;
+import com.ase.wastems.service.EvaluationExplorerService;
+import com.ase.wastems.service.EvaluationExportService;
+import com.ase.wastems.service.RunFilter;
+import com.ase.wastems.service.ScenarioCsvImportService;
+import com.ase.wastems.web.dto.EvaluationAggregateResponse;
+import com.ase.wastems.web.dto.EvaluationBatchDetailResponse;
+import com.ase.wastems.web.dto.EvaluationBatchResponse;
+import com.ase.wastems.web.dto.EvaluationRunListItemResponse;
+import com.ase.wastems.web.dto.EvaluationRunPageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import com.ase.wastems.service.EvaluationService;
 import com.ase.wastems.service.FrozenScenario;
 import com.ase.wastems.service.NotFoundException;
@@ -15,7 +32,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,11 +54,19 @@ public class EvaluationController {
     private final TourService tours;
     private final EvaluationService evaluations;
     private final ObjectMapper objectMapper;
+    private final EvaluationExplorerService explorer;
+    private final EvaluationExportService exports;
+    private final ScenarioCsvImportService csvImports;
 
-    public EvaluationController(TourService tours, EvaluationService evaluations, ObjectMapper objectMapper) {
+    public EvaluationController(TourService tours, EvaluationService evaluations, ObjectMapper objectMapper,
+            EvaluationExplorerService explorer, EvaluationExportService exports,
+            ScenarioCsvImportService csvImports) {
+        this.exports = exports;
+        this.csvImports = csvImports;
         this.tours = tours;
         this.evaluations = evaluations;
         this.objectMapper = objectMapper;
+        this.explorer = explorer;
     }
 
     @PostMapping("/api/tours/{id}/evaluations")
@@ -53,6 +81,78 @@ public class EvaluationController {
     public List<EvaluationRunSummaryResponse> listForTour(@PathVariable UUID id) {
         tours.get(id);
         return evaluations.listForTour(id).stream().map(EvaluationRunSummaryResponse::from).toList();
+    }
+
+    @GetMapping("/api/evaluations")
+    public EvaluationRunPageResponse search(
+            @RequestParam(required = false) ScenarioKind kind,
+            @RequestParam(required = false) UUID batchId,
+            @RequestParam(required = false) String profile,
+            @RequestParam(required = false) Integer pointCount,
+            @RequestParam(required = false) Long seed,
+            @RequestParam(required = false) EvaluationStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        Page<RunListRow> p = explorer.searchRuns(
+                new RunFilter(kind, batchId, blankToNull(profile), pointCount, seed, status), page, size);
+        Map<UUID, List<RunMethodRow>> rows = explorer.methodRows(p.getContent().stream().map(RunListRow::id).toList());
+        List<EvaluationRunListItemResponse> items = p.getContent().stream()
+                .map(r -> EvaluationRunListItemResponse.from(r, rows.getOrDefault(r.id(), List.of())))
+                .toList();
+        return new EvaluationRunPageResponse(items, p.getNumber(), p.getSize(), p.getTotalElements(),
+                p.getTotalPages());
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
+    }
+
+    @GetMapping("/api/evaluations/batches")
+    public List<EvaluationBatchResponse> batches() {
+        return explorer.batches().stream().map(EvaluationBatchResponse::from).toList();
+    }
+
+    @GetMapping("/api/evaluations/batches/{id}")
+    public EvaluationBatchDetailResponse batch(@PathVariable UUID id) {
+        return new EvaluationBatchDetailResponse(EvaluationBatchResponse.from(explorer.batch(id)),
+                explorer.aggregates(id).stream().map(EvaluationAggregateResponse::from).toList(),
+                explorer.scenarioKeys(id));
+    }
+
+    private static final MediaType CSV = MediaType.parseMediaType("text/csv;charset=UTF-8");
+
+    @GetMapping("/api/evaluations/export")
+    public ResponseEntity<String> exportResults(
+            @RequestParam(required = false) ScenarioKind kind,
+            @RequestParam(required = false) UUID batchId,
+            @RequestParam(required = false) UUID runId) {
+        String suffix = runId != null
+                ? "run-" + runId
+                : batchId != null ? "batch-" + batchId : kind != null ? kind.name().toLowerCase(Locale.ROOT) : "all";
+        return csv(exports.resultsCsv(kind, batchId, runId), "evaluation-results-" + suffix + ".csv");
+    }
+
+    @GetMapping("/api/evaluations/batches/{id}/scenarios.csv")
+    public ResponseEntity<String> exportScenarios(@PathVariable UUID id) {
+        return csv(exports.scenariosCsv(id), "evaluation-scenarios-" + id + ".csv");
+    }
+
+    private static ResponseEntity<String> csv(String body, String filename) {
+        return ResponseEntity.ok().contentType(CSV)
+                .header("Content-Disposition", "attachment; filename=\"" + filename + "\"").body(body);
+    }
+
+    @PostMapping(path = "/api/evaluations/imports", consumes = "text/csv")
+    public ResponseEntity<EvaluationBatchDetailResponse> importCsv(
+            @RequestBody(required = false) byte[] body,
+            @RequestParam(required = false) String fileName,
+            @RequestParam(required = false) String label,
+            Authentication auth) {
+        EvaluationBatch batch = csvImports.importCsv(body, fileName, label, auth.getName());
+        return ResponseEntity.created(URI.create("/api/evaluations/batches/" + batch.getId()))
+                .body(new EvaluationBatchDetailResponse(EvaluationBatchResponse.from(batch),
+                        explorer.aggregates(batch.getId()).stream().map(EvaluationAggregateResponse::from).toList(),
+                        explorer.scenarioKeys(batch.getId())));
     }
 
     @GetMapping("/api/evaluations/{runId}")

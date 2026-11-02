@@ -12,6 +12,8 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * One immutable audit-log entry (US-39, D-029): actor or attempted username, UTC time, action,
@@ -40,10 +42,12 @@ public class AuditEvent {
     private String actor;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 40)
     private AuditAction action;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "entity_type", length = 30)
     private AuditEntityType entityType;
 

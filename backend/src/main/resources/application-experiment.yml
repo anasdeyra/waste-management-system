@@ -1,0 +1,11 @@
+# experiment profile (tools/run-experiment.sh, D-050): headless seeded evaluation run, then exit.
+server:
+  port: 0            # random free port; never 8080
+spring:
+  datasource:
+    url: jdbc:h2:file:./experiment-data/wastems-experiment;DB_CLOSE_ON_EXIT=FALSE   # the script overrides it
+wastems:
+  demo:
+    enabled: false
+  experiment:
+    output-dir: experiment-output                                                # the script overrides it

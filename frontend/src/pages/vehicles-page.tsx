@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { VehicleFormDialog } from '@/components/fleet/vehicle-form-dialog'
@@ -27,13 +28,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useSetVehicleStatus, useVehicles } from '@/hooks/use-vehicles'
+import { enumParam } from '@/lib/url-filters'
 import type { ResourceStatus, Vehicle } from '@/types/api'
 
 const ALL = 'ALL'
 
 /** Vehicles: list, filter by availability, create, edit and toggle availability. */
 export default function VehiclesPage() {
-  const [filter, setFilter] = useState<ResourceStatus | undefined>(undefined)
+  const [params] = useSearchParams()
+  const [filter, setFilter] = useState<ResourceStatus | undefined>(() =>
+    enumParam(params.get('status'), ['AVAILABLE', 'UNAVAILABLE'] as const),
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Vehicle | undefined>(undefined)
   const vehicles = useVehicles(filter)

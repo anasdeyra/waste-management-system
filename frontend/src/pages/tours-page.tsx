@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { TourCreateDialog } from '@/components/tours/tour-create-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -28,14 +28,18 @@ import {
 import { METHOD_LABELS } from '@/lib/evaluation-labels'
 import { STATUS_LABELS } from '@/lib/tour-labels'
 import { useTours } from '@/hooks/use-tours'
+import { dateParam, enumParam } from '@/lib/url-filters'
 import type { TourStatus } from '@/types/api'
 
 const ALL = 'ALL'
 
 /** Tours: filterable list of tour drafts and the entry point to create one. */
 export default function ToursPage() {
-  const [status, setStatus] = useState<TourStatus | undefined>(undefined)
-  const [planningDate, setPlanningDate] = useState('')
+  const [params] = useSearchParams()
+  const [status, setStatus] = useState<TourStatus | undefined>(() =>
+    enumParam(params.get('status'), Object.keys(STATUS_LABELS) as TourStatus[]),
+  )
+  const [planningDate, setPlanningDate] = useState(() => dateParam(params.get('planningDate')) ?? '')
   const [dialogOpen, setDialogOpen] = useState(false)
   const tours = useTours({ status, planningDate: planningDate || undefined })
 

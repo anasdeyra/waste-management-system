@@ -10,6 +10,8 @@
 | Activity diagram | [04-activity-tour-lifecycle.md](04-activity-tour-lifecycle.md) | Draft planning, confirmation, execution, terminal stop outcomes, completion and cancellation (S8: cancellation fields, `OutcomeCorrection` and the correction path) |
 | OCL constraints | [02-class-diagram.md §4](02-class-diagram.md#4-ocl-constraints) | Coordinates, positive demand/capacity, agent links, crew/capacity, stop order/outcomes, lifecycle operations |
 
+S9: no diagram change (UC21-UC24 implemented).
+
 ## Modeling conventions
 
 - Diagram sources are Mermaid blocks inside Markdown (D-032), so the Markdown files are the

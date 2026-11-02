@@ -6,10 +6,12 @@ import java.util.UUID;
 
 /** Stop as frozen in an evaluation run. */
 public record EvaluationStopResponse(int inputIndex, UUID collectionPointId, String sourceDataset,
-        String sourceIdentifier, String name, double longitude, double latitude, BigDecimal demandKg) {
+        String sourceIdentifier, String name, double longitude, double latitude, BigDecimal demandKg,
+        String demandBreakdown) {
 
     public static EvaluationStopResponse from(EvaluationStop s) {
         return new EvaluationStopResponse(s.getInputIndex(), s.getCollectionPointId(), s.getSourceDataset(),
-                s.getSourceIdentifier(), s.getName(), s.getLongitude(), s.getLatitude(), s.getDemandKg());
+                s.getSourceIdentifier(), s.getName(), s.getLongitude(), s.getLatitude(), s.getDemandKg(),
+                s.getDemandBreakdown());
     }
 }

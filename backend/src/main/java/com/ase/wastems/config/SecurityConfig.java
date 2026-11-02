@@ -151,6 +151,10 @@ public class SecurityConfig {
                                         .hasRole("PLANNER")
                                         .requestMatchers("/api/evaluations", "/api/evaluations/**")
                                         .hasRole("PLANNER")
+                                        .requestMatchers("/api/dashboard", "/api/dashboard/**")
+                                        .hasRole("PLANNER")
+                                        .requestMatchers("/api/traffic", "/api/traffic/**")
+                                        .hasRole("PLANNER")
                                         .requestMatchers(
                                                 HttpMethod.GET, "/api/tours/mine", "/api/tours/mine/*")
                                         .hasRole("AGENT")

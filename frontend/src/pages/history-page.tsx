@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +29,7 @@ import { useTourHistory } from '@/hooks/use-tours'
 import type { HistoryFilters } from '@/hooks/use-tours'
 import { useVehicles } from '@/hooks/use-vehicles'
 import { STATUS_LABELS } from '@/lib/tour-labels'
+import { dateParam, enumParam } from '@/lib/url-filters'
 
 const ALL = 'ALL'
 
@@ -38,7 +39,12 @@ function local(iso?: string): string {
 
 /** Operational history: completed and cancelled tours, read-only (US-32). */
 export default function HistoryPage() {
-  const [filters, setFilters] = useState<HistoryFilters>({})
+  const [params] = useSearchParams()
+  const [filters, setFilters] = useState<HistoryFilters>(() => ({
+    status: enumParam(params.get('status'), ['COMPLETED', 'CANCELLED'] as const),
+    from: dateParam(params.get('from')),
+    to: dateParam(params.get('to')),
+  }))
   const history = useTourHistory(filters)
   const vehicles = useVehicles()
   const agents = useAgents()

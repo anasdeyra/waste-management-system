@@ -3,6 +3,7 @@ package com.ase.wastems.web.dto;
 import com.ase.wastems.domain.EvaluationStop;
 import com.ase.wastems.domain.MethodResult;
 import com.ase.wastems.optimization.PlanningMethod;
+import com.ase.wastems.service.EvaluationComparison;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.util.List;
 import java.util.UUID;
@@ -21,14 +22,21 @@ public record MethodResultResponse(
         boolean coverageOk,
         boolean capacityOk,
         String algorithmConfiguration,
+        Double distanceChangePct,
+        Double durationChangePct,
         @JsonRawValue String legs) {
 
-    public static MethodResultResponse from(MethodResult r, List<EvaluationStop> stops) {
+    public static MethodResultResponse from(MethodResult r, List<EvaluationStop> stops, MethodResult inputOrder,
+            boolean runCompleted) {
         List<Integer> order = r.visitOrderList();
         List<UUID> pointOrder = order.stream().map(i -> stops.get(i - 1).getCollectionPointId()).toList();
         return new MethodResultResponse(r.getMethod(), r.isFeasible(), r.getInfeasibilityReason(), order,
                 pointOrder, r.getDistanceM(), r.getTravelTimeS(), r.getDurationS(),
                 r.getExecutionNanos() / 1e6, r.isCoverageOk(), r.isCapacityOk(), r.getAlgorithmConfiguration(),
+                inputOrder == null ? null : EvaluationComparison.changePct(runCompleted, r.isFeasible(),
+                        r.getDistanceM(), inputOrder.isFeasible(), inputOrder.getDistanceM()),
+                inputOrder == null ? null : EvaluationComparison.changePct(runCompleted, r.isFeasible(),
+                        r.getDurationS(), inputOrder.isFeasible(), inputOrder.getDurationS()),
                 r.getLegsGeoJson());
     }
 }

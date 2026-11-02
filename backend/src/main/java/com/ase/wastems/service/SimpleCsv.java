@@ -9,7 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** A small RFC 4180 reader and WKT point parser for the included source snapshots. */
-final class SimpleCsv {
+public final class SimpleCsv {
 
     private static final Pattern WKT_POINT =
             Pattern.compile("^\\s*POINT\\s*\\(\\s*(\\S+)\\s+(\\S+)\\s*\\)\\s*$", Pattern.CASE_INSENSITIVE);
@@ -17,8 +17,8 @@ final class SimpleCsv {
     private SimpleCsv() {}
 
     /** Parses CSV text; the first record is the header. Records are keyed by header name. */
-    static List<Map<String, String>> parse(String text) {
-        List<List<String>> records = readRecords(text);
+    public static List<Map<String, String>> parse(String text) {
+        List<List<String>> records = records(text);
         List<Map<String, String>> result = new ArrayList<>();
         if (records.isEmpty()) {
             return result;
@@ -51,7 +51,8 @@ final class SimpleCsv {
         }
     }
 
-    private static List<List<String>> readRecords(String text) {
+    /** Raw RFC 4180 records (header included); blank lines are skipped. */
+    public static List<List<String>> records(String text) {
         List<List<String>> records = new ArrayList<>();
         List<String> fields = new ArrayList<>();
         StringBuilder field = new StringBuilder();

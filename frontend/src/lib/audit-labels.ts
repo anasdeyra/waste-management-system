@@ -40,6 +40,8 @@ export const AUDIT_ACTIONS: AuditAction[] = [
   'TOUR_CANCELLED',
   'STOP_OUTCOME_CORRECTED',
   'DEMO_LOADED',
+  'EVALUATION_EXPERIMENT_RUN',
+  'EVALUATION_SCENARIOS_IMPORTED',
 ]
 
 export const AUDIT_ENTITY_TYPES: AuditEntityType[] = [
@@ -51,6 +53,7 @@ export const AUDIT_ENTITY_TYPES: AuditEntityType[] = [
   'TOUR',
   'DATA_IMPORT',
   'DEMO_DATA',
+  'EVALUATION_BATCH',
 ]
 
 export const AUDIT_OUTCOMES: AuditOutcome[] = ['SUCCESS', 'FAILURE']
@@ -94,6 +97,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   TOUR_CANCELLED: 'Tour cancelled',
   STOP_OUTCOME_CORRECTED: 'Outcome corrected',
   DEMO_LOADED: 'Demonstration loaded',
+  EVALUATION_EXPERIMENT_RUN: 'Experiment run',
+  EVALUATION_SCENARIOS_IMPORTED: 'Scenarios imported',
 }
 
 /** Converts a datetime-local value (entered in local time) to a UTC ISO instant. */
