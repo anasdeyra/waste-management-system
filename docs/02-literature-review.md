@@ -6,6 +6,9 @@
 > road-network travel distance and estimated collection duration compared with a documented
 > baseline, while satisfying the same vehicle-capacity and collection-service constraints?**
 
+The question is unchanged. Its documented baseline is now the **sweep heuristic** [9]; the
+random input order is kept as the worst-case reference (D-052).
+
 This review focuses on the intelligent module of the Intelligent Waste Management System.
 The operational prototype also manages collection points, vehicles, agents, tours, and waste,
 but those management features are not the subject of this literature question.
@@ -19,10 +22,11 @@ The agreed optimization model has the following boundaries:
   check;
 - estimated duration equal to road-network travel time plus service time at the selected
   stops;
-- three deterministic planning methods: input order, capacity-aware nearest neighbor, and
-  nearest neighbor followed by directed-cost 2-opt;
+- four deterministic planning methods: input order (the worst-case reference), the sweep
+  heuristic of Gillett and Miller [9] (the realistic baseline, D-052), capacity-aware nearest
+  neighbor, and nearest neighbor followed by directed-cost 2-opt;
 - identical source/road snapshots, scenarios, feasibility rules, and indicator formulas for
-  all three methods; and
+  all four methods; and
 - real NYC traffic as a display overlay only, not as a varying experimental input.
 
 The model therefore has a **Traveling Salesman Problem (TSP)** sequencing core: find an order
@@ -50,8 +54,11 @@ This is a **focused narrative review**, not a systematic review or meta-analysis
 selected for their direct relevance to at least one of the four purposes above and for their
 academic credibility. The final set contains ten peer-reviewed journal articles:
 
-- five foundational routing and heuristic studies; and
-- five waste-collection reviews or applied studies.
+- six foundational routing and heuristic studies (sources 1 to 5 and the sweep heuristic, 9); and
+- four waste-collection reviews or applied studies (6, 7, 8 and 10).
+
+The count stays at ten: the sweep paper of Gillett and Miller replaced the weakest source, a
+mini-review (Liang et al., 2022), because the baseline must be cited (S11).
 
 Foundational papers are retained because they define the algorithms and their limitations.
 Recent waste-collection reviews supply the domain context, while the applied case study shows
@@ -72,7 +79,7 @@ as experimental evidence that one algorithm will outperform another in this proj
 | 6 | **Han & Ponce-Cueto (2015)** — peer-reviewed literature review | Classified waste-collection routing research by collection type and by node-routing versus arc-routing models, and reviewed solution methods for each. | An older review that does not cover all recent heuristic, learning-based, emissions, or dynamic-routing work. | Confirms that waste collection contains several distinct routing models and prevents an inappropriate one-to-one claim between this project and every waste-routing variant. |
 | 7 | **Sulemana et al. (2018)** — peer-reviewed journal review | Reviewed optimization methods for solid-waste truck routing, particularly mathematical-programming and GIS-based approaches, with attention to implementation conditions. | Broad qualitative synthesis rather than a controlled comparison of input order, nearest neighbor, and 2-opt. | Supports transparent reporting of datasets, constraints, and local assumptions instead of transferring percentage gains between municipalities. |
 | 8 | **Babaee Tirkolaee et al. (2019)** — peer-reviewed applied case study | Studied a multi-trip waste-collection VRP with time windows using simulated annealing, a real Iranian case, and comparison with CPLEX; its objective includes traversal, vehicle-use, and time-window costs. | Much richer than the project's model and tied to a particular case; its results do not establish the performance of NN + 2-opt. | Demonstrates how additional service constraints and costs alter the problem and clarifies which operational conclusions are outside this prototype's scope. |
-| 9 | **Liang, Minanda, & Gunawan (2022)** — peer-reviewed mini-review | Reviewed recent heuristic approaches and waste-collection routing applications, confirming the continued importance of constructive and improvement heuristics. | A mini-review, not an exhaustive systematic review or a source of directly comparable benchmark values for this project. | Supports a lightweight heuristic prototype while motivating comparison with stronger methods as future work. |
+| 9 | **Gillett & Miller (1974)** — peer-reviewed journal article | Introduced the sweep algorithm for the vehicle-dispatch problem: customers are ordered by polar angle around the depot and grouped into routes that are then sequenced; reported computational results on dispatch instances. | Designed as a route-clustering step for the multi-vehicle problem, not as a single-route sequencer; geometric angle ignores one-way streets and road costs. | Gives a published, deterministic, citable baseline that a planner could apply with a map; used here as a single-route sequencing baseline with the best of all start rays. |
 | 10 | **Restrepo-Franco, Valencia-Rodríguez, & Toro-Ocampo (2025)** — peer-reviewed systematic review | Used a systematic protocol to organize residential waste-collection VRP research by variants, objectives, constraints, decision variables, solution methods, and applications. | A research map does not itself measure nearest-neighbor or 2-opt performance on the project's scenarios. | Provides current domain grounding and reinforces the need to state the exact variant, objective, and constraints being evaluated. |
 
 ## 4. Thematic synthesis
@@ -90,6 +97,17 @@ software-engineering prototype whose research objective is to measure the effect
 an intelligent module, not to advance exact optimization theory. The necessary condition is
 honest terminology: input order, nearest neighbor, and NN + 2-opt produce candidate tours under
 a documented validation process; the last method is not called globally optimal.
+
+### 4.1b The sweep heuristic as a realistic baseline
+
+Gillett and Miller's sweep algorithm sorts the customers by their polar angle around the depot
+and sweeps a ray around it, cutting routes when the vehicle capacity is reached [9]. It is
+cheap, deterministic and explainable with a map and a ruler, which makes it a more realistic
+stand-in for a manual or rule-of-thumb sequence than a random order. In this project it is used
+as a **single-route sequencing baseline**: the stops are sorted by angle, and the cheapest of
+all 2n start rays and both directions is kept on the exact directed road distance (D-052), so
+that any remaining advantage of the intelligent module is not an artefact of an unlucky ray. It
+is not a statement about how DSNY sequences its baskets: no public dataset contains that order.
 
 ### 4.2 Nearest-neighbor construction
 
@@ -126,7 +144,7 @@ Croes supplies the foundational tour-improvement method [3], while Lin makes the
 search explicit [4]. A 2-optimal tour may still be improved by a different initial tour or by a
 higher-order exchange. Consequently, the evaluation must distinguish two questions:
 
-1. How much does capacity-aware nearest neighbor change the input-order result?
+1. How much does capacity-aware nearest neighbor change the sweep (and the input-order) result?
 2. How much additional improvement does 2-opt obtain from that nearest-neighbor result?
 
 This separation is more informative than comparing only the weakest and strongest pipelines.
@@ -161,7 +179,7 @@ real collection shifts or dynamic rerouting.
 ### 4.5 Waste-collection evaluation practice
 
 The domain literature uses real municipal cases, GIS distances, commercial solvers, and a range
-of heuristics and metaheuristics [7–10]. Babaee Tirkolaee et al., for example, evaluate a richer
+of heuristics and metaheuristics [7, 8, 10]. Babaee Tirkolaee et al., for example, evaluate a richer
 multi-trip, time-window problem using a real case and CPLEX comparison [8]. Such studies show
 operational relevance, but their numerical outcomes are not transferable to a different network,
 constraint set, or algorithm.
@@ -200,14 +218,14 @@ sensitivity visible in the waste-routing reviews [7, 10].
   structural and worst-case weaknesses [2, 5].
 - 2-opt can improve an existing tour, but a 2-optimal result is only locally optimal [3, 4].
 - Applied waste-routing studies often include multiple trips, time windows, GIS data, emissions,
-  monetary costs, or metaheuristics beyond this project's scope [7–10].
+  monetary costs, or metaheuristics beyond this project's scope [7, 8, 10].
 - Dataset, baseline, objectives, and constraints must be explicit before reported improvements
   can be interpreted [7, 10].
 
 ### 5.2 What the reviewed sources do not answer
 
 The selected literature does not provide a direct, controlled answer for the exact comparison
-of **input order**, **capacity-aware nearest neighbor**, and **nearest neighbor plus 2-opt** on
+of **input order**, the **sweep** baseline, **capacity-aware nearest neighbor**, and **nearest neighbor plus 2-opt** on
 this project's small single-vehicle scenarios built from real MN01 coordinates and synthetic
 demand. Published results obtained with other road networks, richer constraints, or other
 algorithms cannot be inserted as expected results for this experiment.
@@ -222,9 +240,10 @@ a project-specific evaluation gap, not a claim that no broader routing research 
 | Demand- and capacity-aware routing | Dantzig & Ramser [1] | Explicit scenario demand and identical capacity validation for every compared method. |
 | Constructive-heuristic perspective | Clarke & Wright [2] | Deterministic nearest-neighbor construction, without claiming to implement the savings algorithm. |
 | Empirical caution about greedy routing | Rosenkrantz et al. [5] | Separate measurement of nearest neighbor instead of assuming its route quality. |
+| A published geometric baseline | Gillett & Miller [9] | Sweep ordering by polar angle around the depot, best of 2n rays, as a single-route sequencing baseline; the multi-route clustering step is not implemented. |
 | Local edge-exchange improvement | Croes [3] | Deterministic 2-opt after nearest-neighbor construction. |
 | Local-versus-global optimality distinction | Lin [4] | Results are labelled heuristic; no global-optimality claim. |
-| Explicit waste-routing variants and constraints | Domain reviews and case study [6–10] | A bounded single-vehicle model, with excluded real-world constraints stated rather than hidden. |
+| Explicit waste-routing variants and constraints | Domain reviews and case study [6–8, 10] | A bounded single-vehicle model, with excluded real-world constraints stated rather than hidden. |
 
 ## 6. Consequences for the experimental design
 
@@ -243,9 +262,10 @@ For every scenario and method, the evaluation will retain:
 - total road distance, estimated duration, and execution time; and
 - capacity and other supported constraint checks.
 
-Distance and duration changes will be calculated relative to the input-order baseline using the
-same scenario. The intermediate nearest-neighbor result will show how much of the total change
-comes from construction and how much from 2-opt. Execution-time measurements will be reported
+Distance and duration changes will be calculated relative to the sweep baseline (the research
+comparison) and to the input order (the worst case) using the same scenario. The intermediate
+nearest-neighbor result will show how much of the total change comes from construction and how
+much from 2-opt. Execution-time measurements will be reported
 with their execution environment; no runtime target or improvement percentage is invented in
 advance.
 
@@ -254,7 +274,8 @@ advance.
 The experiment can support bounded statements such as:
 
 > On the specified seeded MN01 road-network scenarios, NN + 2-opt reduced or did not reduce
-> directed road distance and estimated duration relative to input order, while preserving the
+> directed road distance and estimated duration relative to the sweep baseline (and to input
+> order), while preserving the
 > measured coverage and capacity constraints; its additional computational cost was also
 > measured.
 
@@ -269,7 +290,8 @@ The experiment alone cannot establish that:
   DSNY operations;
 - the method outperforms exact solvers, commercial systems, or advanced metaheuristics;
 - the results prove fleet-level coordination, live-traffic rerouting, or IoT benefits; or
-- the base travel-time model is operationally valid without field validation.
+- the base travel-time model is operationally valid without field validation; or
+- sweep stands for the sequence DSNY actually drives.
 
 ## 7. References
 
@@ -295,9 +317,8 @@ The experiment alone cannot establish that:
    applied algorithm for multi-trip vehicle routing problem with time windows in urban waste
    collection: A case study. *Waste Management & Research, 37*(1 Suppl.), 4–13.
    <https://doi.org/10.1177/0734242X18807001>
-9. Liang, Y.-C., Minanda, V., & Gunawan, A. (2022). Waste collection routing problem: A
-   mini-review of recent heuristic approaches and applications. *Waste Management & Research,
-   40*(5), 519–537. <https://doi.org/10.1177/0734242X211003975>
+9. Gillett, B. E., & Miller, L. R. (1974). A heuristic algorithm for the vehicle-dispatch
+   problem. *Operations Research, 22*(2), 340–349. <https://doi.org/10.1287/opre.22.2.340>
 10. Restrepo-Franco, A. M., Valencia-Rodríguez, O., & Toro-Ocampo, E. M. (2025). The vehicle
     routing problem as applied to residential solid waste collection operations: Systematic
     literature review. *International Journal of Industrial Engineering Computations, 16*(1),
