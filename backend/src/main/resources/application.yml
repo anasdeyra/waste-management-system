@@ -53,6 +53,11 @@ wastems:
   # Seeded MN01 evaluation experiment (D-016, D-022, D-050); fixed vehicle capacity in kg.
   experiment:
     vehicle-capacity-kg: 10000
+  # NYC DOT traffic overlay (US-34, D-021, D-050): committed timestamped snapshot, display only.
+  traffic:
+    snapshot-location: classpath:traffic/mn01-traffic-links.json
+    stale-after-minutes: 15
+    max-plausible-speed-mph: 100
   # Synthetic demonstration operations on the real MN01 data (US-33); enabled in dev only.
   demo:
     enabled: false

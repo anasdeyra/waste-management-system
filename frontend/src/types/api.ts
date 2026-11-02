@@ -881,3 +881,59 @@ export interface OperationsDashboard {
   stops: StopCounts
   collectedKg: number
 }
+
+/** traffic.TrafficLinkStatus */
+export type TrafficLinkStatus = 'OBSERVED' | 'STALE' | 'NO_DATA'
+
+/** traffic.SpeedBand */
+export type SpeedBand = 'BELOW_10_MPH' | 'FROM_10_TO_25_MPH' | 'FROM_25_MPH'
+
+/** traffic.GeometrySource */
+export type GeometrySource = 'ENCODED_POLYLINE' | 'LINK_POINTS'
+
+/** web.dto.TrafficOverlayResponse.TrafficCountsResponse */
+export interface TrafficCounts {
+  total: number
+  observed: number
+  stale: number
+  noData: number
+  invalid: number
+}
+
+/** web.dto.TrafficOverlayResponse.TrafficLinkResponse (display only) */
+export interface TrafficLink {
+  linkId: string
+  name?: string
+  borough?: string
+  owner?: string
+  status: TrafficLinkStatus
+  speedMph?: number
+  travelTimeS?: number
+  speedBand?: SpeedBand
+  dataAsOf: string
+  dataAsOfLocal: string
+  geometrySource: GeometrySource
+  geometryTruncated: boolean
+  geometry: { type: 'LineString'; coordinates: [number, number][] }
+}
+
+/** web.dto.TrafficOverlayResponse: stored NYC DOT snapshot, never a cost input */
+export interface TrafficOverlay {
+  available: boolean
+  unavailableReason?: string
+  snapshotId?: string
+  source?: string
+  sourceUrl?: string
+  retrievedAt?: string
+  observedAt?: string
+  observedAtLocal?: string
+  timeZone?: string
+  ageMinutes?: number
+  staleAfterMinutes: number
+  counts: TrafficCounts
+  coverageNote: string
+  displayOnlyNote: string
+  attribution: string
+  disclaimer: string
+  links: TrafficLink[]
+}
