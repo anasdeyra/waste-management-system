@@ -80,7 +80,7 @@ artifacts, metrics, and presentation remain consistent.
 - **Resolution:** "Multiple vehicles" means a fleet with multiple single-vehicle tours per
   planning day; the optimizer plans one tour per run (D-012).
 
-## D-008 — Optimization method and baseline (amended by D-022)
+## D-008 — Optimization method and baseline (amended by D-022 and D-052)
 
 - **Date:** 2026-10-31
 - **Decision:** The evaluation compares three planning methods on identical scenarios:
@@ -1115,3 +1115,86 @@ artifacts, metrics, and presentation remain consistent.
     while `backend/data/` is still required. Final run: 169 `PASS` lines in phases A to J, `FAILS=0`.
   - `docs/06-metrics.md` was assembled by a throw-away script that copies the tables and summaries
     verbatim from `docs/results/`; the script is not part of the repository.
+
+## D-052 — Sweep baseline as a fourth planning method (amends D-008; refines D-022)
+
+- **Date:** 2026-11-02
+- **Context:** The S10 research answer compares NN + 2-opt with the *input order*. In the seeded
+  experiment (D-050 generator `mn01-v1`) the input order is a Fisher-Yates shuffle of the sampled
+  baskets, so the reported -60 % distance change is mostly a property of a random, strawman
+  baseline (S10 review, `docs/06-metrics.md` section 7). No public dataset gives the real DSNY stop
+  sequence: the Litter Basket Inventory, the DSNY collection frequencies, PlowNYC and the NYC truck
+  routes were checked and none contains a visit order. A realistic, published, deterministic
+  baseline is therefore taken from the literature instead of from operations data.
+- **Decision:** The project owner chose the **sweep** heuristic (Gillett & Miller, 1974, "A
+  Heuristic Algorithm for the Vehicle-Dispatch Problem", *Operations Research* 22(2), 340-349,
+  <https://doi.org/10.1287/opre.22.2.340>) as an additional, geometry-based baseline. The manager
+  fixed the design below; it is not reopened without the owner.
+  - **Methods.** `PlanningMethod` gets a fourth value `SWEEP`; the declared (and evaluation) order
+    is `INPUT_ORDER`, `SWEEP`, `NEAREST_NEIGHBOR`, `NN_PLUS_2_OPT`. `INPUT_ORDER` stays as the
+    worst-case reference. The research answer becomes **NN + 2-opt versus sweep**; the comparison
+    with the input order is still reported.
+  - **Module.** A new framework-free class `optimization/SweepBaseline`; the package keeps
+    depending on `java.*` only (`OptimizationIndependenceTest`). `PlanningScenario` gains optional
+    WGS84 coordinates of every node (index 0 = depot, 1..n = stops in input order) through a second
+    constructor; the existing four-argument constructor remains and means "no coordinates". The
+    service (`EvaluationService`) always passes them. Without coordinates the `SWEEP` outcome is
+    infeasible with the reason "The sweep baseline needs the WGS84 coordinates of the depot and of
+    every stop." This keeps the 13 test call sites unchanged and never fabricates a sweep result.
+  - **Angle.** Local equirectangular projection around the depot: x = (lon - lon0) x cos(lat0),
+    y = lat - lat0; theta = atan2(y, x) normalised to [0, 2 pi) (a negative value gets + 2 pi; a
+    result equal to 2 pi after rounding becomes 0). Stops are sorted by ascending theta; ties by the
+    planar distance sqrt(x^2 + y^2) to the depot, then by node index. (A positive scaling of x does
+    not change the cyclic order of angles; the projection makes theta a geometric angle and fixes
+    the distance tie-break, it does not tune the result.)
+  - **Ray choice ("best sweep ray").** With the sorted list S[0..n-1], every start position k is
+    evaluated counter-clockwise (S[k], S[k+1], ..., S[k-1], indexes mod n) and clockwise (S[k],
+    S[k-1], ..., S[k+1]) on the exact directed road **distance** of the closed tour depot -> ... ->
+    depot (`TourCost.distance` on the same `DirectedCostMatrix` as the other methods). The cheapest
+    of the 2n candidates is kept; ties go to counter-clockwise before clockwise, then to the lowest
+    start position (strict improvement only, candidates in that order). This is the strongest pure
+    sweep, O(n^2) with n <= 100.
+  - **Feasibility.** Capacity and coverage are validated exactly as for `INPUT_ORDER` (the
+    module's common checks; one trip, no intermediate depot return, no capacity-driven route
+    split).
+  - **Configuration string.** `SweepBaseline.CONFIGURATION` states the method, the projection, the
+    tie-breaks, the 2n-ray selection on directed road distance and "single trip, no depot reload";
+    the module appends the chosen ray (`; chosen ray: start stop <node>, CCW|CW`).
+  - **Comparison only.** `SWEEP` is evaluated and retained with every run (tour drafts,
+    experiment and CSV-import batches) and appears in the comparison table, the evaluation
+    explorer, the aggregates, the CSV export, the experiment and the statistics. Proposal
+    acceptance is unchanged: accept NN + 2-opt or keep the input order; a sweep route is never
+    attached to a tour (`Tour.routeMethod` is only `INPUT_ORDER` or `NN_PLUS_2_OPT`, stated as an
+    OCL invariant). The existing per-method route layer loop draws the sweep legs; no bespoke map
+    layer is added, and the sweep layer is unchecked by default.
+  - **Percent changes.** The change against the input order is kept everywhere. A change against
+    sweep, `(value - sweep) / sweep x 100`, is added for `NEAREST_NEIGHBOR` and `NN_PLUS_2_OPT`
+    (empty for `INPUT_ORDER` and `SWEEP`); sweep against the input order is the `SWEEP` row's
+    existing change column. `EvaluationComparison.changePct` stays the single formula (its
+    reference parameters are renamed, not duplicated). The results export gains four columns after
+    `duration_change_pct`: `sweep_distance_m`, `sweep_duration_s`, `distance_change_vs_sweep_pct`,
+    `duration_change_vs_sweep_pct` (41 columns). The scenario import/export format is unchanged,
+    so the round trip still holds (scenario points already carry coordinates).
+  - **Runs retained before this decision** have no `SWEEP` result. Views show "—", the aggregates
+    count them as not comparable for `SWEEP` and for the change against sweep, and the export
+    writes no `SWEEP` row for a completed run without a `SWEEP` result (a `ROUTING_FAILED` run
+    still gives one row per method, now four). Nothing is back-filled.
+  - **Schema.** `evaluation_method_result.method` (and `tour.route_method`) are native H2 `ENUM`
+    columns in existing databases (checked on a copy of `backend/data/wastems.mv.db`), which would
+    reject `SWEEP`. Both are mapped with `@JdbcTypeCode(SqlTypes.VARCHAR)` (length 20 fits
+    `SWEEP`) and `SchemaUpgrade` converts them like the D-050 columns.
+  - **Experiment and report.** The S10 campaign (60 scenarios x 3 repetitions, D-051 command) is
+    re-run, now 720 rows; `tools/experiment-stats.py` adds sweep to its checks, tables and chart and
+    exact Wilcoxon tests NN + 2-opt vs sweep, NN vs sweep and sweep vs input order; the code metrics
+    are re-run with `bash tools/metrics.sh --publish`; `docs/results/` is regenerated and
+    `docs/06-metrics.md` is rewritten from those files only.
+- **Rationale:** Sweep is a classical, citable, deterministic construction heuristic that a
+  planner could apply with a map and a ruler, so it is a far more realistic stand-in for a manual
+  sequence than a random shuffle, while needing no unpublished data. Choosing the best of all 2n
+  rays on the same directed road distance makes the baseline as strong as a pure sweep can be, so a
+  remaining gain of NN + 2-opt is not an artefact of an unlucky ray. Keeping the input order shows
+  the worst case and keeps the S10 numbers comparable. Optional coordinates keep the module
+  framework-free and the change small without inventing a result when coordinates are absent.
+- **Impact:** Amends D-008 (four methods instead of three; the "baseline" of the research answer
+  is now sweep). Refines D-022 (same scenarios and directed matrix; sweep additionally uses the
+  real WGS84 coordinates already retained). D-050 and D-051 formats change as stated above.

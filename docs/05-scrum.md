@@ -433,6 +433,32 @@ a reviewed collection tour.**
 
 **Status:** Done in S6 (confirmation gate with structured issues; planned tours locked).
 
+#### US-40 — Compare against a published sweep baseline — P1
+
+**As a planner, I want every evaluation to include the sweep heuristic of Gillett & Miller (1974)
+as a realistic, geometry-based baseline so that the measured gain of NN + 2-opt is not only a gain
+over a random input order.**
+
+**Acceptance criteria**
+
+- Every new evaluation run (tour draft, experiment, CSV import) retains four method results in the
+  order input order, sweep, nearest neighbor, NN + 2-opt, all on the same frozen scenario, directed
+  matrix and road-graph snapshot.
+- The sweep order is deterministic: polar angle around the depot on a local equirectangular
+  projection, ties by planar distance to the depot then node index, best of the 2n start rays and
+  directions on the directed road distance (counter-clockwise first, then the lowest start); its
+  configuration names the chosen ray.
+- Sweep is checked for coverage and capacity exactly like the input order; it never splits the
+  tour or returns to the depot in between.
+- The comparison table, the explorer, the batch aggregates and the CSV export show the change of
+  NN and NN + 2-opt against sweep in addition to the change against the input order; runs
+  retained before S11 show "—" for sweep and are excluded from sweep comparisons.
+- Accepting a proposal still offers only NN + 2-opt or keeping the input order.
+
+**Traceability:** FR-15, FR-16, FR-19, FR-20, FR-21; NFR-04 to NFR-09; D-052.
+
+**Status:** Planned for S11.
+
 ### 1.6 Epic E05 — Collection execution and history
 
 #### US-26 — Consult an assigned tour — P1
@@ -759,6 +785,7 @@ Differences from a human-team sprint backlog, and why:
 | S8 | Corrections, history, and auditability | US-30…US-32, US-39 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S9 | Dashboards, evaluation explorer, CSV, traffic overlay | US-34…US-38 | Done (frontend verified by build, lint, bundle strings and proxy checks only, no browser walkthrough) |
 | S10 | Metrics campaign and project closure | Part 6 execution + presentation | Done (metrics tooling, 540-row campaign, `docs/06-metrics.md`, HTML deck and traceability verified by the scripted done-check; deck checked in a headless browser) |
+| S11 | Sweep baseline and the revised research answer | US-40 + Part 6 re-run | Planned (D-052) |
 
 Notes on the selection:
 
@@ -774,6 +801,8 @@ Notes on the selection:
   isolated, heavily testable module per AGENTS.md §7 — is verified before any UI depends on it.
 - **S10 has no backlog stories** because it executes Part 6 (metrics + the fixed 60-scenario
   campaign) and prepares presentation content; the deck format is fixed by D-041.
+- **S11 reopens the research answer** after the S10 review found the random input-order baseline
+  too weak. It adds one story (US-40, sweep baseline, D-052) and re-runs Part 6 with it.
 
 ### 3.4 Sprint S1 — Secure foundation: identities, roles, waste categories
 
@@ -2380,3 +2409,278 @@ measured package dependency.
   the committed results (done) and keep one commit per task; let the done-check start its servers once and
   reuse them; split `TourService` and `ScenarioCsvImportService` and move the `*Properties` classes out of
   `config/`.
+
+### 3.14 Sprint S11 — Sweep baseline and the revised research answer
+
+**Sprint goal.** Every evaluation also runs the sweep heuristic of Gillett & Miller (1974) as a
+realistic, published baseline (D-052); the fixed 60-scenario campaign is re-run with four methods;
+Part 6 answers the research question as **NN + 2-opt versus sweep** (and still reports the change
+against the input order) with measured numbers only; every document, diagram and the deck agree.
+
+**Entrance criteria.** S10 done and merged on `main` (`2520604`; 406 backend tests green, build and
+lint clean). Design fixed by D-052; no open decision blocks the sprint. The presentation date stays
+open (AGENTS.md section 4) and does not block. One point needs the owner's confirmation before T9
+(see *Escalation*), with a safe default.
+
+**Planning findings (read before T1).**
+
+- **Schema risk, confirmed.** In the owner's database (`backend/data/wastems.mv.db`, inspected on a
+  copy) `EVALUATION_METHOD_RESULT.METHOD` and `TOUR.ROUTE_METHOD` are native H2 `ENUM` columns with
+  the three S10 values; inserting `SWEEP` would fail on any database created before S11. D-050
+  observed that Hibernate 6.6 alters such a column itself once the mapping becomes `VARCHAR`;
+  `SchemaUpgrade` stays the safety net. The experiment runner always uses a fresh database and is
+  not affected; the dev database and the demo are.
+- **Where the methods are enumerated.** Backend main: `PlanningMethod`, `TourOptimizationModule`
+  (switch and `planAll`), `EvaluationAggregates` and `EvaluationExportService`
+  (`PlanningMethod.values()` loops), `EvaluationComparison`, `AggregateRow`,
+  `web/dto/EvaluationAggregateResponse`, `MethodResultResponse`, `EvaluationMethodBriefResponse`,
+  `EvaluationRunListItemResponse` (sorts by enum ordinal), `EvaluationRunResponse`, `MethodResult`
+  and `Tour` (column mappings), `SchemaUpgrade`, `PlanningScenario`, `EvaluationService`.
+  `TourService` uses `NN_PLUS_2_OPT`/`INPUT_ORDER` by name and needs no change. Frontend:
+  `types/api.ts`, `lib/evaluation-labels.ts` (`Record<PlanningMethod, …>` maps make `tsc` fail until
+  `SWEEP` is added everywhere), `components/tours/evaluation-comparison.tsx` (visibility map),
+  `components/maps/route-layers.tsx` (loops over `METHOD_ORDER`), `components/tours/evaluation-indicator-table.tsx`,
+  `components/evaluations/run-table.tsx`, `components/evaluations/batch-summary.tsx`, and the
+  "three methods" copy in `hooks/use-evaluations.ts` and `pages/evaluation-explorer-page.tsx`.
+  Tools: `tools/experiment-stats.py` (`METHODS`, the `x 3` row check, `NUMERIC`, tables, chart).
+- **Tests that hard-code three methods.** `hasSize(3)`/`length()==3` on results in
+  `EvaluationServiceTest`, `EvaluationControllerTest`, `EvaluationExplorerControllerTest`,
+  `EvaluationExportControllerTest`, `ExperimentRoutingFailureTest`, `TourReviewControllerTest`
+  (also `$.results[2]` was NN + 2-opt and becomes nearest neighbor), plus
+  `TourOptimizationModuleTest` and `EvaluationAggregatesTest`. Update them to four, by method name
+  where an index was used; never delete an assertion to make a test pass.
+- **Old runs.** A completed run retained before S11 has three results; every view, the aggregates
+  and the export must tolerate a missing `SWEEP` (D-052). The export currently writes a row for
+  every enum value and would emit a misleading `feasible=false` `SWEEP` row for such a run; that
+  branch must skip the method instead.
+- **`PlanningScenario` call sites.** One in main (`EvaluationService.compute`, which already builds
+  the WGS84 node list) and 13 in tests. With the optional-coordinates constructor of D-052 only the
+  main site changes; the tests without coordinates now see an infeasible `SWEEP` from `planAll`.
+- **The projection does not change the order.** Scaling x by cos(lat0) > 0 preserves the cyclic
+  order of angles, so it cannot move a stop in the sweep; tests check the angle values and the
+  tie-breaks, not an "order change caused by the projection".
+- **Run time.** Sweep costs 2n tours of n + 1 legs, about 20 000 matrix reads at n = 100; the
+  campaign stays at about 2 minutes (S10: 103 s wall time for 180 runs). 60 x 3 runs is still the
+  180-run limit of D-050.
+- **Numbers.** Every number in `docs/06-metrics.md`, `docs/02-literature-review.md`, the README and
+  the deck comes from a file produced in this sprint (`docs/results/**`, a test or a command
+  output) and is copied, never estimated. The S10 numbers below are obsolete after T8.
+
+**Escalation.** AGENTS.md section 5 asks for "5–10" literature sources and the review already has
+10. Adding Gillett & Miller makes 11. Default (applied unless the owner says otherwise): add it as
+source 11, because the baseline must be cited, and record the count in the review. Alternative
+for the owner: replace source 9 (Liang et al., the weakest mini-review). The manager asks the owner;
+the executor does not decide this.
+
+**Task backlog** (one conventional commit per task on `sprint/s11`; trailer as the environment
+instructs)
+
+0. (XS) **Owner's presentation change first.** `presentation/index.html` has an uncommitted
+   full-screen image viewer written by the owner. Read the diff, commit it unchanged and alone as
+   `feat(presentation): add full-screen image viewer`. Never stash, reset or reformat it.
+   `research1.txt` and `research2.txt` stay untracked and untouched for the whole sprint
+   (`git add` explicit paths only, never `git add -A` or `.`).
+1. (S) **Schema guard.** `domain/MethodResult.method` and `domain/Tour.routeMethod`:
+   `@JdbcTypeCode(SqlTypes.VARCHAR)` (keep length 20). `config/SchemaUpgrade.upgrade()`:
+   `convertEnumColumn("EVALUATION_METHOD_RESULT", "METHOD", 20)` and
+   `convertEnumColumn("TOUR", "ROUTE_METHOD", 20)`. Extend `SchemaUpgradeTest` with both columns.
+   Commit before `SWEEP` exists so that the upgrade is proven on the three-value enum.
+2. (M) **Sweep core** in `optimization/` (framework-free):
+   - `PlanningScenario`: new constructor `(matrix, demandKg, capacityKg, serviceTimeSeconds,
+     double[] longitudes, double[] latitudes)`; arrays both null or both of length
+     `matrix.size()`, finite, longitude in [-180, 180], latitude in [-90, 90], else
+     `IllegalArgumentException`; defensive copies; `hasCoordinates()`, `longitude(int node)`,
+     `latitude(int node)`. The existing constructor delegates with nulls. Update the class comment
+     ("all four methods").
+   - `PlanningMethod`: `INPUT_ORDER, SWEEP, NEAREST_NEIGHBOR, NN_PLUS_2_OPT`; comment cites D-052.
+   - New `SweepBaseline` with `CONFIGURATION` (D-052 wording), a package-visible
+     `static double polarAngle(PlanningScenario s, int node)` and `planarRadius`, and
+     `Result order(PlanningScenario s)` returning the order plus the chosen start node and direction
+     (record `Result(List<Integer> order, int startNode, boolean clockwise)`); throws
+     `InfeasibleScenarioException` when coordinates are missing. Algorithm exactly as D-052
+     (sort by theta, radius, index; candidates CCW k = 0..n-1 then CW k = 0..n-1; keep a candidate
+     only if strictly cheaper on `TourCost.distance`). Do not mutate inputs; return
+     `List.copyOf`.
+   - `TourOptimizationModule`: `case SWEEP` (config + `"; chosen ray: start stop " + node + ", " +
+     (cw ? "CW" : "CCW")`, infeasible reason from the exception); `planAll` returns the four
+     methods in enum order. Capacity and coverage checks are the common ones, unchanged.
+   - Tests, new `SweepBaselineTest` (hand-computed):
+     (a) four stops at the compass points around a depot at (0, 0) on a symmetric matrix: all
+     candidates tie, the result is CCW from the smallest angle, order `[1, 2, 3, 4]` (east, north,
+     west, south), chosen `CCW`;
+     (b) angle values: depot at latitude 60, a stop at (+1 lon, +0.5 lat) has x = 0.5, y = 0.5,
+     theta = pi/4 (1e-12), a stop due south has 3 pi/2, due east 0 (not 2 pi);
+     (c) equal angle: two stops on the same ray, the nearer first; two stops with identical
+     coordinates, the lower node index first;
+     (d) direction choice on a directed matrix: same geometry as (a) but every counter-clockwise
+     stop-to-stop leg costs 10 times more than its reverse; the result is clockwise and its
+     distance equals the hand sum written in the test;
+     (e) start-ray choice: an asymmetric matrix where only one start position is cheapest; assert
+     that start and the order;
+     (f) brute-force agreement: for seeded random coordinates and random asymmetric matrices
+     (n = 1..12, at least 50 instances) the chosen distance equals the minimum over the 2n
+     candidates built independently in the test, and the tie rule picks the first minimum;
+     (g) n = 1 gives `[1]`, CCW; missing coordinates throw.
+     `TourOptimizationModuleTest`: `planAll` returns four outcomes in enum order; `SWEEP`
+     infeasible with the D-052 reason when the scenario has no coordinates; over-capacity makes
+     `SWEEP` infeasible with the same capacity reason as `INPUT_ORDER`; configuration contains the
+     chosen ray. `PlanningScenario` validation tests (length, NaN, range, one array null).
+     `OptimizationIndependenceTest` stays green unchanged.
+3. (S) **Service.** `EvaluationService.compute` passes the depot and stop longitudes/latitudes it
+   already has (same node order as the matrix). `EvaluationServiceTest`,
+   `ExperimentRoutingFailureTest`, `EvaluationControllerTest`, `TourReviewControllerTest`: four
+   results, `SWEEP` feasible with the depot-closed order; index-based assertions switched to method
+   lookups. `DemoDataServiceTest` stays green (the demo tours still accept NN + 2-opt or keep the
+   input order).
+4. (M) **Comparisons, aggregates, API.** `EvaluationComparison.changePct` keeps one formula with the
+   reference parameters renamed (`referenceFeasible`, `referenceValue`). New nullable fields:
+   `MethodResultResponse` and `EvaluationMethodBriefResponse` get `distanceChangeVsSweepPct`,
+   `durationChangeVsSweepPct` (set only for `NEAREST_NEIGHBOR` and `NN_PLUS_2_OPT`; null when the run
+   has no feasible `SWEEP` with distance above 0). `AggregateRow` and `EvaluationAggregateResponse`
+   get `comparableVsSweepRuns`, `meanDistanceChangeVsSweepPct`, `minDistanceChangeVsSweepPct`,
+   `maxDistanceChangeVsSweepPct`, `meanDurationChangeVsSweepPct` (same comparability rule with sweep
+   as the reference). Tests: `EvaluationAggregatesTest` with a mix of new runs and an old run
+   without `SWEEP` (the old run is counted in `runs`, excluded from `SWEEP` comparable runs and from
+   the vs-sweep means; hand-computed means); explorer controller test asserting the new fields and
+   four results; a DTO test for an old three-result run (no `SWEEP` entry, vs-sweep fields null).
+5. (M) **CSV export.** `EvaluationExportService.RESULT_COLUMNS`: insert `sweep_distance_m`,
+   `sweep_duration_s`, `distance_change_vs_sweep_pct`, `duration_change_vs_sweep_pct` after
+   `duration_change_pct` (41 columns); rows per run in enum order; a completed run without a given
+   method writes no row for it; a `ROUTING_FAILED` run writes four rows with all indicator columns
+   empty (the runs of empty cells grow from 10 to 14 in the failure branch and from 4 to 8 after
+   the execution time in the infeasible branch). Sweep columns are filled on every
+   feasible row of a run whose `SWEEP` is feasible; the vs-sweep changes only on the NN and NN +
+   2-opt rows. `EvaluationExportControllerTest`: header of 41 names in order, 4 rows per completed
+   new run, 3 rows for an old run (seed one with a three-result run), 4 rows for a failed run,
+   recomputation of `distance_change_vs_sweep_pct` from `distance_m` and `sweep_distance_m` within
+   0.001. Scenario CSV unchanged; the existing round-trip test must stay green.
+   `docs/evaluation-csv.md` section 4: method order, the four columns and their formula, the old-run
+   rule, "four rows" for failures, "41 columns", and a new example taken from a real export of
+   `mn01-UNIFORM_LOW-s1-n10` (copied from the T8 `results.csv`, including the sweep row).
+6. (M) **Frontend** (contract sync in the same commit as T4/T5 changes it depends on, or one
+   frontend commit right after): `types/api.ts` (`PlanningMethod` adds `'SWEEP'`, new optional
+   fields); `lib/evaluation-labels.ts` (`METHOD_ORDER` with `SWEEP` second, label
+   `Sweep (Gillett & Miller)`, a distinct style, e.g. `#7c3aed`, weight 7, opacity 0.6, so the stack
+   stays readable); `evaluation-comparison.tsx` (sweep hidden by default); `route-layers.tsx` (sweep
+   overlay unchecked by default; the NN + 2-opt proposal highlight unchanged);
+   `evaluation-indicator-table.tsx` (sweep row; a "vs sweep" column for NN and NN + 2-opt; "—" when
+   missing); `run-table.tsx` (sweep distance change vs input order and NN + 2-opt change vs sweep
+   columns; "—" when missing); `batch-summary.tsx` (sweep bar in the by-size chart, vs-sweep means
+   in the aggregate table); copy "three methods" becomes "four methods" or method-neutral.
+   `proposal-actions.tsx` unchanged. Verify `npm run build`, `npm run lint` (only the 3 vendored
+   warnings) and that the bundle contains `Sweep (Gillett & Miller)` and `ChangeVsSweepPct`.
+7. (S) **Statistics tool.** `tools/experiment-stats.py`: `METHODS` with `SWEEP` (label "Sweep"); row
+   check `x 4 methods`; "every method present" over four; the new export columns are parsed as
+   optional numbers (empty to `None`, not in `NUMERIC`); a check that `distance_change_vs_sweep_pct`
+   recomputes from `distance_m`/`sweep_distance_m` within 0.001 on NN and NN + 2-opt rows; tables
+   (b)-(d) and the per-size/per-profile groups include sweep; a new table of changes against sweep
+   (NN and NN + 2-opt, by size, mean/min/max) and the count of instances where NN + 2-opt beats,
+   ties or loses against sweep; per-instance CSV gets `sweep_distance_m`; per-scenario CSV gets the
+   sweep columns; paired exact Wilcoxon tests `opt_vs_sweep_distance`, `nn_vs_sweep_distance`,
+   `sweep_vs_input_distance`, `opt_vs_sweep_duration` added to the existing five; Holm-adjusted p
+   values for the whole paired family printed next to the raw ones (addresses the S10
+   multiple-comparison threat); the SVG chart shows three bars per size (sweep, NN, NN + 2-opt vs
+   input order) plus a second panel or file `distance-change-vs-sweep-by-size.svg`; `--self-test`
+   gains a Holm check. Run it first on a small `run-experiment.sh` subset in the scratchpad.
+8. (M) **Campaign on a clean tree.** After T0-T7 are committed (`git status --porcelain
+   --untracked-files=no` empty): `bash tools/run-experiment.sh metrics/experiment-s11
+   --wastems.experiment.repetitions=3 --wastems.experiment.label="S11 canonical campaign"`
+   (720 rows), copy `results.csv`, `scenarios.csv`, `batch.json`, `run-info.txt`, `run.log` over
+   `docs/results/experiment/` (never `db/` or `routing-cache/`), then `python3
+   tools/experiment-stats.py docs/results/experiment docs/results/experiment-stats` (exit 0, no
+   `FAIL`) and `python3 tools/experiment-stats.py --self-test`. Then `bash tools/metrics.sh
+   --publish` on a clean tree. Commit the regenerated `docs/results/**` only
+   (`chore(results): re-run the campaign and metrics with the sweep baseline`).
+9. (M) **Research documents.** `docs/02-literature-review.md`: Gillett & Miller in the evidence
+   table and section 7 references (see *Escalation*), a synthesis paragraph on sweep (polar
+   ordering around a depot, originally a route-clustering step for the multi-vehicle problem; used
+   here as a single-route sequencing baseline with the best ray), section 1 (four methods; the
+   research question unchanged, the baseline named), section 6 (changes against sweep and input
+   order; supported conclusion wording against sweep). `docs/06-metrics.md`: rewrite sections 1, 2
+   (720 rows), 3 (new code metrics), 4 (four methods, sweep definition), 5 (tables copied from
+   `docs/results/experiment-stats/summary.md`, the new vs-sweep table and Wilcoxon/Holm values), 6
+   (answer = NN + 2-opt vs sweep, input order second), 7 (the "weak baseline" threat replaced by
+   what sweep does and does not represent: still not a DSNY sequence) and 8. Use a throw-away
+   script or copy-paste from the result files; then run the number-trace check of the done list.
+10. (S) **UML and analysis.** `docs/03-uml/03-sequence-optimize-tour.md` (a `plan(SWEEP, …)` call
+    after the input order, "four-method comparison"); `docs/03-uml/02-class-diagram.md` (OCL
+    `context Tour inv RouteMethodIsDecidable: routeMethod->notEmpty() implies (routeMethod =
+    PlanningMethod::INPUT_ORDER or routeMethod = PlanningMethod::NN_PLUS_2_OPT)` and a sentence that
+    `PlanningMethod` has four values); `01-use-cases.md` UC10/UC22/UC23 wording;
+    `04-activity-tour-lifecycle.md` EVALUATE node; `docs/03-uml/README.md`; `docs/01-analysis.md`
+    FR-29 wording ("all planning methods"). Re-render every changed Mermaid file with the D-047
+    procedure (mermaid-cli 11 in the scratchpad, never in the repo); copy the exports used by the
+    deck to `presentation/assets/uml-*.svg`.
+11. (S) **Traceability, README.** `docs/traceability.md`: US-40 under FR-19/FR-20/FR-21 with
+    `SweepBaseline`, `SweepBaselineTest` and the export/aggregate tests (paths must exist);
+    `README.md`: methods list, package comment of `optimization/`, the evaluation curl comment
+    ("four method results"), the demo row (sweep distance taken from a real evaluation of the demo
+    draft on a fresh `dev` start, not estimated), Part 4/6 summary lines.
+12. (M) **Deck.** `presentation/index.html`, keeping the owner's image viewer: research question
+    slide (baseline named), literature slide (Gillett & Miller), sequence image, route evaluation
+    slide (four methods), sprints slide (S1-S11), code metrics, experiment design, results, key
+    finding (vs sweep first, vs input order second), threats, limitations; `distance-change-by-size.svg`
+    (and the vs-sweep chart) copied from `docs/results/experiment-stats/`. Re-capture
+    `03-tour-route-evaluation.png`, `07-evaluation-batch.png`, `07b-evaluation-batch-full.png` and
+    `08-evaluation-run-routes.png` with `tools/capture-screenshots.mjs` if a puppeteer is available
+    outside the repo (D-051); otherwise keep them and say on those slides that the screenshots show
+    the three-method UI of S10. Every number on the slides occurs in a committed result file.
+13. (S) **Close.** Review and retrospective subsections below; §3.1 status "S1–S11"; §3.3 row; US-40
+    status; `AGENTS.md` §3 (optimization model row, prototype row with the new test count, metrics
+    row, presentation row, last updated) and §5 (no new box; keep the source-count line honest);
+    `docs/decisions.md`: a `D-053 — S11 conventions` entry listing only the deviations from this plan.
+
+**Verification commands**
+
+```bash
+source ~/.local/opt/ase-env.sh
+(cd backend && ./mvnw test)                                   # all green, more than 406 tests
+(cd backend && ./mvnw -q -Dtest='SweepBaselineTest,TourOptimizationModuleTest,OptimizationIndependenceTest' test)
+(cd frontend && npm run build && npm run lint)                # exit 0; lint warnings only in src/components/ui/
+git status --porcelain --untracked-files=no                   # empty before T8
+bash tools/run-experiment.sh metrics/experiment-s11 --wastems.experiment.repetitions=3 \
+     --wastems.experiment.label="S11 canonical campaign"
+python3 tools/experiment-stats.py docs/results/experiment docs/results/experiment-stats
+python3 tools/experiment-stats.py --self-test
+bash tools/metrics.sh --publish
+```
+
+Schema check on a copy of the owner's database (never the original): copy
+`backend/data/wastems.mv.db` to the scratchpad, start the backend on a spare port with
+`--spring.datasource.url=jdbc:h2:file:<copy>;DB_CLOSE_ON_EXIT=FALSE` and the `dev` profile, evaluate
+a draft over HTTP, and confirm a stored `SWEEP` result, `VARCHAR` types for both columns, and that an
+old run still loads (`GET /api/evaluations/{oldRunId}` 200 with three results) and exports (3 rows).
+
+**Automated done checks**
+
+- `./mvnw test` green with `SweepBaselineTest` (cases a-g) present; `OptimizationIndependenceTest`
+  green; `grep -rn "springframework\|graphhopper\|jakarta" backend/src/main/java/com/ase/wastems/optimization/`
+  empty.
+- A fresh evaluation over HTTP returns four results in the order `INPUT_ORDER, SWEEP,
+  NEAREST_NEIGHBOR, NN_PLUS_2_OPT`; the `SWEEP` configuration names a chosen ray; accept still
+  attaches `NN_PLUS_2_OPT` and reject `INPUT_ORDER`; no endpoint accepts a sweep route.
+- The schema check above passes on a copy of the owner's database.
+- `docs/results/experiment/results.csv` has 720 rows and 41 columns; `checks.txt` has no `FAIL`;
+  `run-info.txt` shows `exit: 0` and `tracked_changes: 0`; an independent recomputation (a short
+  script in the scratchpad, not the stats tool) of the mean NN + 2-opt change against sweep and
+  against input order over the 60 scenarios agrees with `summary.json` within 0.01; for every
+  scenario the `SWEEP` distance equals the minimum over the 2n rays recomputed from the stored
+  matrix of one sampled run per size (fetch it with `GET /api/evaluations/{id}` during the check,
+  or re-run a 4-scenario subset).
+- `docs/results/metrics/` equals a fresh `bash tools/metrics.sh` run (environment line aside).
+- Every decimal number in `docs/06-metrics.md`, the README's sweep values and the deck occurs in a
+  committed result file or test; no S10 research number survives where it is no longer true
+  (`grep -n "60.18\|57.20" docs/06-metrics.md presentation/index.html` only where explicitly
+  labelled as the S10 input-order result, or not at all).
+- `docs/evaluation-csv.md` lists exactly the 41 columns of `RESULT_COLUMNS` in order (scripted
+  comparison).
+- `npm run build` and `npm run lint` green; the bundle contains `Sweep (Gillett & Miller)`.
+- All changed Mermaid files render (exit 0, no "syntax error" in the SVG); the deck opens offline,
+  navigates by keyboard, the image viewer still works, no overflowing slide at 1280x720.
+- `git log main..sprint/s11` starts with `feat(presentation): add full-screen image viewer`;
+  `research1.txt` and `research2.txt` are untracked and unchanged (SHA-256 at planning time:
+  `b800c7c0a305…` and `cf96e1bbda2e…`; `sha256sum research1.txt research2.txt`).
+
+**Review.** *(to be written by the executor after the done checks)*
+
+**Retrospective.** *(to be written by the executor)*
