@@ -34,6 +34,8 @@ class SchemaUpgradeTest {
         assertThat(type("AUDIT_EVENT", "ACTION")).isEqualTo("CHARACTER VARYING");
         assertThat(type("AUDIT_EVENT", "ENTITY_TYPE")).isEqualTo("CHARACTER VARYING");
         assertThat(type("EVALUATION_RUN", "SCENARIO_KIND")).isEqualTo("CHARACTER VARYING");
+        assertThat(type("EVALUATION_METHOD_RESULT", "METHOD")).isEqualTo("CHARACTER VARYING");
+        assertThat(type("TOUR", "ROUTE_METHOD")).isEqualTo("CHARACTER VARYING");
         assertThat(type("EVALUATION_BATCH", "KIND")).isEqualTo("CHARACTER VARYING");
         assertThat(type("EVALUATION_BATCH", "STATUS")).isEqualTo("CHARACTER VARYING");
     }

@@ -1,19 +1,19 @@
 ## Totals
-class files: 273
-top-level classes: 239
-nested classes: 34
-methods (sum of WMC): 2432
-WMC: mean 8.91, median 7.00, max 61 (domain.Tour)
+class files: 275
+top-level classes: 240
+nested classes: 35
+methods (sum of WMC): 2471
+WMC: mean 8.99, median 7.00, max 61 (domain.Tour)
 DIT: mean 1.71, median 2.00, max 6 (service.TourNotStartableException)
 NOC: mean 0.01, median 0.00, max 3 (service.TourIssuesException)
-CBO: mean 9.14, median 6.00, max 67 (service.DemoDataService)
-RFC: mean 23.12, median 12.00, max 270 (service.TourService)
-LCOM: mean 50.33, median 12.00, max 1378 (domain.Tour)
+CBO: mean 9.15, median 6.00, max 67 (service.DemoDataService)
+RFC: mean 23.26, median 12.00, max 270 (service.TourService)
+LCOM: mean 51.40, median 14.00, max 1378 (domain.Tour)
 LCOM3: mean 0.93, median 0.83, max 2.0 (web.ApiExceptionHandler)
 
 ## DIT distribution
-DIT=1: 112
-DIT=2: 147
+DIT=1: 113
+DIT=2: 148
 DIT=3: 1
 DIT=4: 9
 DIT=5: 1
@@ -25,14 +25,14 @@ package            classes      WMC      DIT      NOC      CBO      RFC     LCOM
 (root)                   1     2.00     1.00     0.00     2.00     4.00     1.00     2.00
 config                  13     6.00     1.31     0.00    11.31    20.54    15.00     0.85
 domain                  36    11.61     1.44     0.00    12.11    19.42    97.92     0.82
-optimization            13     4.31     1.46     0.00     6.00    11.85     9.08     1.40
+optimization            15     5.20     1.47     0.00     6.53    14.13    14.53     1.35
 repository              14     6.36     1.14     0.00     7.43     6.93    26.79     1.85
 routing                 11     5.82     1.91     0.00     8.36    17.55     9.27     1.02
 security                 4     2.25     1.50     0.00    11.50    15.25     0.25     0.12
-service                 78     8.74     1.94     0.05    10.86    31.90    49.81     0.99
+service                 78     8.83     1.94     0.05    10.87    32.01    51.19     0.99
 traffic                 12     7.25     1.67     0.00     6.33    17.83    23.75     1.02
 web                     17     7.00     1.00     0.00    12.82    30.12    11.47     0.29
-web.dto                 74    11.19     2.00     0.00     6.08    21.95    68.36     0.82
+web.dto                 74    11.32     2.00     0.00     6.08    22.18    70.89     0.82
 
 ## Top 15 classes by WMC
 class                                                        WMC     DIT     NOC     CBO     RFC    LCOM   LCOM3
@@ -47,11 +47,11 @@ domain.TourStop                                               32       1       0
 web.dto.EvaluationBatchResponse                               31       2       0       9      61     413  0.9333
 service.DemoDataService                                       30       1       0      67     222     311  0.9321
 web.dto.TourSummaryResponse                                   29       2       0      10      60     358  0.9286
-web.dto.EvaluationRunListItemResponse                         25       2       0      13      68     266  0.9167
+web.dto.EvaluationRunListItemResponse                         26       2       0      13      70     291    0.92
+web.dto.EvaluationAggregateResponse                           25       2       0       5      49     260  0.9167
 web.dto.TourStopResponse                                      25       2       0       9      59     260  0.9167
+service.AggregateRow                                          24       2       0       6      28     236  0.9565
 service.TourExecutionService                                  24       1       0      34     113     236  0.9022
-domain.CollectionPoint                                        23       1       0      18      35     169  0.9132
-service.ScenarioCsvImportService                              23       1       0      42     183     227  0.9502
 
 ## Top 15 classes by CBO
 class                                                        WMC     DIT     NOC     CBO     RFC    LCOM   LCOM3
@@ -85,10 +85,10 @@ web.dto.EvaluationBatchResponse                               31       2       0
 web.dto.TourSummaryResponse                                   29       2       0      10      60     358  0.9286
 domain.TourStop                                               32       1       0      20     100     340  0.8768
 service.DemoDataService                                       30       1       0      67     222     311  0.9321
-web.dto.EvaluationRunListItemResponse                         25       2       0      13      68     266  0.9167
+web.dto.EvaluationRunListItemResponse                         26       2       0      13      70     291    0.92
+web.dto.EvaluationAggregateResponse                           25       2       0       5      49     260  0.9167
 web.dto.TourStopResponse                                      25       2       0       9      59     260  0.9167
+service.AggregateRow                                          24       2       0       6      28     236  0.9565
 service.TourExecutionService                                  24       1       0      34     113     236  0.9022
-service.ScenarioCsvImportService                              23       1       0      42     183     227  0.9502
-web.dto.TrafficOverlayResponse                                23       2       0      15      67     219  0.9091
 
 note: WMC = number of methods (CKJM weight 1); records have DIT 2 (java.lang.Record).

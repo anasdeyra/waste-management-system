@@ -105,7 +105,7 @@ class ExperimentServiceTest {
             assertThat(r.getRepetition()).isEqualTo(1);
             assertThat(r.getPointCount()).isEqualTo(r.getStops().size());
             assertThat(r.getResults()).extracting(MethodResult::getMethod).containsExactly(PlanningMethod.INPUT_ORDER,
-                    PlanningMethod.NEAREST_NEIGHBOR, PlanningMethod.NN_PLUS_2_OPT);
+                    PlanningMethod.SWEEP, PlanningMethod.NEAREST_NEIGHBOR, PlanningMethod.NN_PLUS_2_OPT);
             assertThat(r.sourceSnapshotIdList())
                     .containsExactly("8znf-7b2c:449:a0737237e370", "xw3j-2yxf:1:207851c2e229");
             assertThat(r.getRoadGraphVersion()).isEqualTo("osm-mn01-e1f2fabaa937");

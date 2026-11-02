@@ -266,8 +266,11 @@ class TourReviewControllerTest {
                 .andExpect(jsonPath("$.decision").value("ACCEPTED"))
                 .andExpect(jsonPath("$.decidedBy").value("planner1"))
                 .andExpect(jsonPath("$.decidedAt").exists())
-                .andExpect(jsonPath("$.results.length()").value(3))
-                .andExpect(jsonPath("$.results[2].visitOrder").value(
+                .andExpect(jsonPath("$.results.length()").value(4))
+                .andExpect(jsonPath("$.results[1].method").value("SWEEP"))
+                .andExpect(jsonPath("$.results[1].feasible").value(true))
+                .andExpect(jsonPath("$.results[1].legs.features.length()").value(4))
+                .andExpect(jsonPath("$.results[3].visitOrder").value(
                         Matchers.contains(proposal.get("visitOrder").get(0).asInt(),
                                 proposal.get("visitOrder").get(1).asInt(),
                                 proposal.get("visitOrder").get(2).asInt())));
@@ -299,7 +302,7 @@ class TourReviewControllerTest {
         assertThat(stopIds(mapper.readTree(res.getResponse().getContentAsString()))).isEqualTo(before);
         JsonNode after = doGetJson("/api/evaluations/" + run.get("id").asText());
         assertThat(after.get("decision").asText()).isEqualTo("REJECTED");
-        assertThat(after.get("results")).hasSize(3);
+        assertThat(after.get("results")).hasSize(4);
         JsonNode nn2 = result(after, "NN_PLUS_2_OPT");
         assertThat(nn2.get("feasible").asBoolean()).isTrue();
         assertThat(nn2.get("legs").get("features")).hasSize(4);

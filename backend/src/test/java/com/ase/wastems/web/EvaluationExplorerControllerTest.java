@@ -62,8 +62,13 @@ class EvaluationExplorerControllerTest extends ExecutionTestSupport {
                 .andExpect(jsonPath("$.items[0].scenarioKey").exists())
                 .andExpect(jsonPath("$.items[0].batchId").value(batchId.toString()))
                 .andExpect(jsonPath("$.items[0].pointCount").exists())
-                .andExpect(jsonPath("$.items[0].results.length()").value(3))
+                .andExpect(jsonPath("$.items[0].results.length()").value(4))
+                .andExpect(jsonPath("$.items[0].results[1].method").value("SWEEP"))
                 .andExpect(jsonPath("$.items[0].results[1].distanceChangePct").exists())
+                .andExpect(jsonPath("$.items[0].results[1].distanceChangeVsSweepPct").doesNotExist())
+                .andExpect(jsonPath("$.items[0].results[3].method").value("NN_PLUS_2_OPT"))
+                .andExpect(jsonPath("$.items[0].results[3].distanceChangeVsSweepPct").exists())
+                .andExpect(jsonPath("$.items[0].results[0].distanceChangeVsSweepPct").doesNotExist())
                 .andExpect(jsonPath("$.items[0].results[0].legs").doesNotExist())
                 .andExpect(jsonPath("$.items[0].results[0].visitOrder").doesNotExist());
         performList("?kind=TOUR_DRAFT").andExpect(jsonPath("$.totalElements").value(1))
@@ -111,7 +116,12 @@ class EvaluationExplorerControllerTest extends ExecutionTestSupport {
                 .andExpect(jsonPath("$.batch.runCount").value(4))
                 .andExpect(jsonPath("$.scenarioKeys[0]").value("mn01-UNIFORM_HIGH-s4-n5"))
                 .andExpect(jsonPath("$.scenarioKeys.length()").value(4))
-                .andExpect(jsonPath("$.aggregates.length()").value(15))
+                .andExpect(jsonPath("$.aggregates.length()").value(20))
+                .andExpect(jsonPath("$.aggregates[1].method").value("SWEEP"))
+                .andExpect(jsonPath("$.aggregates[3].method").value("NN_PLUS_2_OPT"))
+                .andExpect(jsonPath("$.aggregates[3].comparableVsSweepRuns").value(4))
+                .andExpect(jsonPath("$.aggregates[3].meanDistanceChangeVsSweepPct").isNumber())
+                .andExpect(jsonPath("$.aggregates[0].comparableVsSweepRuns").value(0))
                 .andExpect(jsonPath("$.aggregates[0].group").value("ALL"))
                 .andExpect(jsonPath("$.aggregates[0].value").value("all"))
                 .andExpect(jsonPath("$.aggregates[0].method").value("INPUT_ORDER"))
@@ -137,6 +147,34 @@ class EvaluationExplorerControllerTest extends ExecutionTestSupport {
         double d2 = run.get("results").get(2).get("distanceM").asDouble();
         assertThat(run.get("results").get(2).get("distanceChangePct").asDouble())
                 .isCloseTo((d2 - d0) / d0 * 100, org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(run.get("results")).hasSize(4);
+        assertThat(run.get("results").get(1).get("method").asText()).isEqualTo("SWEEP");
+        double sw = run.get("results").get(1).get("distanceM").asDouble();
+        double d3 = run.get("results").get(3).get("distanceM").asDouble();
+        assertThat(run.get("results").get(3).get("distanceChangeVsSweepPct").asDouble())
+                .isCloseTo((d3 - sw) / sw * 100, org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(run.get("results").get(1).has("distanceChangeVsSweepPct")).isFalse();
+    }
+
+    @Test
+    void aRunRetainedBeforeSweepShowsThreeResultsAndNoSweepChange() throws Exception {
+        String id = performList("?kind=EXPERIMENT&seed=4&pointCount=5&profile=UNIFORM_LOW").andReturn().getResponse()
+                .getContentAsString();
+        String runId = mapper.readTree(id).get("items").get(0).get("id").asText();
+        jdbc.update("delete from evaluation_method_result where run_id = ? and method = 'SWEEP'",
+                UUID.fromString(runId));
+        jdbc.update("update evaluation_method_result set result_position = result_position - 1 "
+                + "where run_id = ? and result_position > 1", UUID.fromString(runId));
+        mvc.perform(get("/api/evaluations/" + runId).with(asPlanner())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.results.length()").value(3))
+                .andExpect(jsonPath("$.results[*].method")
+                        .value(org.hamcrest.Matchers.contains("INPUT_ORDER", "NEAREST_NEIGHBOR", "NN_PLUS_2_OPT")))
+                .andExpect(jsonPath("$.results[1].distanceChangePct").isNumber())
+                .andExpect(jsonPath("$.results[1].distanceChangeVsSweepPct").doesNotExist())
+                .andExpect(jsonPath("$.results[2].durationChangeVsSweepPct").doesNotExist());
+        performList("?kind=EXPERIMENT&seed=4&pointCount=5&profile=UNIFORM_LOW")
+                .andExpect(jsonPath("$.items[0].results.length()").value(3))
+                .andExpect(jsonPath("$.items[0].results[2].distanceChangeVsSweepPct").doesNotExist());
     }
 
     @Test

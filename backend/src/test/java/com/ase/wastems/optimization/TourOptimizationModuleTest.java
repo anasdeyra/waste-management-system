@@ -17,17 +17,24 @@ class TourOptimizationModuleTest {
     static final double[][] C = TwoOptImprovementTest.C;
 
     @Test
-    void threeMethodsOnMatrixC() {
+    void fourMethodsOnMatrixC() {
         PlanningScenario s = new PlanningScenario(m(C), new double[] {1, 1, 1, 1}, 10, 600);
         List<MethodOutcome> out = new TourOptimizationModule().planAll(s);
         assertThat(out).extracting(MethodOutcome::method).containsExactly(PlanningMethod.INPUT_ORDER,
-                PlanningMethod.NEAREST_NEIGHBOR, PlanningMethod.NN_PLUS_2_OPT);
+                PlanningMethod.SWEEP, PlanningMethod.NEAREST_NEIGHBOR, PlanningMethod.NN_PLUS_2_OPT);
         assertThat(out.get(0).visitOrder()).containsExactly(1, 2, 3, 4);
-        assertThat(out.get(1).visitOrder()).containsExactly(4, 1, 3, 2);
-        assertThat(out.get(2).visitOrder()).containsExactly(4, 2, 3, 1);
-        double[] dist = {21, 14, 10};
-        double[] dur = {2421, 2414, 2410};
-        for (int i = 0; i < 3; i++) {
+        assertThat(out.get(2).visitOrder()).containsExactly(4, 1, 3, 2);
+        assertThat(out.get(3).visitOrder()).containsExactly(4, 2, 3, 1);
+        // no coordinates on this scenario: the sweep baseline is infeasible and never fabricated
+        assertThat(out.get(1).feasible()).isFalse();
+        assertThat(out.get(1).infeasibilityReason())
+                .isEqualTo("The sweep baseline needs the WGS84 coordinates of the depot and of every stop.");
+        double[] dist = {21, 0, 14, 10};
+        double[] dur = {2421, 0, 2414, 2410};
+        for (int i = 0; i < 4; i++) {
+            if (i == 1) {
+                continue;
+            }
             MethodOutcome o = out.get(i);
             assertThat(o.distanceM()).isCloseTo(dist[i], within(1e-9));
             assertThat(o.travelTimeS()).isCloseTo(dist[i], within(1e-9));
@@ -38,13 +45,14 @@ class TourOptimizationModuleTest {
             assertThat(o.infeasibilityReason()).isNull();
             assertThat(o.executionNanos()).isGreaterThanOrEqualTo(0);
         }
-        assertThat(out.get(2).algorithmConfiguration()).contains("no symmetric edge delta")
+        assertThat(out.get(3).algorithmConfiguration()).contains("no symmetric edge delta")
                 .contains("accepted moves 1");
     }
 
     @Test
     void overCapacityIsInfeasibleForEveryMethod() {
-        PlanningScenario s = new PlanningScenario(m(C), new double[] {4, 4, 4, 4}, 10, 600);
+        PlanningScenario s = new PlanningScenario(m(C), new double[] {4, 4, 4, 4}, 10, 600,
+                new double[] {0, 1, 0, -1, 0}, new double[] {0, 0, 1, 0, -1});
         List<MethodOutcome> out = new TourOptimizationModule().planAll(s);
         for (MethodOutcome o : out) {
             assertThat(o.feasible()).isFalse();
@@ -53,13 +61,15 @@ class TourOptimizationModuleTest {
             assertThat(o.distanceM()).isNull();
         }
         assertThat(out.get(0).infeasibilityReason()).contains("exceeds vehicle capacity");
-        assertThat(out.get(1).infeasibilityReason()).contains("no remaining stop fits");
+        assertThat(out.get(1).infeasibilityReason()).isEqualTo(out.get(0).infeasibilityReason());
         assertThat(out.get(2).infeasibilityReason()).contains("no remaining stop fits");
+        assertThat(out.get(3).infeasibilityReason()).contains("no remaining stop fits");
     }
 
     @Test
     void singleStopScenario() {
-        PlanningScenario s = new PlanningScenario(m(new double[][] {{0, 7}, {3, 0}}), new double[] {5}, 5, 600);
+        PlanningScenario s = new PlanningScenario(m(new double[][] {{0, 7}, {3, 0}}), new double[] {5}, 5, 600,
+                new double[] {0, 1}, new double[] {0, 1});
         for (MethodOutcome o : new TourOptimizationModule().planAll(s)) {
             assertThat(o.visitOrder()).containsExactly(1);
             assertThat(o.distanceM()).isCloseTo(10, within(1e-9));
@@ -78,14 +88,20 @@ class TourOptimizationModuleTest {
         }
         double[] demand = new double[n];
         java.util.Arrays.fill(demand, 1);
-        return new PlanningScenario(m(d), demand, 100, 600);
+        double[] lon = new double[n + 1];
+        double[] lat = new double[n + 1];
+        for (int i = 0; i <= n; i++) {
+            lon[i] = -74 + rnd.nextDouble() * 0.05;
+            lat[i] = 40.7 + rnd.nextDouble() * 0.05;
+        }
+        return new PlanningScenario(m(d), demand, 100, 600, lon, lat);
     }
 
     @Test
     void deterministicAcrossRuns() {
         List<MethodOutcome> a = new TourOptimizationModule().planAll(random30());
         List<MethodOutcome> b = new TourOptimizationModule().planAll(random30());
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             assertThat(a.get(i).visitOrder()).isEqualTo(b.get(i).visitOrder());
             assertThat(a.get(i).distanceM()).isEqualTo(b.get(i).distanceM());
         }
@@ -99,7 +115,7 @@ class TourOptimizationModuleTest {
             assertThat(o.feasible()).isTrue();
             assertThat(o.distanceM()).isEqualTo(TourCost.distance(s.matrix(), o.visitOrder()));
         }
-        assertThat(out.get(2).distanceM()).isLessThanOrEqualTo(out.get(1).distanceM());
+        assertThat(out.get(3).distanceM()).isLessThanOrEqualTo(out.get(2).distanceM());
     }
 
     @Test
@@ -118,5 +134,33 @@ class TourOptimizationModuleTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new PlanningScenario(mat, new double[] {1}, 10, -1))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void sweepConfigurationNamesTheChosenRay() {
+        PlanningScenario s = random30();
+        MethodOutcome o = new TourOptimizationModule().plan(PlanningMethod.SWEEP, s);
+        assertThat(o.feasible()).isTrue();
+        assertThat(o.algorithmConfiguration()).startsWith(SweepBaseline.CONFIGURATION)
+                .containsPattern("; chosen ray: start stop \\d+, (CW|CCW)$");
+        assertThat(o.visitOrder().get(0)).isEqualTo(
+                Integer.valueOf(o.algorithmConfiguration().replaceAll(".*start stop (\\d+),.*", "$1")));
+    }
+
+    @Test
+    void invalidCoordinatesAreRejected() {
+        ArrayCostMatrix mat = m(new double[][] {{0, 1}, {1, 0}});
+        double[] d = {1};
+        assertThatThrownBy(() -> new PlanningScenario(mat, d, 10, 0, new double[] {0, 1}, null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PlanningScenario(mat, d, 10, 0, new double[] {0}, new double[] {0}))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PlanningScenario(mat, d, 10, 0, new double[] {0, Double.NaN},
+                new double[] {0, 1})).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PlanningScenario(mat, d, 10, 0, new double[] {0, 181},
+                new double[] {0, 1})).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PlanningScenario(mat, d, 10, 0, new double[] {0, 1},
+                new double[] {0, 91})).isInstanceOf(IllegalArgumentException.class);
+        assertThat(new PlanningScenario(mat, d, 10, 0).hasCoordinates()).isFalse();
     }
 }

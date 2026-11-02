@@ -462,7 +462,7 @@ export interface TourAssignmentRequest {
 // --- Evaluation runs (S5; review UI S6) ---------------------------------
 
 /** optimization.PlanningMethod */
-export type PlanningMethod = 'INPUT_ORDER' | 'NEAREST_NEIGHBOR' | 'NN_PLUS_2_OPT'
+export type PlanningMethod = 'INPUT_ORDER' | 'SWEEP' | 'NEAREST_NEIGHBOR' | 'NN_PLUS_2_OPT'
 
 /** domain.EvaluationStatus */
 export type EvaluationStatus = 'COMPLETED' | 'ROUTING_FAILED'
@@ -547,6 +547,9 @@ export interface MethodResult {
   algorithmConfiguration: string
   distanceChangePct?: number
   durationChangePct?: number
+  /** Only for NEAREST_NEIGHBOR and NN_PLUS_2_OPT; absent when the run has no feasible sweep (D-052). */
+  distanceChangeVsSweepPct?: number
+  durationChangeVsSweepPct?: number
   legs?: RoadLegCollection
 }
 
@@ -779,6 +782,8 @@ export interface EvaluationMethodBrief {
   capacityOk: boolean
   distanceChangePct?: number
   durationChangePct?: number
+  distanceChangeVsSweepPct?: number
+  durationChangeVsSweepPct?: number
 }
 
 /** web.dto.EvaluationRunListItemResponse */
@@ -828,6 +833,11 @@ export interface EvaluationAggregate {
   minDurationChangePct?: number
   maxDurationChangePct?: number
   meanExecutionTimeMs?: number
+  comparableVsSweepRuns: number
+  meanDistanceChangeVsSweepPct?: number
+  minDistanceChangeVsSweepPct?: number
+  maxDistanceChangeVsSweepPct?: number
+  meanDurationChangeVsSweepPct?: number
 }
 
 /** web.dto.EvaluationBatchDetailResponse */

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This activity covers UC08–UC19: draft preparation, three-method evaluation, planner review,
+This activity covers UC08–UC19: draft preparation, four-method evaluation, planner review,
 confirmation, assigned-crew execution, completion, and cancellation. It implements the lifecycle
 chosen in D-025 and the terminal stop outcomes in D-031. Execution (start, stop outcomes,
 completion) is implemented in S7 for the assigned crew only. Cancellation and privileged outcome
@@ -21,7 +21,7 @@ flowchart TD
     PREPARE --> VALIDATE{Draft inputs structurally valid?}
     VALIDATE -- No --> FIX[Display validation errors and edit DRAFT]
     FIX --> PREPARE
-    VALIDATE -- Yes --> EVALUATE[Evaluate input order, nearest neighbor and NN + 2-opt on one frozen scenario]
+    VALIDATE -- Yes --> EVALUATE[Evaluate input order, sweep, nearest neighbor and NN + 2-opt on one frozen scenario]
 
     EVALUATE --> ROUTABLE{Complete directed routing scenario available?}
     ROUTABLE -- No --> EXPLAIN[Retain/report routing or infeasibility details without changing the DRAFT]

@@ -16,7 +16,7 @@ export function useTourEvaluations(tourId: string | undefined) {
   })
 }
 
-/** One retained run with its three method results (GET /api/evaluations/{runId}). */
+/** One retained run with its four method results (GET /api/evaluations/{runId}). */
 export function useEvaluation(runId: string | undefined) {
   return useQuery({
     queryKey: evaluationKey(runId ?? ''),
@@ -25,7 +25,7 @@ export function useEvaluation(runId: string | undefined) {
   })
 }
 
-/** Runs the three-method evaluation (POST /api/tours/{id}/evaluations, 201). */
+/** Runs the four-method evaluation (POST /api/tours/{id}/evaluations, 201). */
 export function useRunEvaluation() {
   const queryClient = useQueryClient()
   return useMutation({

@@ -3,15 +3,15 @@ group                                             files     sloc  comments  blan
 frontend/src                                          2      200         1       6
 frontend/src/components/agents                        2      202         2      12
 frontend/src/components/collection-points             5      673         8      26
-frontend/src/components/evaluations                   5      549         5      26
+frontend/src/components/evaluations                   5      563         5      26
 frontend/src/components/execution                     6      431         6      20
 frontend/src/components/fleet                         1      121         1       8
 frontend/src/components/maps                         10      635        31      43
 frontend/src/components/shared                        2      143         3       8
-frontend/src/components/tours                        15     1426        19      55
+frontend/src/components/tours                        15     1435        21      56
 frontend/src/hooks                                   13      638        20      89
-frontend/src/lib                                     13      380        26      54
+frontend/src/lib                                     13      382        26      54
 frontend/src/pages                                   18     3175        19     133
-frontend/src/types                                    1      735       105      99
+frontend/src/types                                    1      744       106      99
 ----------------------------------------------------------------------------------
-TOTAL                                                93     9308       246     579
+TOTAL                                                93     9342       249     580

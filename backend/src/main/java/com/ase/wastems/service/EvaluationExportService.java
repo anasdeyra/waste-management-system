@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * CSV exports of the evaluation data (US-38, D-028): one row per run and planning method, and a
+ * CSV exports of the evaluation data (US-38, D-028): one row per run and planning method (four methods; none for a method a run was retained without), and a
  * batch's scenarios in the import format. Operational tours, users, vehicles, agents and
  * categories are never exported.
  */
@@ -34,7 +34,8 @@ public class EvaluationExportService {
             "failure_code", "created_at", "created_by", "method", "feasible", "coverage_ok", "capacity_ok",
             "infeasibility_reason", "distance_m", "travel_time_s", "service_time_per_stop_s",
             "service_time_total_s", "duration_s", "execution_time_ms", "input_order_distance_m",
-            "input_order_duration_s", "distance_change_pct", "duration_change_pct", "total_demand_kg",
+            "input_order_duration_s", "distance_change_pct", "duration_change_pct", "sweep_distance_m", "sweep_duration_s",
+            "distance_change_vs_sweep_pct", "duration_change_vs_sweep_pct", "total_demand_kg",
             "vehicle_capacity_kg", "visit_order", "visit_order_source_ids", "algorithm_configuration",
             "source_snapshot_ids", "road_graph_version", "routing_engine");
 
@@ -79,9 +80,15 @@ public class EvaluationExportService {
     private static void appendRows(StringBuilder out, EvaluationRun r) {
         MethodResult io = r.getResults().stream().filter(m -> m.getMethod() == PlanningMethod.INPUT_ORDER)
                 .findFirst().orElse(null);
+        MethodResult sw = r.getResults().stream().filter(m -> m.getMethod() == PlanningMethod.SWEEP).findFirst()
+                .orElse(null);
+        boolean swOk = sw != null && sw.isFeasible();
         boolean completed = r.getStatus() == EvaluationStatus.COMPLETED;
         for (PlanningMethod method : PlanningMethod.values()) {
             MethodResult m = r.getResults().stream().filter(x -> x.getMethod() == method).findFirst().orElse(null);
+            if (completed && m == null) {
+                continue; // a run retained before the method existed (D-052) has no row for it
+            }
             List<String> f = new ArrayList<>();
             f.add(r.getId().toString());
             f.add(r.getScenarioKind().name());
@@ -103,7 +110,7 @@ public class EvaluationExportService {
                 f.add("");
                 f.add("");
                 f.add(r.getFailureMessage());
-                for (int i = 0; i < 10; i++) {
+                for (int i = 0; i < 14; i++) {
                     f.add("");
                 }
             } else if (!m.isFeasible()) {
@@ -115,7 +122,7 @@ public class EvaluationExportService {
                     f.add("");
                 }
                 f.add(num(m.getExecutionNanos() / 1e6, "%.6f"));
-                for (int i = 0; i < 4; i++) {
+                for (int i = 0; i < 8; i++) {
                     f.add("");
                 }
             } else {
@@ -136,6 +143,13 @@ public class EvaluationExportService {
                         io == null ? null : io.getDistanceM()), "%.4f"));
                 f.add(num(EvaluationComparison.changePct(true, true, m.getDurationS(), ioOk,
                         io == null ? null : io.getDurationS()), "%.4f"));
+                f.add(swOk ? num(sw.getDistanceM(), "%.3f") : "");
+                f.add(swOk ? num(sw.getDurationS(), "%.3f") : "");
+                boolean vs = EvaluationComparison.comparedWithSweep(method);
+                f.add(vs ? num(EvaluationComparison.changePct(true, true, m.getDistanceM(), swOk,
+                        sw == null ? null : sw.getDistanceM()), "%.4f") : "");
+                f.add(vs ? num(EvaluationComparison.changePct(true, true, m.getDurationS(), swOk,
+                        sw == null ? null : sw.getDurationS()), "%.4f") : "");
             }
             f.add(r.getTotalDemandKg().toPlainString());
             f.add(r.getVehicleCapacityKg().toPlainString());

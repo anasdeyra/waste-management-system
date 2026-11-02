@@ -48,6 +48,21 @@ body.print{display:block;overflow:auto;height:auto}
 body.print .stage{width:1280px;height:auto;aspect-ratio:auto;overflow:visible;container-type:normal;box-shadow:none}
 body.print .slide{display:block;position:relative;width:1280px;height:720px;font-size:20px;page-break-after:always;border-bottom:1px solid var(--line)}
 body.print .bar{display:none}
+img.zoomable{cursor:zoom-in;transition:outline-color .15s;outline:.25cqw solid transparent;outline-offset:.3cqw;border-radius:.2cqw}
+img.zoomable:hover{outline-color:var(--accent)}
+.viewer{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;background:rgba(17,24,39,.92)}
+.viewer.open{display:flex}
+.vp{position:relative;flex:1;overflow:hidden;cursor:grab;touch-action:none}
+.vp.drag{cursor:grabbing}
+.vp img{position:absolute;left:0;top:0;max-width:none;max-height:none;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.4);user-select:none;-webkit-user-drag:none}
+.vbar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:#111827;color:#e5e7eb;font-size:14px}
+.vbar .vcap{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9ca3af}
+.vbar button{font:inherit;color:#f9fafb;background:#374151;border:1px solid #4b5563;border-radius:6px;padding:4px 10px;cursor:pointer}
+.vbar button:hover{background:#4b5563}
+.vbar .vpct{min-width:4.5em;text-align:center;font-variant-numeric:tabular-nums}
+.vbar .vkeys{color:#9ca3af;font-size:12px}
+@media (max-width:700px){.vbar .vkeys,.vbar .vcap{display:none}}
+@media print{.viewer{display:none!important}}
 </style>
 </head>
 <body>
@@ -58,7 +73,7 @@ body.print .bar{display:none}
 <p class="lead">Advanced Software Engineering course project — individual (D-005)</p>
 <p>Author: anasdeyra</p>
 <p>Java 21 + Spring Boot 3 · React 19 + Vite + TypeScript · Leaflet maps · embedded GraphHopper · H2</p>
-<p class="note">Use ← → (or click the sides of the slide) to navigate; Home / End jump to the first / last slide.</p>
+<p class="note">Use ← → (or click the sides of the slide) to navigate; Home / End jump to the first / last slide. Click any diagram or screenshot to open it full screen: scroll to zoom, drag to pan, Esc to close.</p>
 </section>
 
 <section class="slide" data-part="title" id="s2">
@@ -130,7 +145,7 @@ body.print .bar{display:none}
 <li>Focused narrative review tied to the research question, 10 peer-reviewed sources (papers, a classic book chapter and domain reviews), with DOIs.</li>
 <li>Four purposes: routing models and optimality limits; nearest-neighbor construction and 2-opt; capacity, service time and duration; waste-collection evaluation practice and reproducibility.</li>
 <li>The model is a directed (asymmetric) TSP sequencing core with a capacity check; it is not a simultaneous multi-vehicle CVRP.</li>
-<li>Sources include Dantzig and Ramser (1959), Clarke and Wright (1964), Croes (1958), Lin (1965) and Rosenkrantz et al. (1977).</li>
+<li>Sources include Dantzig and Ramser (1959), Clarke and Wright (1964), Croes (1958), Lin (1965), Rosenkrantz et al. (1977) and Gillett and Miller (1974), whose sweep heuristic is the documented baseline (D-052).</li>
 </ul>
 </section>
 
@@ -141,6 +156,7 @@ body.print .bar{display:none}
 <p><strong>Borrowed</strong></p>
 <ul>
 <li>Demand- and capacity-aware routing; identical capacity validation for every method</li>
+<li>Sweep heuristic (Gillett and Miller) as a published, realistic baseline</li>
 <li>Deterministic nearest-neighbor construction, measured separately</li>
 <li>Deterministic 2-opt on top; results labelled heuristic</li>
 <li>Explicit single-vehicle model; excluded real-world constraints are stated</li>
@@ -149,7 +165,7 @@ body.print .bar{display:none}
 <div>
 <p><strong>Supported after measurement</strong></p>
 <ul>
-<li>NN + 2-opt versus input order on the specified seeded MN01 scenarios, with measured cost</li>
+<li>NN + 2-opt versus the sweep baseline (and the input order) on the specified seeded MN01 scenarios, with measured cost</li>
 </ul>
 <p><strong>Unsupported</strong></p>
 <ul>
@@ -185,7 +201,7 @@ inv PositiveDemand:
 <section class="slide" data-part="part3" id="s10">
 <h2>Optimization sequence and tour lifecycle</h2>
 <div class="cols">
-<div><img class="fit" src="assets/uml-sequence.svg" alt="UML sequence diagram of the directed three-method evaluation and the planner decision"><p class="cap">Three-method evaluation and explicit acceptance</p></div>
+<div><img class="fit" src="assets/uml-sequence.svg" alt="UML sequence diagram of the directed four-method evaluation and the planner decision"><p class="cap">Four-method evaluation and explicit acceptance</p></div>
 <div><img class="fit" src="assets/uml-activity.svg" alt="UML activity diagram of the tour lifecycle from draft to completion or cancellation"><p class="cap">Tour lifecycle: draft, planned, in progress, terminal</p></div>
 </div>
 </section>
@@ -226,17 +242,19 @@ inv PositiveDemand:
 </section>
 
 <section class="slide" data-part="part4" id="s14">
-<h2>Three-method route evaluation</h2>
+<h2>Four-method route evaluation</h2>
 <div class="cols" style="grid-template-columns:1.6fr 1fr">
 <img class="shot" src="assets/03-tour-route-evaluation.png" alt="Screenshot: route evaluation card comparing input order, nearest neighbor and NN plus 2-opt on a map">
 <div>
 <p>Demo draft tour of 8 baskets, directed road distance:</p>
 <ul>
 <li>Input order: 11.74 km</li>
+<li>Sweep (Gillett and Miller): 8.44 km</li>
 <li>Nearest neighbor: 10.21 km</li>
 <li>NN + 2-opt: 7.47 km</li>
 </ul>
-<p>The planner compares the routes and accepts the proposal or keeps the input order; nothing changes silently.</p>
+<p>The planner compares the routes and accepts the proposal or keeps the input order; nothing changes silently. Sweep is a comparison only and is never attached to a tour.</p>
+<p class="note">The screenshot shows the three-method interface of S10; the sweep row is hidden on the map by default and its distances come from a fresh <code>dev</code> start of the S11 build.</p>
 </div>
 </div>
 </section>
@@ -269,7 +287,7 @@ inv PositiveDemand:
 <p class="note">Start: <code>cd backend &amp;&amp; ./mvnw spring-boot:run</code> and <code>cd frontend &amp;&amp; npm run dev</code>; accounts <code>planner</code>, <code>agent</code>, <code>admin</code> (README §4.6).</p>
 <ol style="font-size:1.45cqw">
 <li>Sign in as <code>planner</code>, open Tours: four demo tours, one per state.</li>
-<li>Open the draft, Route evaluation: compare the three routes, accept the NN + 2-opt proposal, confirm as planned.</li>
+<li>Open the draft, Route evaluation: compare the four routes, accept the NN + 2-opt proposal, confirm as planned.</li>
 <li>Open the in-progress tour: stops coloured by state, execution progress.</li>
 <li>Sign in as <code>agent</code>: My tours; open the planned tour, start it, record outcomes, complete it.</li>
 <li>As <code>planner</code>, correct a not-collected stop; cancel a planned tour with a reason.</li>
@@ -306,19 +324,20 @@ inv PositiveDemand:
 </section>
 
 <section class="slide" data-part="part5" id="s19">
-<h2>Sprints S1 to S10</h2>
+<h2>Sprints S1 to S11</h2>
 <table style="font-size:1.25cqw">
 <tr><th>Sprint</th><th>Theme</th><th>Stories</th></tr>
 <tr><td>S1</td><td>Secure foundation: identities, roles, waste categories</td><td>US-01 to US-07</td></tr>
 <tr><td>S2</td><td>Collection points and demand on the real map</td><td>US-08 to US-12</td></tr>
 <tr><td>S3</td><td>Fleet, crew and MN01 import groundwork</td><td>US-13 to US-17, US-33 groundwork</td></tr>
 <tr><td>S4</td><td>Tour drafts: stops, order, crew, capacity</td><td>US-18 to US-20</td></tr>
-<tr><td>S5</td><td>Directed routing and the three-method optimizer</td><td>US-21, US-22</td></tr>
+<tr><td>S5</td><td>Directed routing and the optimizer</td><td>US-21, US-22</td></tr>
 <tr><td>S6</td><td>Optimization review, comparison, planning gate</td><td>US-23 to US-25</td></tr>
 <tr><td>S7</td><td>Agent execution loop and the complete MN01 demo</td><td>US-26 to US-29, US-33</td></tr>
 <tr><td>S8</td><td>Corrections, history and auditability</td><td>US-30 to US-32, US-39</td></tr>
 <tr><td>S9</td><td>Dashboards, evaluation explorer, CSV, traffic overlay</td><td>US-34 to US-38</td></tr>
 <tr><td>S10</td><td>Metrics campaign and project closure</td><td>Part 6, presentation</td></tr>
+<tr><td>S11</td><td>Sweep baseline and the revised research answer</td><td>US-40, Part 6 re-run</td></tr>
 </table>
 </section>
 
@@ -342,6 +361,7 @@ inv PositiveDemand:
 <li><strong>S7:</strong> a rollback-only transaction trap was avoided by checking before calling services inside a transaction.</li>
 <li><strong>S9:</strong> Hibernate itself converted the ENUM columns, contradicting the plan; determinism was proven by an independent re-implementation and a round-trip.</li>
 <li><strong>S10:</strong> JDepend silently skipped most Java 21 classes; the tool now fails loudly instead.</li>
+<li><strong>S11:</strong> the S10 baseline was a random shuffle, so the answer was re-run against a published sweep baseline; the gain shrinks from -60.18 % to -48.42 %.</li>
 </ul>
 </section>
 
@@ -350,19 +370,19 @@ inv PositiveDemand:
 <div class="cols" style="font-size:1.25em">
 <table>
 <tr><th>Metric</th><th class="n">Value</th></tr>
-<tr><td>Java main SLOC (239 files)</td><td class="n">11251</td></tr>
-<tr><td>Java test SLOC (70 files)</td><td class="n">10172</td></tr>
-<tr><td>TypeScript own SLOC (93 files)</td><td class="n">9308</td></tr>
-<tr><td>Class files / methods</td><td class="n">273 / 2432</td></tr>
-<tr><td>Cyclomatic complexity, mean / max</td><td class="n">2.18 / 39</td></tr>
-<tr><td>Methods with complexity of 10 or more</td><td class="n">33 of 897</td></tr>
-<tr><td>Mean CBO</td><td class="n">9.14</td></tr>
-<tr><td>PMD violations</td><td class="n">133</td></tr>
+<tr><td>Java main SLOC (240 files)</td><td class="n">11441</td></tr>
+<tr><td>Java test SLOC (71 files)</td><td class="n">10494</td></tr>
+<tr><td>TypeScript own SLOC (93 files)</td><td class="n">9342</td></tr>
+<tr><td>Class files / methods</td><td class="n">275 / 2471</td></tr>
+<tr><td>Cyclomatic complexity, mean / max</td><td class="n">2.22 / 39</td></tr>
+<tr><td>Methods with complexity of 10 or more</td><td class="n">34 of 909</td></tr>
+<tr><td>Mean CBO</td><td class="n">9.15</td></tr>
+<tr><td>PMD violations</td><td class="n">137</td></tr>
 </table>
 <div>
 <table>
 <tr><th>DIT</th><th class="n">1</th><th class="n">2</th><th class="n">3</th><th class="n">4</th><th class="n">5</th><th class="n">6</th></tr>
-<tr><td>Classes</td><td class="n">112</td><td class="n">147</td><td class="n">1</td><td class="n">9</td><td class="n">1</td><td class="n">3</td></tr>
+<tr><td>Classes</td><td class="n">113</td><td class="n">148</td><td class="n">1</td><td class="n">9</td><td class="n">1</td><td class="n">3</td></tr>
 </table>
 <p class="note">Flat hierarchy: composition over inheritance; records have DIT 2. Vendored shadcn/ui excluded. Source: docs/results/metrics, command <code>bash tools/metrics.sh</code>.</p>
 </div>
@@ -383,47 +403,64 @@ inv PositiveDemand:
 <section class="slide" data-part="part6" id="s24">
 <h2>Experiment design</h2>
 <ul>
-<li><strong>60 scenarios</strong> = 3 demand profiles x 5 seeds x 4 sizes (10, 25, 50, 100 points), <strong>3 repetitions</strong>, 3 methods: 540 rows.</li>
+<li><strong>60 scenarios</strong> = 3 demand profiles x 5 seeds x 4 sizes (10, 25, 50, 100 points), <strong>3 repetitions</strong>, 4 methods: 720 rows.</li>
 <li>Real DSNY baskets from the MN01 snapshot (238-basket pool) with synthetic demand; real MN01G depot; capacity 10 000 kg; 600 s service per stop.</li>
 <li>Road graph <code>osm-mn01-e1f2fabaa937</code>, GraphHopper 11.1, directed legs.</li>
-<li>Baseline: input order (a random shuffle). Indicators: directed road distance and duration (travel time plus service).</li>
+<li>Methods: input order (random shuffle, worst case), sweep (Gillett and Miller, best of 2n rays on road distance; the baseline), NN, NN + 2-opt. Indicators: directed road distance and duration (travel time plus service).</li>
 </ul>
 <div class="key"><p>Capacity never binds, so the three profiles give identical routes: the 60 scenarios are only <strong>20 distinct routing instances</strong>. Paired statistics use n = 20, not 60.</p></div>
 </section>
 
 <section class="slide" data-part="part6" id="s25">
-<h2>Results</h2>
+<h2>Results: against the sweep baseline</h2>
 <div class="cols">
-<div><img class="fit2" src="assets/distance-change-by-size.svg" alt="Bar chart of the mean distance change versus input order for NN and NN plus 2-opt at 10, 25, 50 and 100 points"></div>
+<div><img class="fit2" src="assets/distance-change-vs-sweep-by-size.svg" alt="Bar chart of the mean distance change versus the sweep baseline for NN and NN plus 2-opt at 10, 25, 50 and 100 points"></div>
 <table>
 <tr><th>Points</th><th class="n">NN (%)</th><th class="n">NN + 2-opt (%)</th></tr>
-<tr><td>10</td><td class="n">-37.78</td><td class="n">-43.89</td></tr>
-<tr><td>25</td><td class="n">-49.04</td><td class="n">-53.00</td></tr>
-<tr><td>50</td><td class="n">-66.20</td><td class="n">-67.72</td></tr>
-<tr><td>100</td><td class="n">-75.78</td><td class="n">-76.10</td></tr>
-<tr><td>all</td><td class="n">-57.20</td><td class="n">-60.18</td></tr>
+<tr><td>10</td><td class="n">-16.67</td><td class="n">-24.45</td></tr>
+<tr><td>25</td><td class="n">-33.45</td><td class="n">-38.91</td></tr>
+<tr><td>50</td><td class="n">-56.82</td><td class="n">-58.80</td></tr>
+<tr><td>100</td><td class="n">-71.15</td><td class="n">-71.51</td></tr>
+<tr><td>all</td><td class="n">-44.52</td><td class="n">-48.42</td></tr>
 </table>
 </div>
-<p class="note">Mean directed distance change versus input order, 60 scenarios, repetition 1. Source: docs/results/experiment-stats/summary.md.</p>
+<p class="note">Mean directed distance change versus sweep, 60 scenarios, repetition 1. Source: docs/results/experiment-stats/summary.md (b2).</p>
+</section>
+
+<section class="slide" data-part="part6" id="s25b">
+<h2>Results: against the input order (worst case)</h2>
+<div class="cols">
+<div><img class="fit2" src="assets/distance-change-by-size.svg" alt="Bar chart of the mean distance change versus input order for sweep, NN and NN plus 2-opt at 10, 25, 50 and 100 points"></div>
+<table>
+<tr><th>Points</th><th class="n">Sweep (%)</th><th class="n">NN (%)</th><th class="n">NN + 2-opt (%)</th></tr>
+<tr><td>10</td><td class="n">-25.47</td><td class="n">-37.78</td><td class="n">-43.89</td></tr>
+<tr><td>25</td><td class="n">-20.96</td><td class="n">-49.04</td><td class="n">-53.00</td></tr>
+<tr><td>50</td><td class="n">-21.00</td><td class="n">-66.20</td><td class="n">-67.72</td></tr>
+<tr><td>100</td><td class="n">-15.69</td><td class="n">-75.78</td><td class="n">-76.10</td></tr>
+<tr><td>all</td><td class="n">-20.78</td><td class="n">-57.20</td><td class="n">-60.18</td></tr>
+</table>
+</div>
+<p class="note">Mean directed distance change versus input order, 60 scenarios, repetition 1. Source: docs/results/experiment-stats/summary.md (b).</p>
 </section>
 
 <section class="slide" data-part="part6" id="s26">
 <h2>Key finding: the research question answered</h2>
 <div class="key">
-<p class="big">NN + 2-opt reduced the directed road distance by -60.18 % on average against the input order and the estimated duration by -10.88 %, with full coverage and no capacity violation.</p>
+<p class="big">Against the sweep baseline, NN + 2-opt reduced the directed road distance by -48.42 % on average and the estimated duration by -7.29 %; against the worst-case input order by -60.18 % and -10.88 %. Coverage was full and no capacity was violated.</p>
 </div>
 <ul>
-<li>NN alone already gives -57.20 %; 2-opt adds a further -5.58 % against NN, improving 17 of 20 instances and never worse (exact Wilcoxon p = 1.53e-05); against the input order p = 1.91e-06.</li>
+<li>NN + 2-opt was shorter than sweep in 20 of 20 instances (exact Wilcoxon p = 1.91e-06, Holm-adjusted 1.72e-05 over nine tests). Sweep was longer than plain NN in all 20 instances (0 wins).</li>
+<li>Sweep alone gives only -20.78 % against the input order; NN gives -44.52 % against sweep; 2-opt adds a further -5.58 % against NN, improving 17 of 20 instances and never worse (p = 1.53e-05, Holm 3.05e-05).</li>
 <li>Duration changes less because 600 s of service per stop is identical for every method.</li>
-<li>Execution time of the sequencing step: median 0.021 ms, maximum 1.989 ms (the road matrix is not in this timer).</li>
+<li>Execution time of the sequencing step: NN + 2-opt median 0.017 ms (maximum 1.616 ms), sweep median 0.070 ms; the road matrix is not in this timer.</li>
 </ul>
-<p class="note">Bounded claim: seeded MN01 scenarios only; no optimality or generalization claim (docs/06-metrics.md §6).</p>
+<p class="note">Bounded claim: seeded MN01 scenarios only; no optimality or generalization claim (docs/06-metrics.md section 6).</p>
 </section>
 
 <section class="slide" data-part="part6" id="s27">
 <h2>Threats to validity</h2>
 <ul style="font-size:1.5cqw">
-<li><strong>Weak baseline:</strong> the input order is a random shuffle, not a real DSNY sequence, so gains over it are overstated.</li>
+<li><strong>Baseline:</strong> sweep is a published heuristic, not the real DSNY sequence (none is public); its angular order ignores the road network. The input order is a random shuffle and overstates any gain.</li>
 <li><strong>Objective versus legs:</strong> the optimizer minimizes distance while GraphHopper legs follow fastest paths; the <code>car</code> profile stands in for a truck.</li>
 <li><strong>Collapsed profiles:</strong> capacity never binds, so 60 scenarios are 20 distinct instances, and sizes are nested.</li>
 <li><strong>Synthetic demand, one district</strong> (MN01), one depot, one vehicle, no time windows.</li>
@@ -449,7 +486,7 @@ inv PositiveDemand:
 <ul>
 <li>Or-opt, 3-opt or a metaheuristic; an exact solver for the optimality gap</li>
 <li>Multi-vehicle CVRP, truck profile, time windows</li>
-<li>Realistic baseline and capacity-binding demand</li>
+<li>Real operating sequences as a baseline and capacity-binding demand</li>
 <li>Traffic-aware costs as a separate experiment</li>
 <li>Break the package cycle; split <code>TourService</code> and <code>ScenarioCsvImportService</code></li>
 </ul>
@@ -471,6 +508,19 @@ inv PositiveDemand:
 
 <div class="bar" id="bar"></div>
 </main>
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Image viewer">
+<div class="vp" id="vp"><img id="vimg" alt="" draggable="false"></div>
+<div class="vbar">
+<span class="vcap" id="vcap"></span>
+<span class="vkeys">wheel / + − zoom · drag or arrows pan · 0 fit · W width</span>
+<button type="button" data-z="out" title="Zoom out (−)">−</button>
+<span class="vpct" id="vpct">100%</span>
+<button type="button" data-z="in" title="Zoom in (+)">+</button>
+<button type="button" data-z="fit" title="Fit to screen (0)">Fit</button>
+<button type="button" data-z="width" title="Fit width (W)">Width</button>
+<button type="button" data-z="close" title="Close (Esc)">✕ Close</button>
+</div>
+</div>
 <script>
 (function () {
   var slides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
@@ -500,7 +550,116 @@ inv PositiveDemand:
   }
   if (/[?&]print\b/.test(location.search)) { document.body.className = 'print'; }
   window.addEventListener('hashchange', fromHash);
+  // Full-screen image viewer: zoom by resizing (keeps SVG text sharp), pan by position.
+  var viewer = document.getElementById('viewer');
+  var vp = document.getElementById('vp');
+  var vimg = document.getElementById('vimg');
+  var vpct = document.getElementById('vpct');
+  var vcap = document.getElementById('vcap');
+  var V = {open: false, ratio: 1, w: 0, x: 0, y: 0, fitW: 1};
+  document.querySelectorAll('.slide img').forEach(function (img) {
+    img.classList.add('zoomable');
+    img.title = 'Click to enlarge';
+  });
+  function vpSize() { return {w: vp.clientWidth, h: vp.clientHeight}; }
+  function apply() {
+    vimg.style.width = V.w + 'px';
+    vimg.style.height = (V.w / V.ratio) + 'px';
+    vimg.style.left = V.x + 'px';
+    vimg.style.top = V.y + 'px';
+    vpct.textContent = Math.round(100 * V.w / V.fitW) + '%';
+  }
+  function fit() {
+    var s = vpSize(), pad = 24;
+    V.fitW = Math.max(50, Math.min(s.w - 2 * pad, (s.h - 2 * pad) * V.ratio));
+    V.w = V.fitW;
+    V.x = (s.w - V.w) / 2;
+    V.y = (s.h - V.w / V.ratio) / 2;
+    apply();
+  }
+  function fitWidth() {
+    var s = vpSize(), pad = 24;
+    V.w = s.w - 2 * pad;
+    V.x = pad;
+    V.y = Math.max(pad, (s.h - V.w / V.ratio) / 2);
+    apply();
+  }
+  function zoomAt(factor, cx, cy) {
+    var nw = Math.max(V.fitW * 0.5, Math.min(V.fitW * 16, V.w * factor));
+    var f = nw / V.w;
+    V.x = cx - (cx - V.x) * f;
+    V.y = cy - (cy - V.y) * f;
+    V.w = nw;
+    apply();
+  }
+  function zoomCenter(factor) { var s = vpSize(); zoomAt(factor, s.w / 2, s.h / 2); }
+  function openViewer(img) {
+    var r = img.getBoundingClientRect();
+    V.ratio = r.width && r.height ? r.width / r.height : 1;
+    vimg.src = img.currentSrc || img.src;
+    vimg.alt = img.alt;
+    vcap.textContent = img.alt;
+    viewer.classList.add('open');
+    V.open = true;
+    fit();
+  }
+  function closeViewer() {
+    viewer.classList.remove('open');
+    V.open = false;
+  }
+  vp.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var r = vp.getBoundingClientRect();
+    var d = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+    zoomAt(Math.exp(-d * 0.0015), e.clientX - r.left, e.clientY - r.top);
+  }, {passive: false});
+  var drag = null;
+  vp.addEventListener('pointerdown', function (e) {
+    if (e.button !== 0) { return; }
+    drag = {px: e.clientX, py: e.clientY, x: V.x, y: V.y};
+    vp.setPointerCapture(e.pointerId);
+    vp.classList.add('drag');
+  });
+  vp.addEventListener('pointermove', function (e) {
+    if (!drag) { return; }
+    V.x = drag.x + e.clientX - drag.px;
+    V.y = drag.y + e.clientY - drag.py;
+    apply();
+  });
+  function endDrag() { drag = null; vp.classList.remove('drag'); }
+  vp.addEventListener('pointerup', endDrag);
+  vp.addEventListener('pointercancel', endDrag);
+  vp.addEventListener('dblclick', function (e) {
+    var r = vp.getBoundingClientRect();
+    zoomAt(2, e.clientX - r.left, e.clientY - r.top);
+  });
+  viewer.querySelector('.vbar').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) { return; }
+    var z = b.getAttribute('data-z');
+    if (z === 'in') { zoomCenter(1.4); }
+    else if (z === 'out') { zoomCenter(1 / 1.4); }
+    else if (z === 'fit') { fit(); }
+    else if (z === 'width') { fitWidth(); }
+    else if (z === 'close') { closeViewer(); }
+  });
+  window.addEventListener('resize', function () { if (V.open) { fit(); } });
+  function viewerKey(e) {
+    var k = e.key, step = 80;
+    if (k === 'Escape') { closeViewer(); }
+    else if (k === '+' || k === '=') { zoomCenter(1.4); }
+    else if (k === '-' || k === '_') { zoomCenter(1 / 1.4); }
+    else if (k === '0') { fit(); }
+    else if (k === 'w' || k === 'W') { fitWidth(); }
+    else if (k === 'ArrowLeft') { V.x += step; apply(); }
+    else if (k === 'ArrowRight') { V.x -= step; apply(); }
+    else if (k === 'ArrowUp') { V.y += step; apply(); }
+    else if (k === 'ArrowDown') { V.y -= step; apply(); }
+    else { return; }
+    e.preventDefault();
+  }
   window.addEventListener('keydown', function (e) {
+    if (V.open) { viewerKey(e); return; }
     var k = e.key;
     if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'n') { show(current + 1); e.preventDefault(); }
     else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'p') { show(current - 1); e.preventDefault(); }
@@ -509,6 +668,7 @@ inv PositiveDemand:
   });
   document.getElementById('stage').addEventListener('click', function (e) {
     if (e.target.closest('a')) { return; }
+    if (e.target.matches('img.zoomable')) { openViewer(e.target); return; }
     var r = this.getBoundingClientRect();
     var x = (e.clientX - r.left) / r.width;
     if (x > 2 / 3) { show(current + 1); } else if (x < 1 / 3) { show(current - 1); }

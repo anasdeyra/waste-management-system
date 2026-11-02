@@ -24,7 +24,13 @@ function checks(r: MethodResult) {
   )
 }
 
-/** Indicators of the three methods of one run, with changes relative to the input order. */
+/** "—" when the change against sweep does not apply or the run has no feasible sweep. */
+function vsSweep(value?: number) {
+  return value === undefined ? '—' : formatPercent(value)
+}
+
+/** Indicators of the four methods of one run, with changes relative to the input order and, for
+ * nearest neighbor and NN + 2-opt, relative to the sweep baseline (D-052). */
 export function EvaluationIndicatorTable({
   run,
   visible,
@@ -52,8 +58,10 @@ export function EvaluationIndicatorTable({
             <TableHead>Method</TableHead>
             <TableHead>Distance</TableHead>
             <TableHead>Distance vs input order</TableHead>
+            <TableHead>Distance vs sweep</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Duration vs input order</TableHead>
+            <TableHead>Duration vs sweep</TableHead>
             <TableHead>Execution time</TableHead>
             <TableHead>Checks</TableHead>
           </TableRow>
@@ -93,10 +101,12 @@ export function EvaluationIndicatorTable({
                 <TableCell>
                   {baseline ? 'baseline' : formatPercent(percentChange(r.distanceM, inputOrder?.distanceM))}
                 </TableCell>
+                <TableCell>{vsSweep(r.distanceChangeVsSweepPct)}</TableCell>
                 <TableCell>{formatDuration(r.durationS)}</TableCell>
                 <TableCell>
                   {baseline ? 'baseline' : formatPercent(percentChange(r.durationS, inputOrder?.durationS))}
                 </TableCell>
+                <TableCell>{vsSweep(r.durationChangeVsSweepPct)}</TableCell>
                 <TableCell>{formatExecutionMs(r.executionTimeMs)}</TableCell>
                 <TableCell>{checks(r)}</TableCell>
               </TableRow>
@@ -107,7 +117,8 @@ export function EvaluationIndicatorTable({
       <p className="text-xs text-muted-foreground">
         Distance is the directed road distance on road graph {run.roadGraphVersion}; duration = road
         travel time + {run.serviceTimeSeconds} s service per stop. Changes are relative to the input
-        order of the same run (same scenario and formulas). Traffic is not an optimizer input (D-021).
+        order of the same run (same scenario and formulas); the sweep baseline is a comparison only and
+        is never attached to a tour. Traffic is not an optimizer input (D-021).
       </p>
       <div className="flex flex-col gap-1 text-sm">
         {rows.map((r) => (

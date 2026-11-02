@@ -10,6 +10,7 @@ import type { EvaluationRun, PlanningMethod } from '@/types/api'
 export function EvaluationComparison({ run }: { run: EvaluationRun }) {
   const [visible, setVisible] = useState<Record<PlanningMethod, boolean>>({
     INPUT_ORDER: true,
+    SWEEP: false,
     NEAREST_NEIGHBOR: true,
     NN_PLUS_2_OPT: true,
   })

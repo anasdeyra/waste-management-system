@@ -126,13 +126,17 @@ class EvaluationServiceTest {
 
         List<MethodResult> r = run.getResults();
         assertThat(r).extracting(MethodResult::getMethod).containsExactly(PlanningMethod.INPUT_ORDER,
-                PlanningMethod.NEAREST_NEIGHBOR, PlanningMethod.NN_PLUS_2_OPT);
+                PlanningMethod.SWEEP, PlanningMethod.NEAREST_NEIGHBOR, PlanningMethod.NN_PLUS_2_OPT);
         assertThat(r.get(0).visitOrderList()).containsExactly(1, 2, 3, 4);
-        assertThat(r.get(1).visitOrderList()).containsExactly(4, 1, 3, 2);
-        assertThat(r.get(2).visitOrderList()).containsExactly(4, 2, 3, 1);
-        double[] dist = {21, 14, 10};
-        double[] dur = {2421, 2414, 2410};
-        for (int i = 0; i < 3; i++) {
+        // all stops lie south-east of the depot: sorted by angle 4, 3, 2, 1; the cheapest ray is clockwise
+        // from stop 2 (hand computed on matrix C: 2 + 3 + 5 + 2 + 2 = 14)
+        assertThat(r.get(1).visitOrderList()).containsExactly(2, 3, 4, 1);
+        assertThat(r.get(1).getAlgorithmConfiguration()).contains("chosen ray: start stop 2, CW");
+        assertThat(r.get(2).visitOrderList()).containsExactly(4, 1, 3, 2);
+        assertThat(r.get(3).visitOrderList()).containsExactly(4, 2, 3, 1);
+        double[] dist = {21, 14, 14, 10};
+        double[] dur = {2421, 2414, 2414, 2410};
+        for (int i = 0; i < 4; i++) {
             assertThat(r.get(i).getDistanceM()).isCloseTo(dist[i], within(1e-9));
             assertThat(r.get(i).getDurationS()).isCloseTo(dur[i], within(1e-9));
             assertThat(r.get(i).isFeasible()).isTrue();
@@ -195,7 +199,7 @@ class EvaluationServiceTest {
         when(matrices.buildMatrix(anyList())).thenReturn(matrix());
         EvaluationRun run = service.get(service.evaluate(scenario("3.00"), "planner").getId());
         assertThat(run.getStatus()).isEqualTo(EvaluationStatus.COMPLETED);
-        assertThat(run.getResults()).hasSize(3);
+        assertThat(run.getResults()).hasSize(4);
         for (MethodResult r : run.getResults()) {
             assertThat(r.isFeasible()).isFalse();
             assertThat(r.isCapacityOk()).isFalse();
@@ -227,7 +231,7 @@ class EvaluationServiceTest {
         UUID batchId = UUID.randomUUID();
         EvaluationRun run = service.computeBatchRun(batchScenario(), ScenarioKind.EXPERIMENT, batchId, "planner1");
         assertThat(run.getStatus()).isEqualTo(EvaluationStatus.COMPLETED);
-        assertThat(run.getResults()).hasSize(3);
+        assertThat(run.getResults()).hasSize(4);
         assertThat(run.getScenarioKind()).isEqualTo(ScenarioKind.EXPERIMENT);
         assertThat(run.getTourId()).isNull();
         assertThat(run.getBatchId()).isEqualTo(batchId);

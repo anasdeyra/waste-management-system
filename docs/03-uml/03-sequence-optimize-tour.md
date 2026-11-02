@@ -4,14 +4,14 @@
 
 This is the core intelligent-planning scenario for UC10 and UC11 (US-21–US-24). A planner has
 already created a `DRAFT`, selected its stops/input order, and assigned a vehicle and crew. The
-planner requests a three-method comparison, inspects feasible results, and either applies the
+planner requests a four-method comparison, inspects feasible results, and either applies the
 NN + 2-opt proposal to that same draft or keeps the input order. Both decisions are refused when
 the draft changed since the run.
 
 The diagram distinguishes:
 
 - the **operational draft**, which must not be changed merely by running an evaluation;
-- the **frozen planning scenario**, shared identically by all three methods;
+- the **frozen planning scenario**, shared identically by all four methods;
 - **retained evaluation results**, including failures and rejected proposals; and
 - **planner acceptance**, which is a separate, authorized operation.
 
@@ -61,6 +61,9 @@ sequenceDiagram
         else Complete directed scenario available
             Note over Eval,Optimizer: Evaluate deterministically in method order, no parallel-runtime assumption
             Eval->>Eval: Evaluate the frozen input/selection-order baseline
+            Eval->>Optimizer: plan(SWEEP, scenario, matrices)
+            Note over Optimizer: Gillett and Miller sweep, best of 2n rays on directed distance, comparison only
+            Optimizer-->>Eval: Sweep baseline candidate
             Eval->>Optimizer: plan(NEAREST_NEIGHBOR, scenario, matrices)
             Optimizer-->>Eval: Capacity-aware nearest-neighbor candidate
             Eval->>Optimizer: plan(NN_PLUS_2_OPT, scenario, matrices)
@@ -70,7 +73,7 @@ sequenceDiagram
             Eval->>Eval: Validate coverage/capacity and calculate distance, duration and runtime
             Eval->>Store: Atomically retain scenario, methods, configurations, snapshots and results
             Store-->>Eval: evaluationId
-            Eval-->>API: Three-method comparison and per-method feasibility
+            Eval-->>API: Four-method comparison and per-method feasibility
             API-->>UI: 201 Created (Location /api/evaluations/{evaluationId}) with the comparison
             UI-->>Planner: Display route layers, visit orders, indicators and any method errors
 
@@ -98,7 +101,7 @@ sequenceDiagram
                 API->>Tours: rejectProposal(tourId, evaluationRunId)
                 Tours->>Store: Keep stop order, attach input-order road route, record REJECTED decision
                 Store-->>Tours: Updated DRAFT (revision + 1, same order)
-                API-->>UI: 200 OK, order unchanged, all three results retained
+                API-->>UI: 200 OK, order unchanged, all four results retained
                 UI-->>Planner: Show the kept input order and its road route
             else No feasible proposal or planner leaves the run undecided
                 UI-->>Planner: Keep current draft order unchanged, retained evaluation remains available
@@ -134,7 +137,7 @@ sequenceDiagram
 - Invalid inputs, unavailable directed legs, or optimization failures never produce a partially
   accepted tour and never corrupt existing operational data.
 - Keeping the input order (rejecting the proposal) leaves the draft order unchanged, attaches
-  the input-order road route of the same run (needed for confirmation), and retains all three
+  the input-order road route of the same run (needed for confirmation), and retains all four
   results. Leaving the run undecided changes nothing.
 - NYC DOT traffic is absent from this sequence by design: it is a display overlay, not a cost
   input or automatic rerouting trigger.

@@ -37,16 +37,16 @@ An agent's job is to help produce **all** of these, coherently, not only the cod
 | Tech stack chosen | ✅ Java 21 + Spring Boot 3 (REST API) + React 19 + Vite + TypeScript + Tailwind v4 + shadcn/ui + H2 (file) + Maven; Leaflet/React Leaflet installed (S2); GraphHopper 11.1 embedded behind `routing/` (S5) |
 | Project mode | ✅ Individual |
 | Prototype scope | ✅ Extended; multiple single-vehicle tours per day |
-| Optimization model | ✅ Directed road-network input-order baseline, NN + directed-cost 2-opt; 60 real-location scenarios fixed; NYC traffic overlay only; implemented in S5 (`optimization/`, `routing/`); seeded experiment generator and runner ready (S9), campaign executed in S10 (`docs/results/`) |
+| Optimization model | ✅ Directed road-network methods: input order (worst case), the sweep baseline of Gillett & Miller (S11, D-052), NN and directed-cost 2-opt; 60 real-location scenarios fixed; NYC traffic overlay only; implemented in S5/S11 (`optimization/`, `routing/`); seeded experiment generator and runner (S9), campaign re-executed with four methods in S11 (`docs/results/`) |
 | Repository scaffold | ✅ `backend/`, `frontend/`, `docs/`, `tools/`, `README.md` |
 | Toolchain | ✅ JDK 21 + Maven 3.9 + CKJM installed locally by `tools/setup-toolchain.sh` |
-| Documentation (Parts 1, 2, 5, 6) | ✅ Parts 1, 2, 5 and 6 complete; Part 5 sprints S1–S10 executed with reviews and retrospectives; FR-to-test matrix in `docs/traceability.md` |
-| UML diagrams (Part 3) | ✅ Use case, operational class, optimization sequence, tour-lifecycle activity, and OCL complete; all Mermaid sources re-rendered successfully in S10 and embedded in the deck |
-| Prototype (Part 4) | ✅ S1–S9 implemented (406 backend tests green): auth/roles/users/categories, collection points + demand on a Leaflet map, vehicles/agents with availability and account links, idempotent MN01 import (449 baskets, 238 DSNY-eligible, MN01G depot, snapshot identity), tour drafts with map/list stop selection, explicit input order, vehicle/crew assignment and capacity validation, directed road routing on the versioned OSM snapshot and the retained three-method evaluation API, route comparison, proposal acceptance and the planning gate (S6: accept or keep input order, confirm to PLANNED, lock); crew execution (assigned-tour list, start with revalidation, stop outcomes, completion) and the idempotent MN01 demonstration (S7); cancellation, retained outcome corrections, operational history and the audit log (S8); dashboards, the evaluation explorer, evaluation CSV import/export, the seeded experiment runner and the display-only NYC DOT traffic overlay (S9) |
-| Metrics + research answer (Part 6) | ✅ `docs/06-metrics.md`; measured data under `docs/results/` (`bash tools/metrics.sh --publish`, 60-scenario campaign with 3 repetitions, `tools/experiment-stats.py`) |
-| Presentation | ✅ Self-contained HTML deck `presentation/index.html` (29 slides, 12 screenshots, architecture and UML diagrams); the presentation date is still open |
+| Documentation (Parts 1, 2, 5, 6) | ✅ Parts 1, 2, 5 and 6 complete; Part 5 sprints S1–S11 executed with reviews and retrospectives; FR-to-test matrix in `docs/traceability.md` |
+| UML diagrams (Part 3) | ✅ Use case, operational class, optimization sequence, tour-lifecycle activity, and OCL complete; all Mermaid sources re-rendered successfully in S10 and S11 and embedded in the deck |
+| Prototype (Part 4) | ✅ S1–S9 and S11 implemented (419 backend tests green): auth/roles/users/categories, collection points + demand on a Leaflet map, vehicles/agents with availability and account links, idempotent MN01 import (449 baskets, 238 DSNY-eligible, MN01G depot, snapshot identity), tour drafts with map/list stop selection, explicit input order, vehicle/crew assignment and capacity validation, directed road routing on the versioned OSM snapshot and the retained four-method evaluation API (sweep baseline, S11), route comparison, proposal acceptance and the planning gate (S6: accept or keep input order, confirm to PLANNED, lock); crew execution (assigned-tour list, start with revalidation, stop outcomes, completion) and the idempotent MN01 demonstration (S7); cancellation, retained outcome corrections, operational history and the audit log (S8); dashboards, the evaluation explorer, evaluation CSV import/export, the seeded experiment runner and the display-only NYC DOT traffic overlay (S9) |
+| Metrics + research answer (Part 6) | ✅ `docs/06-metrics.md`; measured data under `docs/results/` (`bash tools/metrics.sh --publish`, 60-scenario campaign with 3 repetitions and four methods (720 rows), answer NN + 2-opt vs sweep (S11), `tools/experiment-stats.py`) |
+| Presentation | ✅ Self-contained HTML deck `presentation/index.html` (30 slides, 12 screenshots (four evaluation screenshots still show the S10 interface), architecture and UML diagrams); the presentation date is still open |
 
-**Last updated:** 2026-11-02 (S10 closed)
+**Last updated:** 2026-11-02 (S11 closed)
 
 Update this table whenever the state changes. Do not claim something is done unless the
 artifact exists in the repo.
@@ -76,7 +76,7 @@ Map every artifact to a part of the assignment. Keep this list honest.
 
 ### Part 2 — Literature review → `docs/02-literature-review.md`
 - [x] Research question tied to the domain
-- [x] 5–10 credible scientific sources (papers, standards, books)
+- [x] 5–10 credible scientific sources (papers, standards, books) — 10 sources, Gillett & Miller (1974) replacing the former source 9 in S11
 - [x] Synthesis: what exists, what is missing, what this project borrows
 - [x] Citations with links/DOIs
 
@@ -93,7 +93,7 @@ Map every artifact to a part of the assignment. Keep this list honest.
 - [x] README with setup + run instructions
 - [x] Authentication
 - [x] Collection points, vehicles, agents, tours, waste categories (CRUD) (waste categories + users done in S1; collection points + demand done in S2; vehicles and agents done in S3; tour drafts done in S4; tour lifecycle: confirm S6, execution S7, cancel S8)
-- [x] Intelligent tour optimization on directed NYC road-network costs and impact measurement (engine, routing and retained runs S5; review/acceptance S6; 60-scenario campaign executed in S10)
+- [x] Intelligent tour optimization on directed NYC road-network costs and impact measurement (engine, routing and retained runs S5; review/acceptance S6; 60-scenario campaign executed in S10, re-run with the sweep baseline in S11)
 - [x] Interactive maps for point editing/selection, tour display/comparison, and execution (point display/editing done in S2; stop selection done in S4; route comparison and attached routes done in S6; execution map S7; verified by build/bundle/proxy checks, D-040)
 - [x] Versioned OSM/GraphHopper routing and timestamped NYC DOT traffic overlay (routing S5; traffic snapshot overlay S9; verified by the S9 done-check)
 - [x] Dashboards, CSV import/export, audit log (dashboards, CSV and traffic snapshot S9; audit S8)
@@ -102,12 +102,12 @@ Map every artifact to a part of the assignment. Keep this list honest.
 ### Part 5 — Scrum → `docs/05-scrum.md`
 - [x] Product Backlog as user stories ("As a …, I want …, so that …")
 - [x] Prioritized, with acceptance criteria
-- [x] Sprint Backlog(s) — ten sprints (S1–S10) planned for AI-agent execution, `docs/05-scrum.md` §3; S1–S10 executed
-- [x] Sprint review notes (S1–S10 recorded)
-- [x] Retrospective notes (what went well / badly) (S1–S10 recorded)
+- [x] Sprint Backlog(s) — eleven sprints (S1–S11) planned for AI-agent execution, `docs/05-scrum.md` §3; S1–S11 executed
+- [x] Sprint review notes (S1–S11 recorded)
+- [x] Retrospective notes (what went well / badly) (S1–S11 recorded)
 
 ### Part 6 — Metrology → `docs/06-metrics.md`
-> Executed in S10: `bash tools/metrics.sh --publish`, the campaign and `tools/experiment-stats.py`; results in `docs/results/`, report in `docs/06-metrics.md`.
+> Executed in S10 and re-run in S11 with the sweep baseline: `bash tools/metrics.sh --publish`, the campaign and `tools/experiment-stats.py`; results in `docs/results/`, report in `docs/06-metrics.md`.
 - [x] Tooling named and reproducible
 - [x] LOC
 - [x] Cyclomatic complexity

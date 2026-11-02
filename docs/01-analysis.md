@@ -156,7 +156,7 @@ person performs both roles during a demonstration.
   retained baseline/nearest-neighbor/optimized distance and duration comparisons.
 - **FR-29 — Evaluation CSV exchange:** The system shall import evaluation-scenario points from
   a documented CSV schema with validation errors, and shall export retained evaluation results
-  for all three planning methods. General master-data and operational-tour CSV exchange is not
+  for all planning methods (input order, sweep, nearest neighbor and NN + 2-opt). General master-data and operational-tour CSV exchange is not
   included.
 - **FR-30 — Audit log:** The system shall record sign-in and data-change events with actor, UTC
   timestamp, action, entity type and identifier, outcome, and concise details. The administrator

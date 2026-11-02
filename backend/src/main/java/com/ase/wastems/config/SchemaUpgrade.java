@@ -42,6 +42,8 @@ public class SchemaUpgrade implements InitializingBean {
         convertEnumColumn("AUDIT_EVENT", "ACTION", 40);
         convertEnumColumn("AUDIT_EVENT", "ENTITY_TYPE", 30);
         convertEnumColumn("EVALUATION_RUN", "SCENARIO_KIND", 20);
+        convertEnumColumn("EVALUATION_METHOD_RESULT", "METHOD", 20);
+        convertEnumColumn("TOUR", "ROUTE_METHOD", 20);
         int filled = jdbc.update("UPDATE EVALUATION_RUN r SET POINT_COUNT = "
                 + "(SELECT COUNT(*) FROM EVALUATION_STOP s WHERE s.RUN_ID = r.ID) WHERE POINT_COUNT IS NULL");
         if (filled > 0) {

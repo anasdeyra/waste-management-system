@@ -6,7 +6,7 @@
 |---|---|---|
 | Use-case diagram and short descriptions | [01-use-cases.md](01-use-cases.md) | Grouped system overview, human/supporting actors, 25 use cases traced to all 39 user stories |
 | Class diagram | [02-class-diagram.md](02-class-diagram.md) | Operational domain, current/planned demand, resources, tour execution, collection results, provenance |
-| Sequence diagram | [03-sequence-optimize-tour.md](03-sequence-optimize-tour.md) | Directed three-method evaluation, retained results, planner review, explicit proposal acceptance |
+| Sequence diagram | [03-sequence-optimize-tour.md](03-sequence-optimize-tour.md) | Directed four-method evaluation, retained results, planner review, explicit proposal acceptance |
 | Activity diagram | [04-activity-tour-lifecycle.md](04-activity-tour-lifecycle.md) | Draft planning, confirmation, execution, terminal stop outcomes, completion and cancellation (S8: cancellation fields, `OutcomeCorrection` and the correction path) |
 | OCL constraints | [02-class-diagram.md §4](02-class-diagram.md#4-ocl-constraints) | Coordinates, positive demand/capacity, agent links, crew/capacity, stop order/outcomes, lifecycle operations |
 

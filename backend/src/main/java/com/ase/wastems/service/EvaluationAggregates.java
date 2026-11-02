@@ -13,7 +13,9 @@ import com.ase.wastems.domain.EvaluationStatus;
 
 /**
  * Aggregates of a batch: mean of the per-run percentage changes against the input order, over
- * comparable runs only (completed, both results feasible, input-order distance above zero).
+ * comparable runs only (completed, both results feasible, input-order distance above zero). The
+ * changes against the sweep baseline (NN and NN + 2-opt only, D-052) use the same rule with sweep
+ * as the reference; a run without a sweep result (retained before S11) is not comparable.
  */
 public final class EvaluationAggregates {
 
@@ -57,6 +59,8 @@ public final class EvaluationAggregates {
             double sumDur = 0;
             List<Double> distChange = new ArrayList<>();
             List<Double> durChange = new ArrayList<>();
+            List<Double> distVsSweep = new ArrayList<>();
+            List<Double> durVsSweep = new ArrayList<>();
             double sumExec = 0;
             int execCount = 0;
             for (Run run : runs) {
@@ -69,6 +73,12 @@ public final class EvaluationAggregates {
                 boolean completed = run.status() == EvaluationStatus.COMPLETED;
                 boolean mFeasible = m != null && Boolean.TRUE.equals(m.feasible());
                 boolean ioFeasible = io != null && Boolean.TRUE.equals(io.feasible());
+                RunMethodRow sw = run.methods().get(PlanningMethod.SWEEP);
+                if (EvaluationComparison.comparedWithSweep(method) && completed && mFeasible && sw != null
+                        && Boolean.TRUE.equals(sw.feasible()) && sw.distanceM() != null && sw.distanceM() > 0) {
+                    distVsSweep.add(EvaluationComparison.changePct(true, true, m.distanceM(), true, sw.distanceM()));
+                    durVsSweep.add(EvaluationComparison.changePct(true, true, m.durationS(), true, sw.durationS()));
+                }
                 if (!completed || !mFeasible || !ioFeasible || io.distanceM() == null || io.distanceM() <= 0) {
                     continue;
                 }
@@ -81,7 +91,8 @@ public final class EvaluationAggregates {
             out.add(new AggregateRow(group, value, method, runs.size(), comparable, runs.size() - comparable,
                     comparable == 0 ? null : sumDist / comparable, comparable == 0 ? null : sumDur / comparable,
                     mean(distChange), min(distChange), max(distChange), mean(durChange), min(durChange),
-                    max(durChange), execCount == 0 ? null : sumExec / execCount));
+                    max(durChange), execCount == 0 ? null : sumExec / execCount, distVsSweep.size(),
+                    mean(distVsSweep), min(distVsSweep), max(distVsSweep), mean(durVsSweep)));
         }
     }
 
