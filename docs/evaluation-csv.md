@@ -6,8 +6,8 @@ the ones implemented and tested in S9.
 
 ## 1. Scope
 
-- The exchange covers **evaluation data only** (D-028): retained three-method comparisons
-  (`INPUT_ORDER`, `NEAREST_NEIGHBOR`, `NN_PLUS_2_OPT`) of tours, experiment scenarios and
+- The exchange covers **evaluation data only** (D-028): retained four-method comparisons
+  (`INPUT_ORDER`, `SWEEP`, `NEAREST_NEIGHBOR`, `NN_PLUS_2_OPT`; D-052) of tours, experiment scenarios and
   imported scenarios. Operational tours, users, vehicles, agents, waste categories and execution
   records are never exported, and nothing operational can be imported.
 - Who: PLANNER and ADMIN (ADMIN inherits PLANNER) may open the explorer, import scenarios and
@@ -68,7 +68,7 @@ The generator samples **real DSNY baskets** of the committed MN01 snapshot
 `Content-Type: text/csv` (no multipart). PLANNER and ADMIN. The whole file is validated first: any
 error answers **400** with `rowErrors` and **nothing** is created. After validation the MN01G depot
 must exist (409) and routing must be available (503). Then every scenario is evaluated in memory
-by the three methods and the batch, its runs and one audit event are saved in **one transaction**.
+by the four methods and the batch, its runs and one audit event are saved in **one transaction**.
 The answer is 201, `Location: /api/evaluations/batches/{id}` and the batch detail.
 
 **Format.** UTF-8 (a leading BOM is ignored), comma separator, RFC 4180 quoting, header row
@@ -118,7 +118,7 @@ and `demand_breakdown` = `<category>=<kg>` per category (two decimals, sorted by
 joined by `; `). Capacity, profile and seed come from the CSV, the depot is MN01G, and the
 source snapshot ids are those of every referenced dataset (`<dataset>:unknown` without a snapshot
 row, `USER_ENTERED` for a point without a source dataset). Locations keep their source ids; the
-demand is the CSV's (synthetic) value. All three methods use the same frozen scenario.
+demand is the CSV's (synthetic) value. All four methods use the same frozen scenario.
 
 **Valid example** (the coordinates are the snapshot coordinates of these baskets):
 
@@ -135,7 +135,9 @@ lower-broadway-3,3,8znf-7b2c,10110232,-74.0115043,40.71560317,Mixed litter,22,10
 gives a header-only file) returns `text/csv;charset=UTF-8` as an attachment named
 `evaluation-results-<suffix>.csv` (`run-<id>`, `batch-<id>`, `<kind>` or `all`). UTF-8 without BOM,
 `\n` line ends, RFC 4180 quoting. **One row per run and planning method** in the order
-`INPUT_ORDER`, `NEAREST_NEIGHBOR`, `NN_PLUS_2_OPT`; runs by creation time then id.
+`INPUT_ORDER`, `SWEEP`, `NEAREST_NEIGHBOR`, `NN_PLUS_2_OPT` (41 columns); runs by creation time then id. A
+completed run retained before the sweep baseline existed has no `SWEEP` result and gets **no
+`SWEEP` row** (three rows), and its sweep columns are empty.
 
 | Column | Unit / format | Meaning |
 |---|---|---|
@@ -164,6 +166,8 @@ gives a header-only file) returns `text/csv;charset=UTF-8` as an attachment name
 | `execution_time_ms` | milliseconds, `%.6f` | wall time of the method (not deterministic) |
 | `input_order_distance_m`, `input_order_duration_s` | `%.3f` | the baseline of the same run |
 | `distance_change_pct`, `duration_change_pct` | percent, `%.4f` | change against the input order |
+| `sweep_distance_m`, `sweep_duration_s` | `%.3f` | the sweep result of the same run, on every feasible row of a run whose `SWEEP` is feasible |
+| `distance_change_vs_sweep_pct`, `duration_change_vs_sweep_pct` | percent, `%.4f` | change against the sweep baseline; filled on the `NEAREST_NEIGHBOR` and `NN_PLUS_2_OPT` rows only |
 | `total_demand_kg`, `vehicle_capacity_kg` | kilograms | scenario totals |
 | `visit_order` | input indexes, space separated | stop sequence (empty when infeasible) |
 | `visit_order_source_ids` | source ids, space separated | the visited stops' `source_identifier` (`point:<uuid>` when a stop has none) |
@@ -175,25 +179,33 @@ gives a header-only file) returns `text/csv;charset=UTF-8` as an attachment name
   computed in one place (`EvaluationComparison`). It is empty unless the run is `COMPLETED`, both
   the method and `INPUT_ORDER` are feasible and the input-order value is above 0. For
   `INPUT_ORDER` itself it is `0.0000` when feasible.
+- **Change against sweep** `(value - sweep_value) / sweep_value x 100` (same single formula,
+  reference = the sweep result). Empty for `INPUT_ORDER` and `SWEEP` rows, for a run without a
+  feasible `SWEEP` and when the sweep value is not above 0.
 - **Recalculation.** For every feasible row, `(distance_m - input_order_distance_m) /
   input_order_distance_m x 100` equals `distance_change_pct` within 0.001, likewise for duration,
-  and `duration_s = travel_time_s + service_time_total_s` within rounding.
-- **Failure rows.** A `ROUTING_FAILED` run gives three rows (one per method) with
+  and, on the `NEAREST_NEIGHBOR` and `NN_PLUS_2_OPT` rows, `(distance_m - sweep_distance_m) /
+  sweep_distance_m x 100` equals `distance_change_vs_sweep_pct` within 0.001; and `duration_s = travel_time_s + service_time_total_s` within rounding.
+- **Failure rows.** A `ROUTING_FAILED` run gives four rows (one per method) with
   `run_status=ROUTING_FAILED`, the `failure_code`, `feasible=false`, `infeasibility_reason` = the
   failure message and every indicator column empty. An infeasible method of a completed run has
   `feasible=false`, its reason, the two checks and the execution time, and empty distance,
   duration and change columns.
 
-**Example** (two real rows of a CLI export of `mn01-UNIFORM_LOW-s1-n10`, abridged to the columns
-used for the comparison; the full file has all 37 columns):
+**Example** (the four real rows of the S11 campaign export of `mn01-UNIFORM_LOW-s1-n10`, repetition 1,
+copied from `docs/results/experiment/results.csv` and abridged to the columns used for the
+comparison; the full file has all 41 columns):
 
 ```
-method,feasible,distance_m,travel_time_s,duration_s,input_order_distance_m,distance_change_pct,duration_change_pct,visit_order
-INPUT_ORDER,true,10449.646,1275.024,7275.024,10449.646,0.0000,0.0000,1 2 3 4 5 6 7 8 9 10
-NN_PLUS_2_OPT,true,5655.436,722.688,6722.688,10449.646,-45.8792,-7.5922,9 1 4 10 5 8 3 7 6 2
+method,feasible,distance_m,travel_time_s,duration_s,input_order_distance_m,distance_change_pct,duration_change_pct,sweep_distance_m,sweep_duration_s,distance_change_vs_sweep_pct,duration_change_vs_sweep_pct,visit_order
+INPUT_ORDER,true,10449.646,1275.024,7275.024,10449.646,0.0000,0.0000,7963.667,7007.893,,,1 2 3 4 5 6 7 8 9 10
+SWEEP,true,7963.667,1007.893,7007.893,10449.646,-23.7901,-3.6719,7963.667,7007.893,,,1 9 8 5 4 10 3 2 7 6
+NEAREST_NEIGHBOR,true,5655.436,722.688,6722.688,10449.646,-45.8792,-7.5922,7963.667,7007.893,-28.9845,-4.0698,9 1 4 10 5 8 3 7 6 2
+NN_PLUS_2_OPT,true,5655.436,722.688,6722.688,10449.646,-45.8792,-7.5922,7963.667,7007.893,-28.9845,-4.0698,9 1 4 10 5 8 3 7 6 2
 ```
 
-Check: `(5655.436 - 10449.646) / 10449.646 x 100 = -45.879`, and `6722.688 = 722.688 + 10 x 600`.
+Check: `(5655.436 - 10449.646) / 10449.646 x 100 = -45.879`, `(5655.436 - 7963.667) / 7963.667 x 100 =
+-28.985` and `6722.688 = 722.688 + 10 x 600`.
 
 ## 5. Scenario export (round trip)
 
