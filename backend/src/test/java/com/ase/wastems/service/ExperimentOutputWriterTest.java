@@ -65,7 +65,7 @@ class ExperimentOutputWriterTest {
                 ExperimentSpec.of(List.of(DemandProfile.UNIFORM_HIGH), List.of(1L), List.of(3), null, null), "admin1");
         writer.write(b.getId(), dir.resolve("out"));
         Path out = dir.resolve("out");
-        assertThat(Files.readAllLines(out.resolve("results.csv"))).hasSize(4);
+        assertThat(Files.readAllLines(out.resolve("results.csv"))).hasSize(5);
         assertThat(Files.readAllLines(out.resolve("scenarios.csv"))).hasSize(4);
         JsonNode json = mapper.readTree(out.resolve("batch.json").toFile());
         assertThat(json.get("id").asText()).isEqualTo(b.getId().toString());

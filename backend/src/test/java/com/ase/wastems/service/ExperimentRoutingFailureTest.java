@@ -93,9 +93,9 @@ class ExperimentRoutingFailureTest {
         EvaluationBatch b = experiments.run(
                 ExperimentSpec.of(List.of(DemandProfile.UNIFORM_LOW), List.of(1L), List.of(3, 5), null, null), "admin1");
         var rows = SimpleCsv.parse(exports.resultsCsv(null, b.getId(), null));
-        assertThat(rows).hasSize(6);
+        assertThat(rows).hasSize(8);
         var failed = rows.stream().filter(r -> r.get("scenario_key").equals("mn01-UNIFORM_LOW-s1-n3")).toList();
-        assertThat(failed).hasSize(3);
+        assertThat(failed).hasSize(4);
         for (var r : failed) {
             assertThat(r.get("run_status")).isEqualTo("ROUTING_FAILED");
             assertThat(r.get("failure_code")).isEqualTo("NO_ROAD_PATH");
@@ -104,6 +104,8 @@ class ExperimentRoutingFailureTest {
             assertThat(r.get("distance_m")).isEmpty();
             assertThat(r.get("duration_s")).isEmpty();
             assertThat(r.get("distance_change_pct")).isEmpty();
+            assertThat(r.get("sweep_distance_m")).isEmpty();
+            assertThat(r.get("distance_change_vs_sweep_pct")).isEmpty();
         }
         var ok = rows.stream().filter(r -> r.get("scenario_key").equals("mn01-UNIFORM_LOW-s1-n5")).toList();
         assertThat(ok).allMatch(r -> !r.get("distance_m").isEmpty() && !r.get("duration_s").isEmpty());
