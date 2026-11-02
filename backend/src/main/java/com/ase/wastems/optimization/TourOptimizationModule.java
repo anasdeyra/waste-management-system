@@ -11,6 +11,7 @@ import java.util.Locale;
 public final class TourOptimizationModule {
 
     private final InputOrderBaseline baseline = new InputOrderBaseline();
+    private final SweepBaseline sweep = new SweepBaseline();
     private final NearestNeighborConstruction nn = new NearestNeighborConstruction();
     private final TwoOptImprovement twoOpt = new TwoOptImprovement();
 
@@ -24,6 +25,16 @@ public final class TourOptimizationModule {
             case INPUT_ORDER -> {
                 order = baseline.order(s);
                 config = InputOrderBaseline.CONFIGURATION;
+            }
+            case SWEEP -> {
+                config = SweepBaseline.CONFIGURATION;
+                try {
+                    SweepBaseline.Result r = sweep.order(s);
+                    order = r.order();
+                    config += "; chosen ray: start stop " + r.startNode() + ", " + (r.clockwise() ? "CW" : "CCW");
+                } catch (InfeasibleScenarioException e) {
+                    reason = e.getMessage();
+                }
             }
             case NEAREST_NEIGHBOR -> {
                 config = NearestNeighborConstruction.CONFIGURATION;
@@ -66,8 +77,8 @@ public final class TourOptimizationModule {
     }
 
     public List<MethodOutcome> planAll(PlanningScenario s) {
-        return List.of(plan(PlanningMethod.INPUT_ORDER, s), plan(PlanningMethod.NEAREST_NEIGHBOR, s),
-                plan(PlanningMethod.NN_PLUS_2_OPT, s));
+        return List.of(plan(PlanningMethod.INPUT_ORDER, s), plan(PlanningMethod.SWEEP, s),
+                plan(PlanningMethod.NEAREST_NEIGHBOR, s), plan(PlanningMethod.NN_PLUS_2_OPT, s));
     }
 
     private static boolean isPermutation(List<Integer> order, int n) {
