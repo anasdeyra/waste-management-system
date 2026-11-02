@@ -11,17 +11,18 @@ course project. Its intended final contents are the problem analysis, literature
 models, prototype, Scrum artifacts, and software metrics; the status table in §6 lists where
 each part lives.
 
-> **Current state: all ten sprints (S1–S10) delivered.** The prototype covers session authentication
+> **Current state: all eleven sprints (S1–S11) delivered.** The prototype covers session authentication
 > with CSRF protection and the ADMIN / PLANNER / AGENT roles, user administration, waste categories,
 > collection points with demand on a Leaflet/OpenStreetMap map, vehicles, agents and account links,
 > and the idempotent import of the included MN01 snapshots (449 baskets, of which 238 `DSNY ` types
 > are optimization-eligible, plus the MN01G depot). Tours are drafted on the map, evaluated on a
-> directed road network (embedded GraphHopper 11.1, snapshot `osm-mn01-e1f2fabaa937`) by three
-> methods (input order, nearest neighbor, NN + 2-opt), reviewed and confirmed by the planner,
+> directed road network (embedded GraphHopper 11.1, snapshot `osm-mn01-e1f2fabaa937`) by four
+> methods (input order, the sweep baseline of Gillett & Miller, nearest neighbor, NN + 2-opt), reviewed and confirmed by the planner,
 > executed by the assigned crew, corrected, searched in a history and audited. A `dev` start loads a
 > reproducible MN01 demonstration (§4.6). Dashboards, an evaluation explorer with CSV import and
 > export, a seeded experiment runner and a display-only NYC DOT traffic layer complete the product
-> (S9). **S10** adds the measurements and the presentation: the code metrics and the 60-scenario
+> (S9). **S10** adds the measurements and the presentation and **S11** adds the sweep baseline and
+> revises the research answer (NN + 2-opt versus sweep): the code metrics and the 60-scenario
 > campaign are in [`docs/06-metrics.md`](docs/06-metrics.md) with the committed data in
 > [`docs/results/`](docs/results/), requirements are traced to code and tests in
 > [`docs/traceability.md`](docs/traceability.md), and the HTML deck is
@@ -68,7 +69,7 @@ project-ase/
 │   └── src/
 │       ├── main/java/com/ase/wastems/
 │       │   ├── domain/ repository/ service/ web/ security/ config/
-│       │   ├── optimization/  # framework-free algorithm core (input order, NN, directed 2-opt)
+│       │   ├── optimization/  # framework-free algorithm core (input order, sweep, NN, directed 2-opt)
 │       │   ├── routing/       # embedded GraphHopper on the OSM snapshot
 │       │   ├── traffic/       # display-only NYC DOT traffic overlay (isolated, D-021)
 │       │   └── WasteMsApplication.java
@@ -233,11 +234,11 @@ curl -s -b $J -X PUT "${H[@]}" \
      -d "{\"vehicleId\":\"$VEHICLE_ID\",\"driverId\":\"$AGENT_ID\",\"collectorIds\":[]}" $B/api/tours/$TOUR_ID/assignment
 ```
 
-Three-method evaluation of a ready draft (PLANNER/ADMIN):
+Four-method evaluation of a ready draft (PLANNER/ADMIN):
 
 ```bash
 curl -s -i -b $J -X POST "${H[@]}" $B/api/tours/$TOUR_ID/evaluations   # 201, Location: /api/evaluations/<runId>
-curl -s -b $J $B/api/evaluations/$RUN_ID                                 # three method results with orders, legs, indicators
+curl -s -b $J $B/api/evaluations/$RUN_ID                                 # four method results with orders, legs, indicators
 curl -s -b $J $B/api/evaluations/$RUN_ID/matrix                          # retained directed distance/time matrix
 curl -s -b $J $B/api/tours/$TOUR_ID/evaluations                          # runs of the tour, newest first
 # accept the NN + 2-opt proposal of a current run, or keep the input order (both 200, 409 when stale)
@@ -348,7 +349,7 @@ Dana Lopez (demo) has no login. Eli Novak (demo) and `DEMO-03` are unavailable.
 
 | Tour | State | Vehicle and crew | Stops | Road route |
 |---|---|---|---|---|
-| draft | `DRAFT` | DEMO-01, Alex + Blair | 8 baskets | evaluated (input order 11.74 km, NN 10.21 km, NN + 2-opt 7.47 km), not yet decided |
+| draft | `DRAFT` | DEMO-01, Alex + Blair | 8 baskets | evaluated (input order 11.74 km, sweep 8.44 km, NN 10.21 km, NN + 2-opt 7.47 km), not yet decided |
 | planned | `PLANNED` | DEMO-01, Alex + Blair | 5 baskets | NN + 2-opt, 2.39 km |
 | in-progress | `IN_PROGRESS` | DEMO-02, Alex + Casey + Dana | 5 baskets, stop 1 collected, stop 2 not collected | 2.75 km |
 | completed | `COMPLETED` | DEMO-02, Casey + Alex | 4 baskets, 3 collected and 1 not collected | 6.11 km |
@@ -356,7 +357,7 @@ Dana Lopez (demo) has no login. Eli Novak (demo) and `DEMO-03` are unavailable.
 **What to click.**
 
 1. Sign in as `planner`, open *Tours*: four tours with the `Synthetic demo` badge, one per state.
-2. Open the draft, *Route evaluation*: compare the three routes; *Accept NN + 2-opt proposal*, then
+2. Open the draft, *Route evaluation*: compare the four routes (sweep is hidden by default); *Accept NN + 2-opt proposal*, then
    *Confirm as planned*.
 3. Open the in-progress tour: the map colours stops by state and the *Execution* card shows the
    progress.
@@ -380,8 +381,8 @@ Dana Lopez (demo) has no login. Eli Novak (demo) and `DEMO-03` are unavailable.
 12. As `planner`, open *Dashboard*: resources, tours by status and stop progress; click a count to
     open the filtered list (for example *Planned* opens *Tours* filtered).
 13. As `admin`, open *Evaluations*, *Run experiment* with seeds `1` and sizes `10,25` (a few
-    seconds): the batch shows per-size and per-profile changes against the input order; open a
-    run to compare the three routes on the map.
+    seconds): the batch shows per-size and per-profile changes against the input order and against sweep; open a
+    run to compare the routes on the map.
 14. *Export results CSV* and *Download scenarios CSV*; import the scenarios file again with
     *Import scenario CSV*: the new batch has the same distances.
 15. On *Collection points* or a tour, switch on *NYC DOT traffic (display only)*: sensor
@@ -400,9 +401,9 @@ and the log (`Demo load warning:`).
 # the fixed 60 scenarios once (about 1-2 minutes)
 bash tools/run-experiment.sh metrics/experiment
 
-# the campaign of docs/06-metrics.md: 3 repetitions = 180 runs = 540 rows, then the statistics
+# the campaign of docs/06-metrics.md: 3 repetitions = 180 runs = 720 rows, then the statistics
 bash tools/run-experiment.sh metrics/experiment --wastems.experiment.repetitions=3 \
-     --wastems.experiment.label="S10 canonical campaign"
+     --wastems.experiment.label="S11 canonical campaign"
 mkdir -p docs/results/experiment
 cp metrics/experiment/{results.csv,scenarios.csv,batch.json,run-info.txt,run.log} docs/results/experiment/
 python3 tools/experiment-stats.py docs/results/experiment docs/results/experiment-stats
@@ -413,7 +414,7 @@ headless on its own database and a random port (never 8080). It writes `results.
 `scenarios.csv`, `batch.json`, `run-info.txt` and `run.log` into the output directory, which must be
 new or empty (`metrics/` is git-ignored; the `db/` and `routing-cache/` it also writes are never
 committed). `tools/experiment-stats.py` checks the campaign and writes the statistics, tables and
-chart. The committed results of the S10 campaign are in [`docs/results/`](docs/results/); columns,
+chart. The committed results of the S11 campaign are in [`docs/results/`](docs/results/); columns,
 formats and the generator are documented in [`docs/evaluation-csv.md`](docs/evaluation-csv.md).
 
 ## 5. Tests, metrics and the presentation
@@ -442,11 +443,11 @@ running `dev` backend plus Vite dev server on a scratch database; see the header
 | 1 — Problem analysis | [`docs/01-analysis.md`](docs/01-analysis.md) | complete |
 | 2 — Literature review | [`docs/02-literature-review.md`](docs/02-literature-review.md) | complete |
 | 3 — UML modelling | [`docs/03-uml/README.md`](docs/03-uml/README.md) | four required diagrams + OCL complete |
-| 4 — Prototype | `backend/`, `frontend/` | S1–S10: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, three-method evaluation, review and confirmation, crew execution, MN01 demonstration, cancellation, outcome corrections, operational history, audit log, dashboard, evaluation explorer with CSV import/export, seeded experiment runner, display-only NYC DOT traffic layer |
-| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S10 executed |
-| 6 — Metrology | [`docs/06-metrics.md`](docs/06-metrics.md) | complete (measured) |
+| 4 — Prototype | `backend/`, `frontend/` | S1–S11: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, four-method evaluation (sweep baseline), review and confirmation, crew execution, MN01 demonstration, cancellation, outcome corrections, operational history, audit log, dashboard, evaluation explorer with CSV import/export, seeded experiment runner, display-only NYC DOT traffic layer |
+| 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S11 executed |
+| 6 — Metrology | [`docs/06-metrics.md`](docs/06-metrics.md) | complete (measured; revised in S11 with the sweep baseline) |
 | Presentation | [`presentation/index.html`](presentation/index.html) | HTML deck complete |
-| Measured results | [`docs/results/`](docs/results/) | S10 campaign, statistics and metric summaries |
+| Measured results | [`docs/results/`](docs/results/) | S11 campaign (720 rows), statistics and metric summaries |
 | Traceability | [`docs/traceability.md`](docs/traceability.md) | FR to story, use case, code and test |
 | Evaluation CSV and experiment | [`docs/evaluation-csv.md`](docs/evaluation-csv.md) | S9: import, export, seeded generator `mn01-v1`, CLI |
 | Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; map, routing and traffic overlay implemented |
