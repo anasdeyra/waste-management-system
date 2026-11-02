@@ -82,8 +82,9 @@ project-ase/
 │       │   ├── domain/ repository/ service/ web/ security/ config/
 │       │   ├── optimization/  # framework-free algorithm core (input order, NN, directed 2-opt)
 │       │   ├── routing/       # embedded GraphHopper on the OSM snapshot
+│       │   ├── traffic/       # display-only NYC DOT traffic overlay (isolated, D-021)
 │       │   └── WasteMsApplication.java
-│       ├── main/resources/    # application.yml + real NYC snapshots in data/ + OSM road snapshot in routing/
+│       ├── main/resources/    # application.yml + real NYC snapshots in data/ + OSM road snapshot in routing/ + traffic snapshot in traffic/
 │       └── test/              # JUnit 5 tests
 ├── frontend/                  # React single-page application (Vite, Tailwind, shadcn/ui)
 │   ├── package.json
@@ -102,12 +103,14 @@ project-ase/
 ├── docs/
 │   ├── decisions.md           # decision log
 │   ├── geospatial-data.md     # NYC sources, snapshots, maps, routing, attribution
+│   ├── evaluation-csv.md      # evaluation CSV import/export, seeded experiment, CLI
 │   ├── 01-analysis.md         # Part 1 — problem analysis
 │   ├── 02-literature-review.md
 │   ├── 03-uml/                # Part 3 — UML models (Mermaid)
 │   ├── 05-scrum.md            # Part 5 — Scrum artifacts
 │   └── 06-metrics.md          # Part 6 — software metrology
-├── tools/                     # toolchain installer, metric scripts, fetch-road-snapshot.sh
+├── tools/                     # toolchain installer, metric scripts, fetch-road-snapshot.sh,
+│                              # fetch-traffic-snapshot.py, run-experiment.sh
 └── presentation/              # final deck
 ```
 
@@ -281,6 +284,27 @@ curl -s -b $J "$B/api/tours/history?status=COMPLETED"
 curl -s -b $J "$B/api/admin/audit-events?action=SIGN_IN&outcome=FAILURE"
 ```
 
+Dashboard, evaluation explorer, CSV exchange, experiment batches and traffic overlay (S9):
+
+```bash
+# operational dashboard (PLANNER/ADMIN; optional planning-date period)
+curl -s -b $J "$B/api/dashboard/operations?from=2026-11-01&to=2026-11-07"
+# run a small seeded experiment batch (ADMIN; omit the body for the fixed 60 scenarios, about 1-2 min)
+curl -s -b $J -H "X-XSRF-TOKEN: $X" -H 'Content-Type: application/json' \
+  -d '{"profiles":["UNIFORM_LOW"],"seeds":[1],"sizes":[10,25]}' $B/api/admin/experiments
+# explorer: batches, one batch with aggregates, filtered runs
+curl -s -b $J $B/api/evaluations/batches
+curl -s -b $J "$B/api/evaluations?kind=EXPERIMENT&pointCount=10&page=0&size=50"
+# export results (one row per run and method) and a batch's scenarios (import format)
+curl -s -b $J -o results.csv "$B/api/evaluations/export?batchId=$BATCH"
+curl -s -b $J -o scenarios.csv "$B/api/evaluations/batches/$BATCH/scenarios.csv"
+# import scenarios (400 lists row errors and imports nothing)
+curl -s -b $J -H "X-XSRF-TOKEN: $X" -H 'Content-Type: text/csv' --data-binary @scenarios.csv \
+  "$B/api/evaluations/imports?fileName=scenarios.csv"
+# NYC DOT traffic overlay (display only)
+curl -s -b $J $B/api/traffic/overlay
+```
+
 A draft that is not ready answers 422 (e.g. `OVER_CAPACITY`, `NO_VEHICLE`); an unroutable point or
 missing directed leg answers 201 with a retained run of status `ROUTING_FAILED`; a missing or
 corrupt road snapshot answers 503. Evaluation never
@@ -299,7 +323,8 @@ AGENT only and restricted to the tour's crew (403 otherwise). Cancellation, corr
 Base-map tiles come from OpenStreetMap and are shown with the required
 "© OpenStreetMap contributors" attribution. Depot and basket locations come from NYC Open Data
 (DSNY); see [`docs/geospatial-data.md`](docs/geospatial-data.md). Road routing uses an
-OpenStreetMap extract (© OpenStreetMap contributors, ODbL).
+OpenStreetMap extract (© OpenStreetMap contributors, ODbL). The optional traffic layer shows
+"Traffic speeds: NYC DOT, NYC Open Data (i4gi-tjb9)" and the NYC DOT disclaimer in its panel.
 
 ### 4.6 Try the demo
 
@@ -361,12 +386,35 @@ Dana Lopez (demo) has no login. Eli Novak (demo) and `DEMO-03` are unavailable.
 11. As `admin`, open *Audit log*: filter by action (`Outcome corrected`, `Sign-in` with outcome
     `Failure`, …), actor or the tour id.
 
+12. As `planner`, open *Dashboard*: resources, tours by status and stop progress; click a count to
+    open the filtered list (for example *Planned* opens *Tours* filtered).
+13. As `admin`, open *Evaluations*, *Run experiment* with seeds `1` and sizes `10,25` (a few
+    seconds): the batch shows per-size and per-profile changes against the input order; open a
+    run to compare the three routes on the map.
+14. *Export results CSV* and *Download scenarios CSV*; import the scenarios file again with
+    *Import scenario CSV*: the new batch has the same distances.
+15. On *Collection points* or a tour, switch on *NYC DOT traffic (display only)*: sensor
+    links of the stored snapshot with their observation time; routes do not change.
+
 The demo load itself is recorded as one `DEMO_LOADED` event (actor `system` at start-up); the tour
 steps it performs appear as their own events.
 
 On a database that already holds other data, the loader reuses existing names and skips what it
 cannot do (for example an `agent` account linked to another agent); the warnings are in the report
 and the log (`Demo load warning:`).
+
+### 4.7 Evaluation experiment (for Part 6)
+
+```bash
+bash tools/run-experiment.sh metrics/experiment
+```
+
+Runs the fixed 60 scenarios (3 demand profiles x seeds 1-5 x 10, 25, 50, 100 real MN01 baskets) once,
+in about 1-2 minutes, headless on its own database and a random port (never 8080). It writes
+`results.csv`, `scenarios.csv`, `batch.json`, `run-info.txt` and `run.log` into the output
+directory, which must be new or empty (`metrics/` is git-ignored). Add
+`--wastems.experiment.repetitions=3` for execution-time medians. Columns, formats and the generator
+are documented in [`docs/evaluation-csv.md`](docs/evaluation-csv.md).
 
 ## 5. Tests and metrics
 
@@ -388,6 +436,7 @@ bash tools/metrics.sh                      # LOC, CKJM, PMD, JDepend (Part 6)
 | 4 — Prototype | `backend/`, `frontend/` | S1–S8: authentication, roles, users, waste categories, collection points and demand on the map, vehicles, agents and account links, MN01 import, tour drafts, three-method evaluation, review and confirmation, crew execution, MN01 demonstration, cancellation, outcome corrections, operational history, audit log |
 | 5 — Scrum | [`docs/05-scrum.md`](docs/05-scrum.md) | Product Backlog complete; S1–S8 executed, S9–S10 planned |
 | 6 — Metrology | `docs/06-metrics.md` | tooling ready, measurements to do |
+| Evaluation CSV and experiment | [`docs/evaluation-csv.md`](docs/evaluation-csv.md) | S9: import, export, seeded generator `mn01-v1`, CLI |
 | Supporting geospatial specification | [`docs/geospatial-data.md`](docs/geospatial-data.md) | NYC snapshots included; point map implemented; routing to do |
 
 ## 7. Conventions

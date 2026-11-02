@@ -148,6 +148,8 @@ retained), UC19 by `GET /api/tours/history` plus the read-only tour detail, and 
 `GET /api/admin/audit-events` (ADMIN only). The audit events of §4 are recorded by one
 service-level component for every sign-in and data change (D-049).
 
+**Implemented in S9.** UC21 is served by `GET /api/traffic/overlay` (a committed, timestamped NYC DOT snapshot, display only; the supporting actor supplies the snapshot through `tools/fetch-traffic-snapshot.py`, not at run time), UC22 by `GET /api/dashboard/operations` and the evaluation explorer (`GET /api/evaluations`, `GET /api/evaluations/batches[/{id}]`), UC23 by `POST /api/evaluations/imports` and UC24 by `GET /api/evaluations/export` and `GET /api/evaluations/batches/{id}/scenarios.csv`. The seeded experiment of D-022 runs through `POST /api/admin/experiments` or `tools/run-experiment.sh` (D-050).
+
 ## 4. Cross-cutting rules
 
 - Every protected use case includes server-side authentication and authorization; hiding a UI
