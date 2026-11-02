@@ -1,0 +1,40 @@
+## Packages
+package        classes abstract   Ca   Ce Ce internal      A      I      D
+--------------------------------------------------------------------------
+(root)               1        0    0    4           0   0.00   1.00   0.00
+config              13        0    2   47           6   0.00   0.96   0.04
+domain              36        0    6   10           1   0.00   0.62   0.38
+optimization        13        1    6    4           0   0.08   0.40   0.52
+repository          14       12    5   11           2   0.86   0.69   0.54
+routing             11        2    3   22           1   0.18   0.88   0.06
+security             4        0    1   20           3   0.00   0.95   0.05
+service             78        0    3   36           5   0.00   0.92   0.08
+traffic             12        0    2   14           1   0.00   0.88   0.12
+web                 17        0    0   29           6   0.00   1.00   0.00
+web.dto             74        0    2   17           5   0.00   0.89   0.11
+total classes: 273
+
+## Internal dependencies
+(root) -> (none)
+config -> domain, optimization, repository, routing, security, service
+domain -> optimization
+optimization -> (none)
+repository -> domain, optimization
+routing -> optimization
+security -> domain, repository, web.dto
+service -> config, domain, optimization, repository, routing
+traffic -> config
+web -> domain, repository, routing, service, traffic, web.dto
+web.dto -> domain, optimization, repository, service, traffic
+
+## External dependencies of optimization
+java.lang, java.lang.invoke, java.lang.runtime, java.util
+
+## Cycles
+strongly connected packages: config, security, service, traffic, web.dto
+JDepend cycle path: config -> service -> config
+JDepend cycle path: security -> web.dto -> service -> config -> service
+JDepend cycle path: service -> config -> service
+JDepend cycle path: traffic -> config -> service -> config
+JDepend cycle path: web -> service -> config -> service
+JDepend cycle path: web.dto -> service -> config -> service

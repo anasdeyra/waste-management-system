@@ -1,0 +1,739 @@
+{
+  "all_completed": true,
+  "all_feasible": true,
+  "by_profile": {
+    "HOTSPOT": {
+      "INPUT_ORDER": {
+        "distance_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "duration_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "execution_time_ms": {
+          "max": 0.007737,
+          "median": 0.0042380000000000004,
+          "median_excl_rep1": 0.004111500000000001
+        },
+        "mean_distance_m": 47129.775200000004,
+        "mean_duration_s": 33724.62955
+      },
+      "NEAREST_NEIGHBOR": {
+        "distance_change_pct": {
+          "max": -24.7635,
+          "mean": -57.20322,
+          "median": -59.182649999999995,
+          "min": -77.7858
+        },
+        "duration_change_pct": {
+          "max": -5.2597,
+          "mean": -10.349615,
+          "median": -10.64335,
+          "min": -14.2308
+        },
+        "execution_time_ms": {
+          "max": 0.024957,
+          "median": 0.0058260000000000004,
+          "median_excl_rep1": 0.0058260000000000004
+        },
+        "mean_distance_m": 15572.426449999999,
+        "mean_duration_s": 29725.01775
+      },
+      "NN_PLUS_2_OPT": {
+        "distance_change_pct": {
+          "max": -40.2059,
+          "mean": -60.175200000000004,
+          "median": -62.4004,
+          "min": -77.9547
+        },
+        "duration_change_pct": {
+          "max": -7.5922,
+          "mean": -10.882265,
+          "median": -11.036100000000001,
+          "min": -14.4577
+        },
+        "execution_time_ms": {
+          "max": 0.082277,
+          "median": 0.017643,
+          "median_excl_rep1": 0.012706499999999999
+        },
+        "mean_distance_m": 14837.6575,
+        "mean_duration_s": 29642.39485
+      }
+    },
+    "UNIFORM_HIGH": {
+      "INPUT_ORDER": {
+        "distance_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "duration_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "execution_time_ms": {
+          "max": 0.020596,
+          "median": 0.0041275,
+          "median_excl_rep1": 0.0038965000000000002
+        },
+        "mean_distance_m": 47129.775200000004,
+        "mean_duration_s": 33724.62955
+      },
+      "NEAREST_NEIGHBOR": {
+        "distance_change_pct": {
+          "max": -24.7635,
+          "mean": -57.20322,
+          "median": -59.182649999999995,
+          "min": -77.7858
+        },
+        "duration_change_pct": {
+          "max": -5.2597,
+          "mean": -10.349615,
+          "median": -10.64335,
+          "min": -14.2308
+        },
+        "execution_time_ms": {
+          "max": 0.025765,
+          "median": 0.0056765,
+          "median_excl_rep1": 0.0056765
+        },
+        "mean_distance_m": 15572.426449999999,
+        "mean_duration_s": 29725.01775
+      },
+      "NN_PLUS_2_OPT": {
+        "distance_change_pct": {
+          "max": -40.2059,
+          "mean": -60.175200000000004,
+          "median": -62.4004,
+          "min": -77.9547
+        },
+        "duration_change_pct": {
+          "max": -7.5922,
+          "mean": -10.882265,
+          "median": -11.036100000000001,
+          "min": -14.4577
+        },
+        "execution_time_ms": {
+          "max": 0.228848,
+          "median": 0.0195315,
+          "median_excl_rep1": 0.015056
+        },
+        "mean_distance_m": 14837.6575,
+        "mean_duration_s": 29642.39485
+      }
+    },
+    "UNIFORM_LOW": {
+      "INPUT_ORDER": {
+        "distance_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "duration_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "execution_time_ms": {
+          "max": 0.248832,
+          "median": 0.004941,
+          "median_excl_rep1": 0.0049025
+        },
+        "mean_distance_m": 47129.775200000004,
+        "mean_duration_s": 33724.62955
+      },
+      "NEAREST_NEIGHBOR": {
+        "distance_change_pct": {
+          "max": -24.7635,
+          "mean": -57.20322,
+          "median": -59.182649999999995,
+          "min": -77.7858
+        },
+        "duration_change_pct": {
+          "max": -5.2597,
+          "mean": -10.349615,
+          "median": -10.64335,
+          "min": -14.2308
+        },
+        "execution_time_ms": {
+          "max": 0.462111,
+          "median": 0.0080205,
+          "median_excl_rep1": 0.0054730000000000004
+        },
+        "mean_distance_m": 15572.426449999999,
+        "mean_duration_s": 29725.01775
+      },
+      "NN_PLUS_2_OPT": {
+        "distance_change_pct": {
+          "max": -40.2059,
+          "mean": -60.175200000000004,
+          "median": -62.4004,
+          "min": -77.9547
+        },
+        "duration_change_pct": {
+          "max": -7.5922,
+          "mean": -10.882265,
+          "median": -11.036100000000001,
+          "min": -14.4577
+        },
+        "execution_time_ms": {
+          "max": 1.988862,
+          "median": 0.028255000000000002,
+          "median_excl_rep1": 0.0180065
+        },
+        "mean_distance_m": 14837.6575,
+        "mean_duration_s": 29642.39485
+      }
+    },
+    "all": {
+      "INPUT_ORDER": {
+        "distance_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "duration_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "execution_time_ms": {
+          "max": 0.248832,
+          "median": 0.004367,
+          "median_excl_rep1": 0.004209
+        },
+        "mean_distance_m": 47129.775200000004,
+        "mean_duration_s": 33724.62955
+      },
+      "NEAREST_NEIGHBOR": {
+        "distance_change_pct": {
+          "max": -24.7635,
+          "mean": -57.20322,
+          "median": -59.182649999999995,
+          "min": -77.7858
+        },
+        "duration_change_pct": {
+          "max": -5.2597,
+          "mean": -10.349615,
+          "median": -10.64335,
+          "min": -14.2308
+        },
+        "execution_time_ms": {
+          "max": 0.462111,
+          "median": 0.007655,
+          "median_excl_rep1": 0.0054925
+        },
+        "mean_distance_m": 15572.426449999999,
+        "mean_duration_s": 29725.01775
+      },
+      "NN_PLUS_2_OPT": {
+        "distance_change_pct": {
+          "max": -40.2059,
+          "mean": -60.175200000000004,
+          "median": -62.4004,
+          "min": -77.9547
+        },
+        "duration_change_pct": {
+          "max": -7.5922,
+          "mean": -10.882265,
+          "median": -11.036100000000001,
+          "min": -14.4577
+        },
+        "execution_time_ms": {
+          "max": 1.988862,
+          "median": 0.0206095,
+          "median_excl_rep1": 0.015304
+        },
+        "mean_distance_m": 14837.6575,
+        "mean_duration_s": 29642.39485
+      }
+    }
+  },
+  "by_size": {
+    "10": {
+      "INPUT_ORDER": {
+        "distance_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "duration_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "execution_time_ms": {
+          "max": 0.248832,
+          "median": 0.003249,
+          "median_excl_rep1": 0.0031035000000000004
+        },
+        "mean_distance_m": 12064.9844,
+        "mean_duration_s": 7508.357
+      },
+      "NEAREST_NEIGHBOR": {
+        "distance_change_pct": {
+          "max": -24.7635,
+          "mean": -37.78154,
+          "median": -43.5371,
+          "min": -45.8792
+        },
+        "duration_change_pct": {
+          "max": -5.2597,
+          "mean": -7.344799999999999,
+          "median": -7.5922,
+          "min": -9.1145
+        },
+        "execution_time_ms": {
+          "max": 0.018209,
+          "median": 0.001472,
+          "median_excl_rep1": 0.0014275
+        },
+        "mean_distance_m": 7535.355799999999,
+        "mean_duration_s": 6957.008
+      },
+      "NN_PLUS_2_OPT": {
+        "distance_change_pct": {
+          "max": -40.2059,
+          "mean": -43.88746,
+          "median": -43.5371,
+          "min": -48.56
+        },
+        "duration_change_pct": {
+          "max": -7.5922,
+          "mean": -8.54024,
+          "median": -8.6453,
+          "min": -9.158
+        },
+        "execution_time_ms": {
+          "max": 0.353024,
+          "median": 0.006595,
+          "median_excl_rep1": 0.005144
+        },
+        "mean_distance_m": 6785.4018,
+        "mean_duration_s": 6866.478
+      }
+    },
+    "100": {
+      "INPUT_ORDER": {
+        "distance_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "duration_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "execution_time_ms": {
+          "max": 0.020596,
+          "median": 0.006472,
+          "median_excl_rep1": 0.0064615
+        },
+        "mean_distance_m": 97583.1714,
+        "mean_duration_s": 72382.6322
+      },
+      "NEAREST_NEIGHBOR": {
+        "distance_change_pct": {
+          "max": -74.47,
+          "mean": -75.78142,
+          "median": -74.9629,
+          "min": -77.7858
+        },
+        "duration_change_pct": {
+          "max": -12.1838,
+          "mean": -12.9352,
+          "median": -12.8447,
+          "min": -14.2308
+        },
+        "execution_time_ms": {
+          "max": 0.462111,
+          "median": 0.022442,
+          "median_excl_rep1": 0.0221055
+        },
+        "mean_distance_m": 23578.8064,
+        "mean_duration_s": 63015.2012
+      },
+      "NN_PLUS_2_OPT": {
+        "distance_change_pct": {
+          "max": -74.6761,
+          "mean": -76.09764,
+          "median": -75.5096,
+          "min": -77.9547
+        },
+        "duration_change_pct": {
+          "max": -12.2712,
+          "mean": -12.988480000000001,
+          "median": -12.8815,
+          "min": -14.2627
+        },
+        "execution_time_ms": {
+          "max": 1.988862,
+          "median": 0.05741,
+          "median_excl_rep1": 0.05128
+        },
+        "mean_distance_m": 23279.221,
+        "mean_duration_s": 62976.8166
+      }
+    },
+    "25": {
+      "INPUT_ORDER": {
+        "distance_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "duration_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "execution_time_ms": {
+          "max": 0.01664,
+          "median": 0.004119,
+          "median_excl_rep1": 0.004097
+        },
+        "mean_distance_m": 26977.378,
+        "mean_duration_s": 18406.660200000002
+      },
+      "NEAREST_NEIGHBOR": {
+        "distance_change_pct": {
+          "max": -40.8313,
+          "mean": -49.04492,
+          "median": -49.5274,
+          "min": -54.8375
+        },
+        "duration_change_pct": {
+          "max": -6.5764,
+          "mean": -9.1195,
+          "median": -9.2859,
+          "min": -10.3496
+        },
+        "execution_time_ms": {
+          "max": 0.052738,
+          "median": 0.003591,
+          "median_excl_rep1": 0.003558
+        },
+        "mean_distance_m": 13693.547199999999,
+        "mean_duration_s": 16724.9542
+      },
+      "NN_PLUS_2_OPT": {
+        "distance_change_pct": {
+          "max": -46.7524,
+          "mean": -52.9992,
+          "median": -52.5732,
+          "min": -59.9962
+        },
+        "duration_change_pct": {
+          "max": -7.5994,
+          "mean": -9.78936,
+          "median": -9.8069,
+          "min": -11.3065
+        },
+        "execution_time_ms": {
+          "max": 0.237174,
+          "median": 0.012971,
+          "median_excl_rep1": 0.009461500000000001
+        },
+        "mean_distance_m": 12617.5326,
+        "mean_duration_s": 16601.6408
+      }
+    },
+    "50": {
+      "INPUT_ORDER": {
+        "distance_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "duration_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "execution_time_ms": {
+          "max": 0.020842,
+          "median": 0.005061,
+          "median_excl_rep1": 0.0050965
+        },
+        "mean_distance_m": 51893.567,
+        "mean_duration_s": 36600.868800000004
+      },
+      "NEAREST_NEIGHBOR": {
+        "distance_change_pct": {
+          "max": -63.5278,
+          "mean": -66.205,
+          "median": -65.9332,
+          "min": -68.7797
+        },
+        "duration_change_pct": {
+          "max": -10.9371,
+          "mean": -11.99896,
+          "median": -11.9411,
+          "min": -14.0895
+        },
+        "execution_time_ms": {
+          "max": 0.118712,
+          "median": 0.00851,
+          "median_excl_rep1": 0.008175499999999999
+        },
+        "mean_distance_m": 17481.9964,
+        "mean_duration_s": 32202.9076
+      },
+      "NN_PLUS_2_OPT": {
+        "distance_change_pct": {
+          "max": -64.8046,
+          "mean": -67.7165,
+          "median": -67.474,
+          "min": -71.1139
+        },
+        "duration_change_pct": {
+          "max": -10.944,
+          "mean": -12.210980000000001,
+          "median": -12.1522,
+          "min": -14.4577
+        },
+        "execution_time_ms": {
+          "max": 0.733427,
+          "median": 0.025646,
+          "median_excl_rep1": 0.0221515
+        },
+        "mean_distance_m": 16668.4746,
+        "mean_duration_s": 32124.644
+      }
+    },
+    "all": {
+      "INPUT_ORDER": {
+        "distance_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "duration_change_pct": {
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0
+        },
+        "execution_time_ms": {
+          "max": 0.248832,
+          "median": 0.004367,
+          "median_excl_rep1": 0.004209
+        },
+        "mean_distance_m": 47129.775200000004,
+        "mean_duration_s": 33724.62955
+      },
+      "NEAREST_NEIGHBOR": {
+        "distance_change_pct": {
+          "max": -24.7635,
+          "mean": -57.20322,
+          "median": -59.182649999999995,
+          "min": -77.7858
+        },
+        "duration_change_pct": {
+          "max": -5.2597,
+          "mean": -10.349615,
+          "median": -10.64335,
+          "min": -14.2308
+        },
+        "execution_time_ms": {
+          "max": 0.462111,
+          "median": 0.007655,
+          "median_excl_rep1": 0.0054925
+        },
+        "mean_distance_m": 15572.426449999999,
+        "mean_duration_s": 29725.01775
+      },
+      "NN_PLUS_2_OPT": {
+        "distance_change_pct": {
+          "max": -40.2059,
+          "mean": -60.175200000000004,
+          "median": -62.4004,
+          "min": -77.9547
+        },
+        "duration_change_pct": {
+          "max": -7.5922,
+          "mean": -10.882265,
+          "median": -11.036100000000001,
+          "min": -14.4577
+        },
+        "execution_time_ms": {
+          "max": 1.988862,
+          "median": 0.0206095,
+          "median_excl_rep1": 0.015304
+        },
+        "mean_distance_m": 14837.6575,
+        "mean_duration_s": 29642.39485
+      }
+    }
+  },
+  "campaign": {
+    "args": "--wastems.experiment.repetitions=3 --wastems.experiment.label=S10 canonical campaign",
+    "commit": "5b2e9cf9d3fbb9fad3e5e6fbdf7508b10156c4b7",
+    "cpus": "8",
+    "exit": "0",
+    "finished_utc": "2026-11-02T02:48:24Z",
+    "java": "openjdk version \"21.0.13\" 2026-10-20 LTS",
+    "os": "Linux 7.2.6-76070206-generic x86_64",
+    "started_utc": "2026-11-02T02:46:41Z",
+    "tracked_changes": "0",
+    "wall_time_s": 103
+  },
+  "deterministic_across_repetitions": true,
+  "instances": 20,
+  "opt_vs_nn_distance_change_pct": {
+    "10": {
+      "improved": 3,
+      "instances": 5,
+      "max": 0.0,
+      "mean": -8.790238068536214,
+      "median": -8.489859878457255,
+      "min": -20.525103996852266
+    },
+    "100": {
+      "improved": 4,
+      "instances": 5,
+      "max": 0.0,
+      "mean": -1.2686357314411367,
+      "median": -0.8071747817639079,
+      "min": -2.592354582511646
+    },
+    "25": {
+      "improved": 5,
+      "instances": 5,
+      "max": -0.6602848043904587,
+      "mean": -7.719291985174018,
+      "median": -10.007053274216057,
+      "min": -11.422479042967929
+    },
+    "50": {
+      "improved": 5,
+      "instances": 5,
+      "max": -0.12071879895915656,
+      "mean": -4.552357099174016,
+      "median": -4.522871920278919,
+      "min": -7.476493686570376
+    },
+    "all": {
+      "improved": 17,
+      "instances": 20,
+      "max": 0.0,
+      "mean": -5.582630721081346,
+      "median": -4.011868504900168,
+      "min": -20.525103996852266
+    }
+  },
+  "paired": {
+    "nn_vs_input_distance": {
+      "equal": 0,
+      "improved": 20,
+      "n": 20,
+      "n_nonzero": 20,
+      "p_exact_two_sided": 1.9073486328125e-06,
+      "w_minus": 0,
+      "w_plus": 210.0,
+      "worse": 0
+    },
+    "opt_vs_input_distance": {
+      "equal": 0,
+      "improved": 20,
+      "n": 20,
+      "n_nonzero": 20,
+      "p_exact_two_sided": 1.9073486328125e-06,
+      "w_minus": 0,
+      "w_plus": 210.0,
+      "worse": 0
+    },
+    "opt_vs_input_duration": {
+      "equal": 0,
+      "improved": 20,
+      "n": 20,
+      "n_nonzero": 20,
+      "p_exact_two_sided": 1.9073486328125e-06,
+      "w_minus": 0,
+      "w_plus": 210.0,
+      "worse": 0
+    },
+    "opt_vs_nn_distance": {
+      "equal": 3,
+      "improved": 17,
+      "n": 20,
+      "n_nonzero": 17,
+      "p_exact_two_sided": 1.52587890625e-05,
+      "w_minus": 0,
+      "w_plus": 153.0,
+      "worse": 0
+    },
+    "opt_vs_nn_duration": {
+      "equal": 3,
+      "improved": 17,
+      "n": 20,
+      "n_nonzero": 17,
+      "p_exact_two_sided": 1.52587890625e-05,
+      "w_minus": 0,
+      "w_plus": 153.0,
+      "worse": 0
+    }
+  },
+  "profile_invariant": true,
+  "repetitions": 3,
+  "road_graph_version": "osm-mn01-e1f2fabaa937",
+  "rows": 540,
+  "runs": 180,
+  "scenarios": 60,
+  "share_of_gain_from_2opt_pct": {
+    "10": {
+      "max": 38.408194304455854,
+      "mean": 14.647737948764343,
+      "median": 9.827726850657413,
+      "min": 0.0
+    },
+    "100": {
+      "max": 0.876632376745661,
+      "mean": 0.41863951576200464,
+      "median": 0.27595428492737367,
+      "min": 0.0
+    },
+    "25": {
+      "max": 12.664685441542264,
+      "mean": 7.490699974264875,
+      "median": 8.598329502369946,
+      "min": 0.6343431597998099
+    },
+    "50": {
+      "max": 3.4143208634091753,
+      "mean": 2.2025843699074446,
+      "median": 2.2835460993891226,
+      "min": 0.062436518350743764
+    },
+    "all": {
+      "max": 38.408194304455854,
+      "mean": 6.189915452174667,
+      "median": 2.1269213193143033,
+      "min": 0.0
+    }
+  }
+}
