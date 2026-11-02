@@ -2273,35 +2273,62 @@ scope, the session model and the verification level.
 
 ### 3.13 Sprint S10 — Metrics campaign and project closure
 
-**Sprint goal.** Part 6 is *answered with measured data* (tooling executes, reports exist)
-and presentation content is ready; the prototype is coherent end-to-end for the reviewer.
+**Sprint goal.** Part 6 is *answered with measured data* (tooling executes, reports exist and are
+committed), the HTML deck is ready, requirements are traceable to code and tests, and the
+prototype and its documentation are coherent end to end for the reviewer.
 
-**Entrance criteria.** S9 done. **Blocked on open decision:** presentation date and deck
-format (PowerPoint vs HTML, AGENTS.md §4) — the agent prepares format-agnostic content and
-asks before rendering.
+**Entrance criteria.** S9 done (merged at `c2c7ef0`; 406 tests green, build and lint clean). The
+deck format is fixed by D-041 (self-contained HTML); the presentation **date** is still open
+(AGENTS.md §4) and does not block building the deck, which carries no date.
+
+**Planning findings.** `tools/metrics.sh` had never run on the full codebase. It runs, but JDepend
+2.9.1 cannot read Java 21 class files (183 `Unknown constant: 18` errors, 90 of 273 classes
+analysed), PMD reports complexity only above the threshold, LOC mixes data files with code, and the
+TypeScript side had no complexity measure. In the canonical matrix the three demand profiles of a
+seed and size share the same points and the 10 000 kg capacity never binds, so the 60 scenarios
+contain 20 distinct routing instances; paired statistics use those 20.
 
 **Task backlog**
 
-1. (L) Execute the fixed 60-scenario campaign with `bash tools/run-experiment.sh metrics/experiment`
-   (S9 runner; formats in `docs/evaluation-csv.md`) and store all outputs under
-   `metrics/` next to the `tools/metrics.sh` reports. Run `bash tools/metrics.sh` for LOC,
-   CKJM, PMD, JDepend; keep every number reproducible by a listed command.
-2. (M) Write `docs/06-metrics.md` from the real outputs: metric tables pointing at their
-   commands, generator parameters, and the research question **answered with the measured
-   data**. Do not report placeholder numbers (AGENTS.md §10).
-3. (M) Presentation content, deck-agnostic: outline following the six parts, architecture
-   diagram, demo script with screenshots, metrics table + key finding, limitations and future
-   work. Escalate deck format/date to the owner before rendering.
-4. (S) Final sweep: README accuracy, `docs/05-scrum.md` story statuses, backlog
-   traceability, `AGENTS.md` §3/§5, decisions log; full regression run (all tests + builds)
-   and one scripted end-to-end reviewer walkthrough.
+1. (M) Metrics tooling: JDepend fork `guru.nidi:jdepend` 2.9.5 as a plugin dependency of the
+   `metrics` profile, a second PMD execution for the full cyclomatic-complexity distribution,
+   TypeScript complexity with oxlint `eslint/complexity` (vendored `components/ui` excluded),
+   per-language LOC, extended CKJM/JDepend summaries, new PMD and TypeScript summaries, a stale-class
+   guard and `--publish` (copies the summaries to `docs/results/metrics/`).
+2. (S) `tools/experiment-stats.py` (stdlib only): validity checks, descriptive statistics per size,
+   profile and method, NN versus NN + 2-opt, execution time, paired comparisons with an exact
+   Wilcoxon signed-rank test over the 20 instances, Markdown/CSV/JSON outputs and an SVG chart.
+3. (S) `tools/capture-screenshots.mjs`, an optional tool using a puppeteer installed outside the
+   repository (`PUPPETEER_DIR`); no project dependency (D-040).
+4. (M) Run the fixed campaign on a clean tree: `bash tools/run-experiment.sh metrics/experiment
+   --wastems.experiment.repetitions=3` (60 scenarios × 3 repetitions = 180 runs, 540 method rows),
+   then `tools/experiment-stats.py` and `bash tools/metrics.sh --publish`; commit the small result
+   files under `docs/results/` (never the H2 database or the graph cache).
+5. (M) Write `docs/06-metrics.md` from those files only: metric tables with their commands,
+   interpretation (hot spots, package coupling, `optimization/` independence), experiment design,
+   results, statistics, the research question answered, threats to validity and limitations.
+6. (M) Presentation assets: architecture diagram (Mermaid source + SVG), UML exports, twelve real
+   screenshots of the running prototype.
+7. (M) `presentation/index.html`: self-contained deck following the six parts, keyboard navigation,
+   demo script, metrics table and key finding, Scrum backlog/sprints/retrospective highlights,
+   limitations and future work.
+8. (S) `docs/traceability.md`: FR → user story → use case → code → test.
+9. (S) Final sweep: full regression, scripted reviewer walkthrough, README, `AGENTS.md` §3/§5, story
+   statuses, D-051.
 
 **Automated done checks**
 
-- `bash tools/metrics.sh` produces complete reports; the experiment runner output files exist
-  with scenario/method counts (60 scenarios × 3 methods).
-- `docs/06-metrics.md` contains only measured values with command references.
-- `./mvnw test` and `npm run build` green.
+- `bash tools/metrics.sh` exits 0 with no JDepend parse error, JDepend covering every class file,
+  and summaries identical to the committed `docs/results/metrics/`.
+- `docs/results/experiment/results.csv` has 540 rows (60 scenarios × 3 repetitions × 3 methods), all
+  completed and feasible; `run-info.txt` shows exit 0 on a clean tree; an independent recomputation
+  agrees with `docs/results/experiment-stats/`; a fresh partial re-run reproduces the distances.
+- Every decimal number in `docs/06-metrics.md` and in the deck occurs in a committed results file
+  or document; no placeholder text.
+- The deck opens offline from `file://`, navigates by keyboard, loads every image and has no
+  overflowing slide at 1280×720.
+- `./mvnw test`, `npm run build`, `npm run lint` green; all diagrams render; the README §4.6
+  walkthrough passes over HTTP on spare ports.
 
 **Review.** *To be filled at sprint close.*
 
