@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { PointDetails } from '@/components/collection-points/point-details'
@@ -7,6 +8,7 @@ import { PointFiltersBar } from '@/components/collection-points/point-filters'
 import { PointForm } from '@/components/collection-points/point-form'
 import { PointList } from '@/components/collection-points/point-list'
 import { BaseMap } from '@/components/maps/base-map'
+import { enumParam } from '@/lib/url-filters'
 import type { LonLat } from '@/components/maps/geo'
 import { MapFocus } from '@/components/maps/map-focus'
 import { PickedLocationLayer } from '@/components/maps/picked-location-layer'
@@ -28,7 +30,10 @@ type Mode = 'view' | 'create' | 'edit'
 
 /** Collection points: filters, list, map, details, form and demand editor share one selection. */
 export default function CollectionPointsPage() {
-  const [filters, setFilters] = useState<PointFilters>({ status: 'ACTIVE' })
+  const [params] = useSearchParams()
+  const [filters, setFilters] = useState<PointFilters>({
+    status: enumParam(params.get('status'), ['ACTIVE', 'INACTIVE'] as const) ?? 'ACTIVE',
+  })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>('view')
   const [pickOnMap, setPickOnMap] = useState(false)

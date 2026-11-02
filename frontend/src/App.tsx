@@ -4,6 +4,7 @@ import { AppShell } from '@/components/shared/app-shell'
 import { RequireAuth, RequireRole } from '@/components/shared/require-auth'
 import AgentsPage from '@/pages/agents-page'
 import AuditLogPage from '@/pages/audit-log-page'
+import DashboardPage from '@/pages/dashboard-page'
 import CollectionPointsPage from '@/pages/collection-points-page'
 import CategoriesPage from '@/pages/waste-categories-page'
 import DataImportPage from '@/pages/data-import-page'
@@ -31,6 +32,14 @@ export default function App() {
         }
       >
         <Route index element={<HomePage />} />
+        <Route
+          path="dashboard"
+          element={
+            <RequireRole role="PLANNER">
+              <DashboardPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="my-tours"
           element={
