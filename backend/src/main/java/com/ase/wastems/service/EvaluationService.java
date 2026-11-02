@@ -129,8 +129,14 @@ public class EvaluationService {
             for (int i = 0; i < demand.length; i++) {
                 demand[i] = stops.get(i).demandKg().doubleValue();
             }
+            double[] lon = new double[nodes.size()];
+            double[] lat = new double[nodes.size()];
+            for (int i = 0; i < lon.length; i++) {
+                lon[i] = nodes.get(i).longitude();
+                lat[i] = nodes.get(i).latitude();
+            }
             PlanningScenario ps = new PlanningScenario(m, demand, capacityKg.doubleValue(),
-                    props.serviceTimeSeconds());
+                    props.serviceTimeSeconds(), lon, lat);
             List<MethodResult> results = new ArrayList<>();
             for (MethodOutcome o : optimizer.planAll(ps)) {
                 results.add(MethodResult.from(o, o.feasible() ? legsGeoJson(m, o.visitOrder()) : null));

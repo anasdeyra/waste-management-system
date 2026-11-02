@@ -79,7 +79,7 @@ class ExperimentRoutingFailureTest {
         assertThat(failed.getStops()).hasSize(3);
         EvaluationRun ok = runs.stream().filter(r -> r.getScenarioKey().equals("mn01-UNIFORM_LOW-s1-n5")).findFirst().orElseThrow();
         assertThat(ok.getStatus()).isEqualTo(EvaluationStatus.COMPLETED);
-        assertThat(ok.getResults()).hasSize(3);
+        assertThat(ok.getResults()).hasSize(4);
         assertThat(jdbc.queryForObject(
                         "select outcome from audit_event where action = 'EVALUATION_EXPERIMENT_RUN'", String.class))
                 .isEqualTo("FAILURE");
