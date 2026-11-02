@@ -32,3 +32,6 @@ The use-case table is the bridge from Product Backlog to UML: each grouped use c
 atomic `US-xx` stories and `FR-xx` requirements. The sequence diagram refines UC10/UC11, and the
 activity diagram refines UC08–UC19. Future implementation classes and tests should retain these
 identifiers in their design/test documentation where useful.
+
+The full chain from `FR-xx` to user stories, use cases, code and tests is tabulated in
+[`../traceability.md`](../traceability.md).
