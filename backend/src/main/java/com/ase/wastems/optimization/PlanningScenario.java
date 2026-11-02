@@ -23,42 +23,14 @@ public final class PlanningScenario {
     /** Optional WGS84 coordinates of every node (index 0 = depot), both arrays or neither. */
     public PlanningScenario(DirectedCostMatrix matrix, double[] demandKg, double capacityKg,
             double serviceTimeSeconds, double[] longitudes, double[] latitudes) {
-        if (matrix == null) {
-            throw new IllegalArgumentException("The cost matrix is required.");
-        }
-        if (matrix.size() < 2) {
-            throw new IllegalArgumentException("A scenario needs the depot and at least one stop.");
-        }
-        if (demandKg == null || demandKg.length != matrix.size() - 1) {
-            throw new IllegalArgumentException("There must be exactly one demand per stop.");
-        }
-        for (double d : demandKg) {
-            if (!Double.isFinite(d) || d < 0) {
-                throw new IllegalArgumentException("Invalid stop demand: " + d);
-            }
-        }
+        validateMatrixAndDemand(matrix, demandKg);
         if (!Double.isFinite(capacityKg) || capacityKg <= 0) {
             throw new IllegalArgumentException("The vehicle capacity must be positive.");
         }
         if (!Double.isFinite(serviceTimeSeconds) || serviceTimeSeconds < 0) {
             throw new IllegalArgumentException("The service time must not be negative.");
         }
-        if ((longitudes == null) != (latitudes == null)) {
-            throw new IllegalArgumentException("Longitudes and latitudes must both be given or both be absent.");
-        }
-        if (longitudes != null) {
-            if (longitudes.length != matrix.size() || latitudes.length != matrix.size()) {
-                throw new IllegalArgumentException("There must be exactly one coordinate pair per node.");
-            }
-            for (int i = 0; i < longitudes.length; i++) {
-                if (!Double.isFinite(longitudes[i]) || longitudes[i] < -180 || longitudes[i] > 180) {
-                    throw new IllegalArgumentException("Invalid longitude: " + longitudes[i]);
-                }
-                if (!Double.isFinite(latitudes[i]) || latitudes[i] < -90 || latitudes[i] > 90) {
-                    throw new IllegalArgumentException("Invalid latitude: " + latitudes[i]);
-                }
-            }
-        }
+        validateCoordinates(matrix, longitudes, latitudes);
         this.longitudes = longitudes == null ? null : longitudes.clone();
         this.latitudes = latitudes == null ? null : latitudes.clone();
         this.matrix = matrix;
@@ -94,6 +66,43 @@ public final class PlanningScenario {
 
     public double serviceTimeSeconds() {
         return serviceTimeSeconds;
+    }
+
+    private static void validateMatrixAndDemand(DirectedCostMatrix matrix, double[] demandKg) {
+        if (matrix == null) {
+            throw new IllegalArgumentException("The cost matrix is required.");
+        }
+        if (matrix.size() < 2) {
+            throw new IllegalArgumentException("A scenario needs the depot and at least one stop.");
+        }
+        if (demandKg == null || demandKg.length != matrix.size() - 1) {
+            throw new IllegalArgumentException("There must be exactly one demand per stop.");
+        }
+        for (double d : demandKg) {
+            if (!Double.isFinite(d) || d < 0) {
+                throw new IllegalArgumentException("Invalid stop demand: " + d);
+            }
+        }
+    }
+
+    private static void validateCoordinates(DirectedCostMatrix matrix, double[] longitudes, double[] latitudes) {
+        if ((longitudes == null) != (latitudes == null)) {
+            throw new IllegalArgumentException("Longitudes and latitudes must both be given or both be absent.");
+        }
+        if (longitudes == null) {
+            return;
+        }
+        if (longitudes.length != matrix.size() || latitudes.length != matrix.size()) {
+            throw new IllegalArgumentException("There must be exactly one coordinate pair per node.");
+        }
+        for (int i = 0; i < longitudes.length; i++) {
+            if (!Double.isFinite(longitudes[i]) || longitudes[i] < -180 || longitudes[i] > 180) {
+                throw new IllegalArgumentException("Invalid longitude: " + longitudes[i]);
+            }
+            if (!Double.isFinite(latitudes[i]) || latitudes[i] < -90 || latitudes[i] > 90) {
+                throw new IllegalArgumentException("Invalid latitude: " + latitudes[i]);
+            }
+        }
     }
 
     public boolean hasCoordinates() {
