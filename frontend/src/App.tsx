@@ -8,6 +8,8 @@ import DashboardPage from '@/pages/dashboard-page'
 import CollectionPointsPage from '@/pages/collection-points-page'
 import CategoriesPage from '@/pages/waste-categories-page'
 import DataImportPage from '@/pages/data-import-page'
+import EvaluationExplorerPage from '@/pages/evaluation-explorer-page'
+import EvaluationRunPage from '@/pages/evaluation-run-page'
 import HistoryPage from '@/pages/history-page'
 import HomePage from '@/pages/home-page'
 import LoginPage from '@/pages/login-page'
@@ -85,6 +87,22 @@ export default function App() {
           element={
             <RequireRole role="PLANNER">
               <HistoryPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="evaluations"
+          element={
+            <RequireRole role="PLANNER">
+              <EvaluationExplorerPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="evaluations/:runId"
+          element={
+            <RequireRole role="PLANNER">
+              <EvaluationRunPage />
             </RequireRole>
           }
         />
