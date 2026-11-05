@@ -6,13 +6,21 @@
 //   npm install --prefix ~/.cache/wastems-shots puppeteer
 //   PUPPETEER_DIR=~/.cache/wastems-shots node tools/capture-screenshots.mjs BASE_URL OUT_DIR
 //
+// puppeteer-core works too when a Chrome binary is given:
+//
+//   npm install --prefix ~/.cache/wastems-shots puppeteer-core
+//   PUPPETEER_DIR=~/.cache/wastems-shots PUPPETEER_EXECUTABLE_PATH=/path/to/chrome \
+//     node tools/capture-screenshots.mjs BASE_URL OUT_DIR
+//
+// SHOT_SCALE sets the device scale factor (default 2: 2880x1800 files that stay sharp when the
+// deck's image viewer zooms in).
 // BASE_URL is a Vite dev server (for example http://localhost:5174) whose /api proxy points at a
 // `dev`-profile backend with the MN01 demonstration loaded. Use a scratch database: the script is
 // read-only except for (a) creating one canonical experiment batch when none exists (the
 // evaluation screenshots need one) and (b) toggling UI state such as the traffic switch. It never
 // accepts a proposal, starts, completes or cancels a tour.
 //
-// It writes 12 PNG files (1440x900 viewport) to OUT_DIR and exits 1 if one screenshot failed or no
+// It writes 12 PNG files (1440x900 CSS viewport, SHOT_SCALE device pixels per CSS pixel) to OUT_DIR and exits 1 if one screenshot failed or no
 // basemap vector tile (OpenFreeMap, OpenStreetMap data, D-054) was loaded.
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
@@ -29,18 +37,30 @@ if (!base || !out) {
   process.exit(2)
 }
 const require = createRequire(path.join(process.env.PUPPETEER_DIR, 'package.json'))
-const puppeteer = require('puppeteer')
+const loadPuppeteer = () => {
+  try {
+    return require('puppeteer')
+  } catch {
+    return require('puppeteer-core')
+  }
+}
+const puppeteer = loadPuppeteer()
+const scale = Number(process.env.SHOT_SCALE ?? 2)
 fs.mkdirSync(out, { recursive: true })
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] })
+const browser = await puppeteer.launch({
+  headless: true,
+  args: ['--no-sandbox'],
+  ...(process.env.PUPPETEER_EXECUTABLE_PATH ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH } : {}),
+})
 const failures = []
 let tilesOk = 0
 let tilesFailed = 0
 
 async function newPage(contextPage) {
   const page = contextPage ?? (await (await browser.createBrowserContext()).newPage())
-  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 })
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: scale })
   page.on('response', (response) => {
     if (response.url().includes('tiles.openfreemap.org/planet/')) {
       if (response.ok()) tilesOk += 1
