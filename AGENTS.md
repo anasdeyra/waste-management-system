@@ -44,9 +44,9 @@ An agent's job is to help produce **all** of these, coherently, not only the cod
 | UML diagrams (Part 3) | ✅ Use case, operational class, optimization sequence, tour-lifecycle activity, and OCL complete; all Mermaid sources re-rendered successfully in S10 and S11 and embedded in the deck |
 | Prototype (Part 4) | ✅ S1–S9 and S11 implemented (424 backend tests green): auth/roles/users/categories, collection points + demand on a Leaflet map, vehicles/agents with availability and account links, idempotent MN01 import (449 baskets, 238 DSNY-eligible, MN01G depot, snapshot identity), tour drafts with map/list stop selection, explicit input order, vehicle/crew assignment and capacity validation, directed road routing on the versioned OSM snapshot and the retained four-method evaluation API (sweep baseline, S11), route comparison, proposal acceptance and the planning gate (S6: accept or keep input order, confirm to PLANNED, lock); crew execution (assigned-tour list, start with revalidation, stop outcomes, completion) and the idempotent MN01 demonstration (S7), enriched to 5 vehicles, 7 agents and six tours covering every lifecycle state, with an admin reset that keeps accounts and the MN01 import (D-055); cancellation, retained outcome corrections, operational history and the audit log (S8); dashboards, the evaluation explorer, evaluation CSV import/export, the seeded experiment runner and the display-only NYC DOT traffic overlay (S9) |
 | Metrics + research answer (Part 6) | ✅ `docs/06-metrics.md`; measured data under `docs/results/` (`bash tools/metrics.sh --publish`, 60-scenario campaign with 3 repetitions and four methods (720 rows), answer NN + 2-opt vs sweep (S11), `tools/experiment-stats.py`) |
-| Presentation | ✅ Self-contained HTML deck `presentation/index.html` (30 slides, 12 screenshots (four evaluation screenshots still show the S10 interface), architecture and UML diagrams); the presentation date is still open |
+| Presentation | ✅ Self-contained HTML deck `presentation/index.html`, redesigned 2026-11-05 (D-058): Problem → Product → Proof, 15 main slides for a 15-minute slot with a live demo, 13 appendix slides, Apple-style light design with bundled Inter, live image zoom, presenter view (S) with speaker notes, repository QR; 12 screenshots recaptured at 2× with the current interface; presented on 2026-11-10 (D-059) |
 
-**Last updated:** 2026-11-02 (S11 closed; `tools/demo.sh` added, D-056)
+**Last updated:** 2026-11-05 (presentation redesigned, D-058; date fixed, D-059)
 
 Update this table whenever the state changes. Do not claim something is done unless the
 artifact exists in the repo.
@@ -55,7 +55,7 @@ artifact exists in the repo.
 
 These are unresolved and **must not be invented** by an agent:
 
-- **Presentation date.** Not fixed (format decided: HTML deck, D-041).
+None. The presentation date is fixed (Tuesday 10 November 2026, D-059).
 
 All implementation-blocking decisions are resolved; see `docs/decisions.md`. Do not reopen
 them without the project owner's agreement.
@@ -187,7 +187,7 @@ project-ase/
 │   ├── ckjm-summary.py, jdepend-summary.py, pmd-summary.py, ts-complexity-summary.py
 │   ├── oxlint-complexity.json # TypeScript complexity configuration
 │   └── pmd/                  # wastems-ruleset.xml (quality) and wastems-cc-all.xml (complexity)
-└── presentation/             # index.html (self-contained deck) and assets/
+└── presentation/             # index.html (self-contained deck), assets/ (screenshots, diagrams, qr.png, fonts/)
 ```
 
 The top-level shape is stable: `backend/` and `frontend/` replace the single `src/` folder

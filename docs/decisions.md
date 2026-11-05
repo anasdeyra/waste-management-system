@@ -1323,3 +1323,37 @@ artifacts, metrics, and presentation remain consistent.
   with rarely used set-up and audit pages. The Home page held one paragraph and no action, so every
   sign-in cost a click to reach real work, while the same text is only needed occasionally and fits
   a small card next to the role it describes.
+
+## D-058 — Presentation structure and design (amends D-041)
+
+- **Date:** 2026-11-05
+- **Decision:** The deck tells one story in three acts, **Problem → Product → Proof**, for a
+  15-minute slot with a live demo: 15 main slides (title · context · at a glance with the
+  headline result up front · users and requirements · research question · literature ·
+  Scrum · UML · architecture · live demo · code metrics · results · retrospective as lessons
+  learned · conclusion · thank you with a QR code to
+  `https://github.com/anasdeyra/waste-management-system`) and 13 appendix slides after it (demo
+  script, screenshots, threats to validity, per-size results, statistics, literature positioning,
+  repository guide). Scrum follows the literature review; the retrospective closes the story. A
+  small act label (Problem, Product, Proof, Wrap-up) replaces section dividers, the footer shows
+  only the slide number and a hairline progress bar, there are no bridge lines. Titles are a short
+  headline plus a one-line subline, written in the first person. Design: all light, Apple-like
+  (white and `#f5f5f7`, ink `#1d1d1f`, accent Apple blue `#0071e3`), the Inter typeface bundled in
+  `presentation/assets/fonts/` (SIL OFL, licence file alongside), subtle crossfade and rise motion
+  that respects reduced-motion settings, screenshots in CSS-drawn Safari-style frames. Images and
+  diagrams open in a restyled full-screen viewer for live zooming; **S** opens a presenter window
+  with the current and next slide, speaker notes and a 15-minute timer. Screenshots are
+  recaptured at 2× (2880×1800) with `tools/capture-screenshots.mjs`, which now also accepts
+  puppeteer-core with a Chrome path. The AI-assisted implementation is stated in one footnote
+  on the Scrum slide.
+- **Rationale:** Chosen by the project owner, decision by decision, on 2026-11-05: the earlier deck
+  followed the assignment checklist, repeated its results and read as disconnected slides. Live
+  zooming keeps the full UML and screenshots usable without redrawing them; the appendix keeps
+  every detail reachable during questions.
+
+## D-059 — Presentation date
+
+- **Date:** 2026-11-05
+- **Decision:** The presentation takes place on **Tuesday 10 November 2026**, presented by
+  Anas Ben Daira (shown on the title slide).
+- **Rationale:** Given by the project owner; closes the last open decision of `AGENTS.md` §4.
