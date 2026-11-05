@@ -24,3 +24,8 @@ export function hasRole(user: CurrentUser | null | undefined, required: AppRole)
   if (!user) return false
   return required === user.role || (required === 'PLANNER' && user.role === 'ADMIN')
 }
+
+/** First page after sign-in: the crew's tour list, otherwise the operational dashboard. */
+export function landingPath(user: CurrentUser | null | undefined): string {
+  return user?.role === 'AGENT' ? '/my-tours' : '/dashboard'
+}

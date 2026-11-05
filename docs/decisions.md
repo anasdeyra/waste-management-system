@@ -1303,3 +1303,23 @@ artifacts, metrics, and presentation remain consistent.
   The HTTP port opens before the start-up runners finish, so a port check alone would report ready
   too early; the demonstration report only exists once the load of this run completed, which makes it
   a reliable readiness signal. `tools/dev.sh` stays as the author's tmux workflow.
+
+## D-057 — Grouped navigation and role card instead of a Home page
+
+- **Date:** 2026-11-02
+- **Decision:** The header navigation is defined once in `frontend/src/components/shared/main-nav.tsx`
+  and filtered by role (UX only, the backend still enforces access). Daily pages stay top-level
+  links; the others move into menus: **Analysis** (History, Evaluations), **Resources** (Collection
+  points, Vehicles, Agents, Waste categories) and, for administrators, **Administration** (Users,
+  Data import, Audit log). A planner sees 4 entries, an administrator 5 (previously 9 and 12) and an
+  agent only My tours. A menu is highlighted when one of its pages, or a nested route such as
+  `/evaluations/:runId`, is open. The Home page and its tab are removed: `/` redirects to
+  `/my-tours` for an agent and to `/dashboard` otherwise (`landingPath` in `lib/auth.ts`). The
+  role description that the Home page showed is now a hover card on the role badge in the header
+  (`role-badge-card.tsx`, vendored shadcn-style `ui/hover-card.tsx`), written as one bullet per
+  capability with the same facts as before. It opens on hover and on keyboard focus; a tap opens it
+  on touch screens, because Radix hover cards ignore touch input.
+- **Rationale:** Twelve tabs wrapped over several lines for an administrator and mixed daily work
+  with rarely used set-up and audit pages. The Home page held one paragraph and no action, so every
+  sign-in cost a click to reach real work, while the same text is only needed occasionally and fits
+  a small card next to the role it describes.

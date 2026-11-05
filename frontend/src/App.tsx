@@ -1,7 +1,9 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppShell } from '@/components/shared/app-shell'
 import { RequireAuth, RequireRole } from '@/components/shared/require-auth'
+import { useCurrentUser } from '@/hooks/use-auth'
+import { landingPath } from '@/lib/auth'
 import AgentsPage from '@/pages/agents-page'
 import AuditLogPage from '@/pages/audit-log-page'
 import DashboardPage from '@/pages/dashboard-page'
@@ -11,7 +13,6 @@ import DataImportPage from '@/pages/data-import-page'
 import EvaluationExplorerPage from '@/pages/evaluation-explorer-page'
 import EvaluationRunPage from '@/pages/evaluation-run-page'
 import HistoryPage from '@/pages/history-page'
-import HomePage from '@/pages/home-page'
 import LoginPage from '@/pages/login-page'
 import MyTourPage from '@/pages/my-tour-page'
 import MyToursPage from '@/pages/my-tours-page'
@@ -20,6 +21,12 @@ import TourPlannerPage from '@/pages/tour-planner-page'
 import ToursPage from '@/pages/tours-page'
 import UsersAdminPage from '@/pages/users-admin-page'
 import VehiclesPage from '@/pages/vehicles-page'
+
+/** `/` has no page of its own: it sends each role to its working page. */
+function HomeRedirect() {
+  const { data: user } = useCurrentUser()
+  return <Navigate to={landingPath(user)} replace />
+}
 
 /** Application routes. Role gates here are UX only; the backend enforces access. */
 export default function App() {
@@ -33,7 +40,7 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<HomePage />} />
+        <Route index element={<HomeRedirect />} />
         <Route
           path="dashboard"
           element={

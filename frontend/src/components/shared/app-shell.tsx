@@ -1,18 +1,10 @@
 import { Boxes, LogOut } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
 
-import { Badge } from '@/components/ui/badge'
+import { MainNav } from '@/components/shared/main-nav'
+import { RoleBadgeCard } from '@/components/shared/role-badge-card'
 import { Button } from '@/components/ui/button'
 import { useCurrentUser, useLogout } from '@/hooks/use-auth'
-import { hasRole } from '@/lib/auth'
-import { cn } from '@/lib/utils'
-
-function navClass({ isActive }: { isActive: boolean }) {
-  return cn(
-    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-    isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
-  )
-}
 
 /** Layout of every signed-in page: header with role-aware navigation, then the page. */
 export function AppShell() {
@@ -23,78 +15,14 @@ export function AppShell() {
     <div className="min-h-svh bg-muted/30">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 p-3 md:px-6">
-          <div className="flex items-center gap-2 font-semibold">
+          <Link to="/" className="flex items-center gap-2 font-semibold">
             <Boxes className="size-5" />
             WasteMS
-          </div>
-          <nav className="flex flex-wrap gap-1">
-            <NavLink to="/" end className={navClass}>
-              Home
-            </NavLink>
-            {hasRole(user, 'PLANNER') && (
-              <NavLink to="/dashboard" className={navClass}>
-                Dashboard
-              </NavLink>
-            )}
-            {hasRole(user, 'AGENT') && (
-              <NavLink to="/my-tours" className={navClass}>
-                My tours
-              </NavLink>
-            )}
-            {hasRole(user, 'PLANNER') && (
-              <NavLink to="/collection-points" className={navClass}>
-                Collection points
-              </NavLink>
-            )}
-            {hasRole(user, 'PLANNER') && (
-              <NavLink to="/tours" className={navClass}>
-                Tours
-              </NavLink>
-            )}
-            {hasRole(user, 'PLANNER') && (
-              <NavLink to="/history" className={navClass}>
-                History
-              </NavLink>
-            )}
-            {hasRole(user, 'PLANNER') && (
-              <NavLink to="/evaluations" className={navClass}>
-                Evaluations
-              </NavLink>
-            )}
-            {hasRole(user, 'PLANNER') && (
-              <NavLink to="/waste-categories" className={navClass}>
-                Waste categories
-              </NavLink>
-            )}
-            {hasRole(user, 'PLANNER') && (
-              <NavLink to="/vehicles" className={navClass}>
-                Vehicles
-              </NavLink>
-            )}
-            {hasRole(user, 'PLANNER') && (
-              <NavLink to="/agents" className={navClass}>
-                Agents
-              </NavLink>
-            )}
-            {hasRole(user, 'ADMIN') && (
-              <NavLink to="/admin/users" className={navClass}>
-                Users
-              </NavLink>
-            )}
-            {hasRole(user, 'ADMIN') && (
-              <NavLink to="/admin/data-import" className={navClass}>
-                Data import
-              </NavLink>
-            )}
-            {hasRole(user, 'ADMIN') && (
-              <NavLink to="/admin/audit" className={navClass}>
-                Audit log
-              </NavLink>
-            )}
-          </nav>
+          </Link>
+          <MainNav />
           <div className="ml-auto flex items-center gap-2">
             <span className="text-sm">{user?.username}</span>
-            {user && <Badge variant="secondary">{user.role}</Badge>}
+            {user && <RoleBadgeCard user={user} />}
             <Button
               variant="outline"
               size="sm"
