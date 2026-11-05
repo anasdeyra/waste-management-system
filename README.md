@@ -482,9 +482,12 @@ bash tools/metrics.sh [--publish]          # LOC, CKJM, PMD, JDepend, oxlint (Pa
 quoted in `docs/06-metrics.md` comes from those files or from the experiment statistics.
 
 Open `presentation/index.html` in a browser for the deck (arrow keys, Home / End, `#n` in the URL;
-add `?print` for a printable version). The screenshots in `presentation/assets/` can be regenerated
-with the optional `tools/capture-screenshots.mjs`; it needs a puppeteer installed outside the
-repository (`PUPPETEER_DIR`, for example `npm install --prefix ~/.cache/wastems-shots puppeteer`) and a
+add `?print` for a printable version). Click any image or diagram to zoom into it; **S** opens the
+presenter view (current and next slide, speaker notes, timer), **F** full screen, **A** the appendix,
+**?** the keyboard help. The screenshots in `presentation/assets/` can be regenerated
+with the optional `tools/capture-screenshots.mjs` (2× by default, `SHOT_SCALE` to change it); it needs a
+puppeteer installed outside the repository (`PUPPETEER_DIR`, for example `npm install --prefix
+~/.cache/wastems-shots puppeteer`, or `puppeteer-core` plus `PUPPETEER_EXECUTABLE_PATH`) and a
 running `dev` backend plus Vite dev server on a scratch database; see the header of the script.
 
 ## 6. Documentation

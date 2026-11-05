@@ -5,677 +5,1054 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WasteMS — ASE project</title>
 <style>
-:root{--bg:#f3f4f6;--paper:#ffffff;--ink:#111827;--muted:#4b5563;--accent:#15803d;--accent2:#1d4ed8;--line:#d1d5db;--soft:#ecfdf5}
+@font-face{font-family:"Inter";src:url("assets/fonts/inter-latin-opsz-normal.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:block}
+:root{
+  --bg:#ffffff;--panel:#f5f5f7;--ink:#1d1d1f;--ink2:#424245;--muted:#6e6e73;--faint:#86868b;--hair:#d2d2d7;--line:#e8e8ed;
+  --accent:#0071e3;--accent-ink:#0066cc;--accent-soft:rgba(0,113,227,.09);--data2:#30a14e;
+  --font:"Inter",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.25,.1,.25,1);
+}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
 body{display:flex;align-items:center;justify-content:center;overflow:hidden}
-.stage{position:relative;width:min(100vw,177.78vh);aspect-ratio:16/9;background:var(--paper);container-type:size;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
-.slide{position:absolute;inset:0;display:none;padding:3.2cqw 4cqw 4.6cqw;font-size:1.6cqw;line-height:1.35;background:var(--paper);color:var(--ink)}
-.slide.active{display:block}
-.slide h1{font-size:4.6cqw;margin:6cqh 0 1.5cqh;line-height:1.1}
-.slide h2{font-size:3cqw;margin:0 0 1.6cqh;color:var(--accent);line-height:1.15}
-.slide p{margin:0 0 1.2cqh}
-.slide ul,.slide ol{margin:0 0 1.2cqh;padding-left:2.2cqw}
-.slide li{margin:0 0 .7cqh}
-.lead{font-size:2cqw;color:var(--muted)}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:2.4cqw;align-items:start}
-.cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.6cqw;align-items:start}
-.note{color:var(--muted);font-size:1.3cqw}
-.key{background:var(--soft);border-left:.5cqw solid var(--accent);padding:1.2cqh 1.6cqw;margin:1cqh 0}
-.big{font-size:2.2cqw;font-weight:600}
-table{border-collapse:collapse;font-size:1.35cqw;width:100%}
-th,td{border:1px solid var(--line);padding:.45cqh .7cqw;text-align:left;vertical-align:top}
-th{background:#f9fafb}
-td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
-img{display:block;max-width:100%;height:auto}
-img.fit{max-height:72cqh;margin:0 auto}
-img.fit2{max-height:48cqh;margin:0 auto}
-img.shot{max-height:72cqh;margin:0 auto;border:1px solid var(--line)}
-img.shot2{max-height:36cqh;margin:0 auto;border:1px solid var(--line)}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;background:#f3f4f6;padding:0 .3em;border-radius:.3em}
-a{color:var(--accent2)}
-.foot{position:absolute;left:4cqw;right:4cqw;bottom:1.3cqh;display:flex;justify-content:space-between;font-size:1.1cqw;color:var(--muted)}
-.bar{position:absolute;left:0;bottom:0;height:.7cqh;background:var(--accent);width:0}
-.cap{font-size:1.2cqw;color:var(--muted);text-align:center;margin-top:.6cqh}
+.stage{position:relative;width:min(100vw,177.78vh);aspect-ratio:16/9;background:var(--bg);container-type:size;overflow:hidden}
+
+/* ---------- slides and motion ---------- */
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;padding:4.4cqw 6cqw 4cqw;font-size:1.45cqw;line-height:1.45;color:var(--ink2);background:var(--bg);opacity:0;visibility:hidden;transition:opacity .4s var(--ease),visibility 0s linear .4s}
+.slide.active{opacity:1;visibility:visible;transition:opacity .4s var(--ease),visibility 0s}
+.slide.active .r{animation:rise .7s cubic-bezier(.2,.8,.2,1) both}
+.slide.active .r.d1{animation-delay:.08s}
+.slide.active .r.d2{animation-delay:.16s}
+.slide.active .r.d3{animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.slide,.slide.active{transition:none}.slide.active .r{animation:none}}
+.notes{display:none}
+
+/* ---------- type ---------- */
+.slide p{margin:0}
+.eyebrow{font-size:1.15cqw;font-weight:600;color:var(--accent);margin:0 0 .7cqw!important;letter-spacing:.005em}
+.slide h1{font-size:8.6cqw;font-weight:700;letter-spacing:-.045em;line-height:1;color:var(--ink);margin:0}
+.slide h2{font-size:3.5cqw;font-weight:700;letter-spacing:-.03em;line-height:1.08;color:var(--ink);margin:0;max-width:84cqw}
+.slide h3{font-size:1.5cqw;font-weight:600;letter-spacing:-.012em;line-height:1.25;color:var(--ink);margin:0 0 .45cqw}
+.sub{font-size:1.7cqw;line-height:1.35;color:var(--muted);margin-top:1cqw!important;max-width:88cqw;letter-spacing:-.006em}
+.hd{margin-bottom:2.6cqw}
+.bd{flex:1;min-height:0}
+.label{font-size:1.1cqw;font-weight:600;color:var(--muted);margin:0 0 .7cqw!important}
+.small{font-size:1.15cqw;color:var(--muted);line-height:1.4}
+.fn{margin-top:1.2cqw!important;font-size:1.05cqw;color:var(--faint)}
+.ink{color:var(--ink)}
+.blue{color:var(--accent)}
+strong{font-weight:600;color:var(--ink)}
+code{font-family:var(--mono);font-size:.88em;background:var(--panel);padding:.05em .35em;border-radius:.35em;color:var(--ink)}
+a{color:var(--accent-ink);text-decoration:none}
+
+/* ---------- layout ---------- */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:2.4cqw}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6cqw}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.6cqw}
+.stack{display:grid;gap:1.6cqw;align-content:start}
+.center{align-self:center}
+
+/* ---------- components ---------- */
+.card{background:var(--panel);border-radius:1.5cqw;padding:1.9cqw 2cqw;font-size:1.36cqw;line-height:1.45}
+.tilecard{min-height:24cqw;display:flex;flex-direction:column;padding:2.2cqw 2.3cqw}
+.tilecard .label{margin-bottom:auto!important}
+.stmt{font-size:2.05cqw;font-weight:600;line-height:1.22;letter-spacing:-.018em;color:var(--ink)}
+.card.white{background:#fff;box-shadow:0 0 0 1px var(--line)}
+.slide .kpi{font-size:4.6cqw;font-weight:700;letter-spacing:-.04em;line-height:1;color:var(--ink);margin:0 0 .6cqw!important;font-variant-numeric:tabular-nums}
+.slide .kpi.m{font-size:2.6cqw;letter-spacing:-.03em;margin-bottom:.5cqw!important}
+.slide .kpi.l{font-size:5.2cqw}
+.slide .kpi{white-space:nowrap}
+.slide .kpi.blue{color:var(--accent)}
+.feat{display:grid;gap:1.5cqw;align-content:start;font-size:1.36cqw}
+.feat>div{border-top:1px solid var(--hair);padding-top:1.1cqw}
+.list{list-style:none;padding:0;margin:0}
+.list li{padding:.65cqw 0;border-top:1px solid var(--line);font-size:1.36cqw;line-height:1.4}
+.list.tight li{font-size:1.24cqw;padding:.55cqw 0}
+.list li:first-child{border-top:0;padding-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:.6cqw}
+.chip{background:var(--panel);border-radius:99px;padding:.4cqw 1cqw;font-size:1.12cqw;color:var(--ink2);white-space:nowrap}
+.chip.blue{background:var(--accent-soft);color:var(--accent-ink)}
+.chip b{font-weight:600;color:var(--ink)}
+.tbl{width:100%;border-collapse:collapse;font-size:1.22cqw}
+.tbl th{font-weight:600;color:var(--muted);text-align:left;border-bottom:1px solid var(--hair);padding:.55cqw .5cqw}
+.tbl td{border-bottom:1px solid var(--line);padding:.55cqw .5cqw;color:var(--ink2)}
+.tbl .n{text-align:right;font-variant-numeric:tabular-nums}
+.tbl tr.em td{color:var(--ink);font-weight:600}
+pre.code{font-family:var(--mono);font-size:1.1cqw;line-height:1.5;color:var(--ink);background:#fff;border-radius:.9cqw;padding:1cqw 1.3cqw;margin:0;box-shadow:0 0 0 1px var(--line)}
+.steps{display:flex;align-items:center;flex-wrap:wrap;gap:.55cqw}
+.steps span{background:var(--panel);border-radius:99px;padding:.35cqw .95cqw;font-size:1.08cqw;color:var(--ink2)}
+.steps i{display:inline-block;width:.5cqw;height:.5cqw;border-top:1.5px solid var(--faint);border-right:1.5px solid var(--faint);transform:rotate(45deg);margin:0 .15cqw}
+
+/* images: plates, browser frames, tiles */
+.plate{background:#fff;border-radius:1.2cqw;overflow:hidden;width:fit-content;margin:0 auto;box-shadow:0 .1cqw .3cqw rgba(0,0,0,.04),0 1.2cqw 3.2cqw rgba(0,0,0,.10)}
+.plate img{display:block;max-width:100%}
+.plate.wide{width:100%}
+.plate.wide img{width:100%;height:auto}
+.browser{background:#fff;border-radius:1cqw;overflow:hidden;width:fit-content;max-width:100%;margin:0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.07),0 .2cqw .6cqw rgba(0,0,0,.05),0 1.4cqw 3.6cqw rgba(0,0,0,.12)}
+.browser .bar{display:flex;align-items:center;gap:.45cqw;height:2.3cqw;padding:0 1cqw;background:#f5f5f7;border-bottom:1px solid #e5e5ea}
+.browser .bar i{width:.72cqw;height:.72cqw;border-radius:50%;background:#ff5f57;flex:none}
+.browser .bar i:nth-child(2){background:#febc2e}
+.browser .bar i:nth-child(3){background:#28c840}
+.browser .bar span{flex:0 1 46%;margin:0 auto;height:1.45cqw;line-height:1.45cqw;border-radius:.45cqw;background:#e8e8ed;color:var(--muted);font-size:.82cqw;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 .6cqw}
+.browser .bar::after{content:"";width:2.6cqw;flex:none}
+.browser img{display:block;max-width:100%}
+.browser.thumb{width:100%}
+.browser.thumb img{width:100%;height:15cqw;object-fit:cover;object-position:top left}
+.tile{background:#fff;border-radius:1.2cqw;height:20cqw;padding:1cqw;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 1px var(--line),0 .8cqw 2.4cqw rgba(0,0,0,.06)}
+.tile img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.zoom{position:relative;cursor:zoom-in}
+.zoom::after{content:"";position:absolute;top:var(--ht,.9cqw);right:.9cqw;width:2.1cqw;height:2.1cqw;border-radius:50%;pointer-events:none;opacity:.82;transition:opacity .2s var(--ease),transform .2s var(--ease);background:rgba(255,255,255,.9) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'/%3E%3C/svg%3E") center/1.05cqw no-repeat;box-shadow:0 .1cqw .5cqw rgba(0,0,0,.18)}
+.zoom:hover::after{opacity:1;transform:scale(1.08)}
+.browser.zoom{--ht:3.2cqw}
+
+/* literature timeline */
+.tl{display:grid;grid-template-columns:repeat(7,1fr);gap:1.1cqw;position:relative;margin-bottom:2.2cqw}
+.tl::before{content:"";position:absolute;left:0;right:0;top:.5cqw;height:1px;background:var(--hair)}
+.tl>div{position:relative;padding-top:1.7cqw}
+.tl>div::before{content:"";position:absolute;top:.1cqw;left:0;width:.8cqw;height:.8cqw;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1.5px var(--hair)}
+.tl>div.key::before{background:var(--accent);box-shadow:none}
+.tl b{display:block;font-size:1.55cqw;font-weight:700;letter-spacing:-.02em;color:var(--ink);line-height:1.1}
+.tl span{display:block;font-size:1.05cqw;font-weight:600;color:var(--ink);margin:.35cqw 0 .25cqw;line-height:1.3}
+.tl p{font-size:1cqw;color:var(--muted);line-height:1.38}
+.tl .key b{color:var(--accent)}
+
+/* scrum roadmap */
+.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:1.4cqw}
+.phase h4{margin:0 0 .5cqw;padding-top:.6cqw;border-top:2px solid var(--accent);font-size:1.05cqw;font-weight:600;color:var(--accent)}
+.sp{display:flex;gap:.6cqw;padding:.42cqw 0;border-bottom:1px solid var(--line);font-size:1.08cqw;line-height:1.3;color:var(--ink2)}
+.sp b{flex:none;width:2.3cqw;color:var(--ink);font-weight:600}
+.pbar{display:flex;height:.8cqw;gap:2px;border-radius:99px;overflow:hidden;margin:1cqw 0 .6cqw}
+.pbar span{background:var(--accent)}
+.pbar span:nth-child(2){opacity:.55}
+.pbar span:nth-child(3){opacity:.25}
+
+/* hero slides */
+.hero{justify-content:center;align-items:center;text-align:center}
+.hero .sub{font-size:2.3cqw;max-width:none;margin-top:1.4cqw!important}
+.hero .meta{position:absolute;left:0;right:0;bottom:5cqw;font-size:1.35cqw;color:var(--muted)}
+.hero .meta strong{display:block;font-size:1.6cqw;margin-bottom:.2cqw}
+.thanks{text-align:left;align-items:stretch}
+.qr{width:22cqw;display:block;border-radius:1.2cqw;box-shadow:0 1.2cqw 3.2cqw rgba(0,0,0,.12)}
+.url{font-size:2cqw;font-weight:600;letter-spacing:-.015em;color:var(--accent-ink)}
+
+/* chrome: slide number, progress, help */
+.num{position:absolute;right:6cqw;bottom:2cqw;font-size:1cqw;color:var(--faint);font-variant-numeric:tabular-nums}
+.bar-progress{position:absolute;left:0;bottom:0;height:.22cqw;width:0;background:var(--accent);transition:width .4s var(--ease);z-index:5}
+.help{position:fixed;right:16px;bottom:16px;z-index:40;display:none;max-width:340px;padding:14px 18px;border-radius:14px;background:rgba(255,255,255,.82);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 8px 32px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.1);font:13px/1.7 var(--font);color:var(--ink2)}
+.help.open{display:block}
+.help kbd{font-family:var(--font);font-size:12px;background:var(--panel);border-radius:5px;padding:1px 6px;box-shadow:0 0 0 .5px rgba(0,0,0,.15);color:var(--ink)}
+
+/* ---------- image viewer ---------- */
+.viewer{position:fixed;inset:0;z-index:50;display:none;background:rgba(245,245,247,.86);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px)}
+.viewer.open{display:block;animation:vfade .25s var(--ease)}
+@keyframes vfade{from{opacity:0}to{opacity:1}}
+.vp{position:absolute;inset:0;overflow:hidden;cursor:grab;touch-action:none}
+.vp.drag{cursor:grabbing}
+.vp img{position:absolute;left:0;top:0;max-width:none;max-height:none;background:#fff;border-radius:10px;box-shadow:0 10px 48px rgba(0,0,0,.18),0 0 0 .5px rgba(0,0,0,.08);user-select:none;-webkit-user-drag:none}
+.vcap{position:absolute;top:22px;left:28px;right:90px;font:500 14px/1.4 var(--font);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.vclose{position:absolute;top:16px;right:20px;width:38px;height:38px;border:0;border-radius:50%;background:rgba(0,0,0,.07);color:var(--ink);font:400 22px/38px var(--font);cursor:pointer;text-align:center;padding:0}
+.vclose:hover{background:rgba(0,0,0,.12)}
+.vbar{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;align-items:center;gap:2px;padding:5px;border-radius:999px;background:rgba(255,255,255,.82);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 6px 28px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.08);font:500 13px/1 var(--font);color:var(--ink)}
+.vbar button{border:0;background:transparent;color:var(--ink);height:32px;min-width:34px;padding:0 13px;border-radius:999px;cursor:pointer;font:inherit}
+.vbar button:hover{background:rgba(0,0,0,.06)}
+.vbar .vpct{min-width:54px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.vbar .sep{width:1px;height:18px;background:var(--hair);margin:0 4px}
+
+/* ---------- print (?print or the browser's print) ---------- */
 @media print{
   @page{size:1280px 720px;margin:0}
-  html,body{height:auto;overflow:visible;background:#fff;display:block}
-  .stage{width:1280px;aspect-ratio:auto;height:auto;overflow:visible;box-shadow:none;container-type:normal}
-  .slide{display:block;position:relative;width:1280px;height:720px;page-break-after:always;font-size:20px;overflow:hidden}
-  .bar{display:none}
+  html,body{height:auto;overflow:visible;display:block}
+  .stage{width:1280px;height:auto;aspect-ratio:auto;overflow:visible;container-type:normal}
+  .slide{position:relative;width:1280px;height:720px;opacity:1;visibility:visible;page-break-after:always;font-size:18.5px}
+  .slide .r{animation:none!important}
+  .bar-progress,.help,.viewer{display:none!important}
 }
 body.print{display:block;overflow:auto;height:auto}
-body.print .stage{width:1280px;height:auto;aspect-ratio:auto;overflow:visible;container-type:normal;box-shadow:none}
-body.print .slide{display:block;position:relative;width:1280px;height:720px;font-size:20px;page-break-after:always;border-bottom:1px solid var(--line)}
-body.print .bar{display:none}
-img.zoomable{cursor:zoom-in;transition:outline-color .15s;outline:.25cqw solid transparent;outline-offset:.3cqw;border-radius:.2cqw}
-img.zoomable:hover{outline-color:var(--accent)}
-.viewer{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;background:rgba(17,24,39,.92)}
-.viewer.open{display:flex}
-.vp{position:relative;flex:1;overflow:hidden;cursor:grab;touch-action:none}
-.vp.drag{cursor:grabbing}
-.vp img{position:absolute;left:0;top:0;max-width:none;max-height:none;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.4);user-select:none;-webkit-user-drag:none}
-.vbar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:#111827;color:#e5e7eb;font-size:14px}
-.vbar .vcap{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9ca3af}
-.vbar button{font:inherit;color:#f9fafb;background:#374151;border:1px solid #4b5563;border-radius:6px;padding:4px 10px;cursor:pointer}
-.vbar button:hover{background:#4b5563}
-.vbar .vpct{min-width:4.5em;text-align:center;font-variant-numeric:tabular-nums}
-.vbar .vkeys{color:#9ca3af;font-size:12px}
-@media (max-width:700px){.vbar .vkeys,.vbar .vcap{display:none}}
-@media print{.viewer{display:none!important}}
+body.print .stage{width:1280px;height:auto;aspect-ratio:auto;overflow:visible;container-type:normal}
+body.print .slide{position:relative;width:1280px;height:720px;opacity:1;visibility:visible;border-bottom:1px solid var(--line);font-size:18.5px}
+body.print .slide .r{animation:none!important}
+body.print .bar-progress{display:none}
 </style>
 </head>
 <body>
 <main class="stage" id="stage">
 
-<section class="slide" data-part="title" id="s1">
-<h1>WasteMS — Intelligent Waste Management (NYC MN01)</h1>
-<p class="lead">Advanced Software Engineering course project — individual (D-005)</p>
-<p>Author: anasdeyra</p>
-<p>Java 21 + Spring Boot 3 · React 19 + Vite + TypeScript · Leaflet maps · embedded GraphHopper · H2</p>
-<p class="note">Use ← → (or click the sides of the slide) to navigate; Home / End jump to the first / last slide. Click any diagram or screenshot to open it full screen: scroll to zoom, drag to pan, Esc to close.</p>
+<!-- =========================================================== PROBLEM -->
+
+<section class="slide hero" id="title">
+<div class="r">
+<p class="eyebrow">Advanced Software Engineering · Course project</p>
+<h1>WasteMS</h1>
+<p class="sub">Smarter waste-collection tours for Lower Manhattan.</p>
+</div>
+<div class="meta r d2"><strong>Anas Ben Daira</strong>Tuesday, 10 November 2026</div>
+<aside class="notes">
+<p>Hello, I'm Anas Ben Daira. In the next fifteen minutes I'll present WasteMS, a waste-management prototype I built for the Advanced Software Engineering course.</p>
+<p>The story has three acts: the <b>problem</b>, the <b>product</b> I engineered, and the <b>proof</b> that its optimizer actually helps.</p>
+</aside>
 </section>
 
-<section class="slide" data-part="title" id="s2">
-<h2>Agenda</h2>
-<ol>
-<li>Part 1 — Problem analysis: context, users, requirements, research question</li>
-<li>Part 2 — Literature review</li>
-<li>Part 3 — UML modelling</li>
-<li>Part 4 — Prototype: architecture, maps, tour optimization, execution, demo</li>
-<li>Part 5 — Scrum: backlog, sprints, an AI-agent sprint model, retrospectives</li>
-<li>Part 6 — Metrology: code metrics, experiment, research answer, threats</li>
-<li>Conclusion: limitations and future work</li>
-</ol>
+<section class="slide" id="context">
+<header class="hd r">
+<p class="eyebrow">Problem</p>
+<h2>449 baskets. One depot. One-way streets.</h2>
+<p class="sub">Lower Manhattan's sanitation district MN01 is the real-world case behind WasteMS.</p>
+</header>
+<div class="bd g2" style="grid-template-columns:1.1fr 1fr;align-items:center">
+<div class="feat r d1">
+<div><h3>Real locations</h3><p>449 DSNY litter baskets and the MN01G garage from NYC Open Data, with their source ids.</p></div>
+<div><h3>Real streets</h3><p>Tours follow a directed OpenStreetMap road graph, because straight lines ignore one-way streets.</p></div>
+<div><h3>Synthetic operations</h3><p>Demand, vehicles, crews and tours are generated for the demo and always labelled as synthetic.</p></div>
+</div>
+<figure class="plate zoom r d2" style="margin:0 auto"><img src="assets/mn01-study-area.svg" data-ratio="0.624" style="max-height:31cqw" alt="Map of Lower Manhattan with the MN01 district border, the 449 litter baskets and the MN01G depot"></figure>
+</div>
+<aside class="notes">
+<p>Waste collection means visiting many scattered points with a limited fleet and limited crews. In a dense city the order of the stops matters a lot, because one-way streets turn a short hop into a long detour.</p>
+<p>My case study is DSNY district MN01 in Lower Manhattan. The 449 basket locations and the depot are real, from NYC Open Data. Everything operational (demand, trucks, crews) is synthetic and labelled that way.</p>
+</aside>
 </section>
 
-<section class="slide" data-part="part1" id="s3">
-<h2>Context and users</h2>
-<div class="cols">
+<section class="slide" id="glance">
+<header class="hd r">
+<p class="eyebrow">Problem</p>
+<h2>Plan. Optimize. Collect. Measure.</h2>
+<p class="sub">One map-centric tool for planners, crews and admins, with an optimizer I measured.</p>
+</header>
+<div class="bd g3" style="align-content:center">
+<div class="card tilecard r d1"><p class="label">The problem</p><p class="stmt">Tours sequenced by hand or on straight lines waste road distance.</p></div>
+<div class="card tilecard r d2"><p class="label">The product</p><p class="stmt">Plan, optimize and follow collection tours on real streets, in one web app.</p></div>
+<div class="card tilecard r d3"><p class="label">The result</p><p class="kpi l blue">−48.42 %</p><p>road distance against a published baseline, every stop covered, no capacity exceeded.</p></div>
+</div>
+<aside class="notes">
+<p>Here is the whole project in one slide, so you know where we are going.</p>
+<p>The problem: badly ordered tours waste road distance. The product: a web application that plans, optimizes and tracks tours on real streets. The result: my optimizer, nearest neighbor followed by 2-opt, cut road distance by 48.42 % on average against the published sweep baseline, without violating any constraint.</p>
+<p>The rest of the talk shows how I got there and how I measured it.</p>
+</aside>
+</section>
+
+<section class="slide" id="requirements">
+<header class="hd r">
+<p class="eyebrow">Problem</p>
+<h2>Three roles. Thirty requirements.</h2>
+<p class="sub">Every functional requirement is traced to user stories, use cases and code.</p>
+</header>
+<div class="bd stack">
+<div class="g3 r d1">
+<div class="card"><h3>Planner</h3><p>Prepares points, fleet, crews and tours, runs the optimizer and corrects outcomes.</p></div>
+<div class="card"><h3>Agent</h3><p>Sees only the tours they are assigned to and records the outcome of each stop.</p></div>
+<div class="card"><h3>Administrator</h3><p>Manages accounts, roles and waste categories, and reviews the audit log.</p></div>
+</div>
+<div class="g2 r d2" style="gap:3cqw">
 <div>
-<p>Waste collection coordinates scattered collection points, a limited fleet, available agents and different waste categories. Poorly planned tours waste travel and capacity.</p>
-<p>Case study: <strong>Lower Manhattan, DSNY district MN01</strong>, with real basket coordinates and the real MN01G depot from NYC Open Data. Demand and operations are synthetic and labelled as such.</p>
-<p>Straight-line routes hide one-way streets, so tours follow a directed OpenStreetMap road graph.</p>
-<table>
-<tr><th>Role</th><th>What they do</th></tr>
-<tr><td>ADMIN</td><td>Accounts, roles, waste categories, audit log</td></tr>
-<tr><td>PLANNER</td><td>Points, vehicles, agents, tours, optimizer, corrections</td></tr>
-<tr><td>AGENT</td><td>Sees assigned tours, records stop outcomes</td></tr>
-<tr><td>Organization</td><td>Benefits from better resource use</td></tr>
-<tr><td>Course reviewer</td><td>Runs the demo, checks baseline versus optimized</td></tr>
-</table>
+<p class="label">30 functional requirements in 8 groups</p>
+<div class="chips">
+<span class="chip">Access and administration</span><span class="chip">Collection points</span><span class="chip">Vehicles and agents</span><span class="chip">Tours and execution</span><span class="chip blue">Intelligent tour optimization</span><span class="chip blue">Impact measurement</span><span class="chip">Maps and real-city data</span><span class="chip">User administration and support</span>
 </div>
-<div><img class="shot" src="assets/mn01-study-area.svg" alt="OpenStreetMap map of Lower Manhattan with the MN01 district border, the 449 litter baskets and the MN01G depot"><p class="cap">Study area: DSNY district MN01 (Manhattan CD 1), 449 baskets, MN01G depot</p></div>
-</div>
-</section>
-
-<section class="slide" data-part="part1" id="s4">
-<h2>Requirements: 30 functional, 12 non-functional</h2>
-<div class="cols">
-<table>
-<tr><th>Group</th><th>FRs</th></tr>
-<tr><td>Access and administration</td><td>FR-01 to FR-03</td></tr>
-<tr><td>Collection points</td><td>FR-04 to FR-06</td></tr>
-<tr><td>Vehicles and agents</td><td>FR-07 to FR-10</td></tr>
-<tr><td>Tours and execution</td><td>FR-11 to FR-14</td></tr>
-<tr><td>Intelligent tour optimization</td><td>FR-15 to FR-18</td></tr>
-<tr><td>Impact measurement</td><td>FR-19 to FR-21</td></tr>
-<tr><td>Maps and real-city data</td><td>FR-22 to FR-26</td></tr>
-<tr><td>User administration, support</td><td>FR-27 to FR-30</td></tr>
-</table>
-<ul>
-<li><strong>NFR-01</strong> security: hashed passwords, server-side authorization</li>
-<li><strong>NFR-06</strong> explainability: inputs, order and indicators visible</li>
-<li><strong>NFR-07</strong> fair evaluation: same data and formulas for every method</li>
-<li><strong>NFR-09</strong> reproducibility: commands, snapshots, versions recorded</li>
-<li><strong>NFR-12</strong> provenance: real, imported and synthetic data distinguishable</li>
-</ul>
-</div>
-</section>
-
-<section class="slide" data-part="part1" id="s5">
-<h2>Problem statement and research question</h2>
-<p>Design and implement a coherent, map-centric waste-management prototype for a real Lower Manhattan case study. It must manage collection points, vehicles, agents, tours and waste, compute road-following tours, integrate an intelligent tour-optimization module, and evaluate it reproducibly, without presenting synthetic operations or partial traffic coverage as measured reality.</p>
-<div class="key"><p class="big">To what extent does integrating an intelligent tour-optimization module reduce total road-network travel distance and estimated collection duration compared with a documented baseline, while satisfying the same vehicle-capacity and collection-service constraints?</p></div>
-<p class="note">Supporting measures: execution time, scenario count and size, percentage change against the baseline, constraint violations (must be zero), identical coverage.</p>
-</section>
-
-<section class="slide" data-part="part2" id="s6">
-<h2>Literature review: approach</h2>
-<ul>
-<li>Focused narrative review tied to the research question, 10 peer-reviewed sources (papers, a classic book chapter and domain reviews), with DOIs.</li>
-<li>Four purposes: routing models and optimality limits; nearest-neighbor construction and 2-opt; capacity, service time and duration; waste-collection evaluation practice and reproducibility.</li>
-<li>The model is a directed (asymmetric) TSP sequencing core with a capacity check; it is not a simultaneous multi-vehicle CVRP.</li>
-<li>Sources include Dantzig and Ramser (1959), Clarke and Wright (1964), Croes (1958), Lin (1965), Rosenkrantz et al. (1977) and Gillett and Miller (1974), whose sweep heuristic is the documented baseline (D-052).</li>
-</ul>
-</section>
-
-<section class="slide" data-part="part2" id="s7">
-<h2>What we borrow and what stays open</h2>
-<div class="cols">
-<div>
-<p><strong>Borrowed</strong></p>
-<ul>
-<li>Demand- and capacity-aware routing; identical capacity validation for every method</li>
-<li>Sweep heuristic (Gillett and Miller) as a published, realistic baseline</li>
-<li>Deterministic nearest-neighbor construction, measured separately</li>
-<li>Deterministic 2-opt on top; results labelled heuristic</li>
-<li>Explicit single-vehicle model; excluded real-world constraints are stated</li>
-</ul>
 </div>
 <div>
-<p><strong>Supported after measurement</strong></p>
-<ul>
-<li>NN + 2-opt versus the sweep baseline (and the input order) on the specified seeded MN01 scenarios, with measured cost</li>
+<p class="label">12 non-functional requirements — five shape the design</p>
+<ul class="list">
+<li><strong>Security</strong> · hashed passwords, server-side authorization</li>
+<li><strong>Explainability</strong> · inputs, order and indicators visible</li>
+<li><strong>Fair evaluation</strong> · same data and formulas for every method</li>
+<li><strong>Reproducibility</strong> · commands, snapshots and versions recorded</li>
+<li><strong>Provenance</strong> · real and synthetic data always distinguishable</li>
 </ul>
-<p><strong>Unsupported</strong></p>
-<ul>
-<li>Global optimality or state of the art</li>
-<li>Generalization to other cities or real DSNY operations</li>
+</div>
+</div>
+</div>
+<aside class="notes">
+<p>Three roles use the system: planners, agents in the trucks, and administrators. The organization and a course reviewer are stakeholders too.</p>
+<p>I wrote 30 functional requirements in eight groups; the two in blue are the "intelligent" part. Among the 12 non-functional requirements, five drive the design: security, explainability, fair evaluation, reproducibility and provenance.</p>
+<p>The traceability matrix links every functional requirement to its user stories, use cases and code.</p>
+</aside>
+</section>
+
+<section class="slide" id="question">
+<header class="hd r">
+<p class="eyebrow">Problem</p>
+<h2>The research question</h2>
+<p class="sub">Does an optimizer really shorten tours, against a fair baseline and the same constraints?</p>
+</header>
+<div class="bd stack">
+<div class="card r d1" style="padding:2.2cqw 2.6cqw"><p style="font-size:1.95cqw;line-height:1.38;color:var(--ink);font-weight:500;letter-spacing:-.012em">To what extent does integrating an intelligent tour-optimization module reduce total road-network travel distance and estimated collection duration compared with a documented baseline, while satisfying the same vehicle-capacity and collection-service constraints?</p></div>
+<div class="g2 r d2" style="gap:3cqw">
+<div><p class="label">Problem statement</p><p style="font-size:1.28cqw">Build a coherent, map-centric waste-management prototype for a real Lower Manhattan case, with road-following tours and an intelligent optimization module, and evaluate it reproducibly, without presenting synthetic operations as measured reality.</p></div>
+<div><p class="label">What I measure</p>
+<ul class="list">
+<li><strong>Road distance</strong> · directed, on the real road graph</li>
+<li><strong>Estimated duration</strong> · travel time plus 600 s service per stop</li>
+<li><strong>Constraint violations</strong> · must be zero, same stops for every method</li>
+</ul></div>
+</div>
+</div>
+<aside class="notes">
+<p>This is the question the whole project answers. The key words are "documented baseline" and "same constraints": a gain only counts if every method gets the same stops, the same capacity and the same formulas.</p>
+<p>I measure directed road distance, estimated duration, and constraint violations, which must be zero.</p>
+</aside>
+</section>
+
+<section class="slide" id="literature">
+<header class="hd r">
+<p class="eyebrow">Problem</p>
+<h2>Building on 67 years of routing research</h2>
+<p class="sub">Ten peer-reviewed sources shaped my model, my methods and my baseline.</p>
+</header>
+<div class="bd">
+<div class="tl r d1">
+<div><b>1958</b><span>Croes</span><p>Tour improvement by edge exchange: the root of 2-opt.</p></div>
+<div><b>1959</b><span>Dantzig &amp; Ramser</span><p>The truck-dispatching problem: demand and capacity.</p></div>
+<div><b>1964</b><span>Clarke &amp; Wright</span><p>Savings: fast construction of feasible routes.</p></div>
+<div><b>1965</b><span>Lin</span><p>Local search finds local, not global, optima.</p></div>
+<div class="key"><b>1974</b><span>Gillett &amp; Miller</span><p>The sweep algorithm: my published baseline.</p></div>
+<div><b>1977</b><span>Rosenkrantz et al.</span><p>Nearest neighbor has weak worst-case bounds.</p></div>
+<div><b>2015–25</b><span>Four domain reviews</span><p>Waste collection is many problems: state the variant.</p></div>
+</div>
+<div class="g2 r d2" style="gap:3cqw">
+<div><p class="label">What I borrow</p>
+<ul class="list">
+<li>Nearest-neighbor construction, then 2-opt improvement</li>
+<li>Sweep (Gillett &amp; Miller) as a citable, realistic baseline</li>
+<li>The same capacity check for every method</li>
+</ul></div>
+<div><p class="label">What I do not claim</p>
+<ul class="list">
+<li>Global optimality or state-of-the-art performance</li>
+<li>Generalization beyond the seeded MN01 scenarios</li>
 <li>Superiority over exact solvers or metaheuristics</li>
-<li>Live-traffic or IoT benefits</li>
+</ul></div>
+</div>
+</div>
+<aside class="notes">
+<p>My review covers ten peer-reviewed sources, from Croes in 1958 to a 2025 systematic review.</p>
+<p>Three ideas matter most. Dantzig and Ramser made demand and capacity part of routing. Croes and Lin give me 2-opt, and the warning that it only finds local optima. Gillett and Miller's sweep algorithm gives me a published baseline that a planner could apply with a map.</p>
+<p>The reviews remind me to state exactly which variant I solve: a single-vehicle, directed sequencing problem with a capacity check, not a full multi-vehicle routing problem.</p>
+</aside>
+</section>
+
+<!-- =========================================================== PRODUCT -->
+
+<section class="slide" id="scrum">
+<header class="hd r">
+<p class="eyebrow">Product</p>
+<h2>Eleven sprints, one backlog</h2>
+<p class="sub">Scrum for a solo project: every sprint ends with a done-check, a review and a retrospective.</p>
+</header>
+<div class="bd g2" style="grid-template-columns:1fr 2.4fr;gap:3cqw">
+<div class="r d1">
+<p class="label">Product Backlog</p>
+<p class="kpi">39</p>
+<p style="font-size:1.3cqw">user stories in 8 epics, each with acceptance criteria</p>
+<div class="pbar"><span style="flex:13"></span><span style="flex:17"></span><span style="flex:9"></span></div>
+<p class="small">P0 13 · P1 17 · P2 9</p>
+<div class="card" style="margin-top:1.4cqw;padding:1.3cqw 1.4cqw"><p class="small" style="color:var(--ink2)">“As a planner, I want to compare baseline, nearest-neighbor and optimized routes and indicators so that I can understand where the measured improvement comes from.”</p><p class="small" style="margin-top:.4cqw">US-23 · P1</p></div>
+</div>
+<div class="r d2">
+<p class="label">Sprint roadmap</p>
+<div class="phases">
+<div class="phase"><h4>Foundation</h4>
+<div class="sp"><b>S1</b>Accounts, roles, categories</div>
+<div class="sp"><b>S2</b>Collection points on the map</div>
+<div class="sp"><b>S3</b>Fleet, crews, MN01 import</div>
+<div class="sp"><b>S4</b>Tour drafts and capacity</div>
+</div>
+<div class="phase"><h4>Optimization</h4>
+<div class="sp"><b>S5</b>Road routing and optimizer</div>
+<div class="sp"><b>S6</b>Comparison and planning gate</div>
+</div>
+<div class="phase"><h4>Operations</h4>
+<div class="sp"><b>S7</b>Crew execution and demo</div>
+<div class="sp"><b>S8</b>Corrections, history, audit</div>
+<div class="sp"><b>S9</b>Dashboards, CSV, traffic</div>
+</div>
+<div class="phase"><h4>Evaluation</h4>
+<div class="sp"><b>S10</b>Metrics campaign</div>
+<div class="sp"><b>S11</b>Sweep baseline, re-run</div>
+</div>
+</div>
+<p class="label" style="margin-top:2cqw!important">Every sprint</p>
+<div class="steps"><span>Planning</span><i></i><span>One commit per task</span><i></i><span>Scripted done-check</span><i></i><span>Review demo</span><i></i><span>Retrospective</span></div>
+</div>
+</div>
+<p class="fn">Sprints are ordered work packages without calendar dates (D-006). Implementation was carried out with an AI coding assistant under the same gates (D-005).</p>
+<aside class="notes">
+<p>I organized the work with Scrum, adapted to a one-person project. The backlog has 39 user stories in eight epics, prioritised P0 to P2, each with acceptance criteria, like this story about comparing routes.</p>
+<p>Eleven sprints delivered it in four phases: foundation, optimization, operations and evaluation. A sprint was only done when its scripted checks passed; then came a review demo and a retrospective. I'll come back to the retrospectives at the end.</p>
+</aside>
+</section>
+
+<section class="slide" id="uml">
+<header class="hd r">
+<p class="eyebrow">Product</p>
+<h2>Modelled before it was built</h2>
+<p class="sub">Four UML views and OCL invariants pin down the domain. Click a diagram to explore it.</p>
+</header>
+<div class="bd stack">
+<div class="g4 r d1">
+<div><div class="tile zoom"><img src="assets/uml-use-cases.svg" data-ratio="0.505" alt="UML use case diagram: actors and the grouped use cases of the waste management system"></div><h3 style="margin-top:.9cqw">Use cases</h3><p class="small">25 use cases traced to 39 stories</p></div>
+<div><div class="tile zoom"><img src="assets/uml-class.svg" data-ratio="1.105" alt="UML class diagram of the operational domain: points, vehicles, agents, tours, stops, demand and outcomes"></div><h3 style="margin-top:.9cqw">Class model</h3><p class="small">The operational domain</p></div>
+<div><div class="tile zoom"><img src="assets/uml-sequence.svg" data-ratio="1.029" alt="UML sequence diagram of the four-method route evaluation and the planner's decision"></div><h3 style="margin-top:.9cqw">Sequence</h3><p class="small">Four-method evaluation, explicit acceptance</p></div>
+<div><div class="tile zoom"><img src="assets/uml-activity.svg" data-ratio="0.372" alt="UML activity diagram of the tour lifecycle from draft to completion or cancellation"></div><h3 style="margin-top:.9cqw">Activity</h3><p class="small">Tour lifecycle, draft to done</p></div>
+</div>
+<div class="card r d2" style="display:flex;align-items:center;gap:2cqw;padding:1.2cqw 1.6cqw">
+<p class="label" style="margin:0!important">OCL</p>
+<pre class="code">context DemandEntry inv PositiveDemand: quantityKg &gt; 0</pre>
+<p class="small">Further invariants cover coordinates, crew and capacity, stop order and lifecycle operations.</p>
+</div>
+</div>
+<aside class="notes">
+<p>Before coding a feature, I modelled it. The use case diagram has 25 use cases traced to the 39 stories. The class model fixes the operational domain.</p>
+<p>The sequence diagram shows the core scenario: four routing methods are evaluated and the planner explicitly accepts a proposal; nothing changes silently. The activity diagram is the tour lifecycle. OCL invariants such as positive demand constrain the model.</p>
+<p>[Zoom into the sequence diagram if there is time.]</p>
+</aside>
+</section>
+
+<section class="slide" id="architecture">
+<header class="hd r">
+<p class="eyebrow">Product</p>
+<h2>A layered app around an isolated optimizer</h2>
+<p class="sub">The optimizer depends on <code>java.*</code> only and sees just a cost matrix; a test enforces it.</p>
+</header>
+<div class="bd g2" style="grid-template-columns:1.75fr 1fr;align-items:center;gap:3cqw">
+<figure class="plate wide zoom r d1" style="margin:0"><img src="assets/architecture.svg" data-ratio="1.738" alt="Architecture diagram: React single-page app, Vite proxy, Spring Boot packages, data sources and tools"></figure>
+<div class="feat r d2">
+<div><h3>Layered backend</h3><p>Web, service, domain and repository layers; DTOs are Java records.</p></div>
+<div><h3>Embedded routing</h3><p>GraphHopper 11.1 runs in-process on a versioned OSM snapshot.</p></div>
+<div><h3>Typed frontend</h3><p>React 19, TypeScript strict, Leaflet maps, TanStack Query.</p></div>
+</div>
+</div>
+<p class="fn">Java 21 · Spring Boot 3 · Spring Security · JPA · H2 · React 19 · Vite · Tailwind v4 · shadcn/ui · GraphHopper 11.1 · NYC DOT traffic (display only)</p>
+<aside class="notes">
+<p>The architecture is a classic layered Spring Boot backend with a React single-page app.</p>
+<p>Two choices matter. Routing runs inside the backend with an embedded GraphHopper on a versioned OpenStreetMap snapshot, so every result is reproducible. And the optimizer is isolated: it depends only on java.*, receives a directed cost matrix, and a test fails if anyone adds a Spring or GraphHopper dependency to it.</p>
+</aside>
+</section>
+
+<section class="slide" id="demo">
+<header class="hd r">
+<p class="eyebrow">Product</p>
+<h2>Live demo</h2>
+<p class="sub">From a draft tour to a completed collection, in four steps.</p>
+</header>
+<div class="bd g4 r d1" style="gap:2cqw">
+<div><div class="browser thumb zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/04-tour-planner-overview.png" alt="Screenshot: draft tour planner with its stops on the map"></div>
+<p class="label" style="margin-top:1.3cqw!important">1 · Plan · planner</p><p style="font-size:1.25cqw">Six demo tours, one per lifecycle state. Open the 12-basket draft.</p></div>
+<div><div class="browser thumb zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/03-tour-route-evaluation.png" style="object-position:50% 42%" alt="Screenshot: route evaluation comparing four methods on the map and in a table"></div>
+<p class="label" style="margin-top:1.3cqw!important">2 · Optimize · planner</p><p style="font-size:1.25cqw">Compare four routes on real streets, accept NN + 2-opt, confirm as planned.</p></div>
+<div><div class="browser thumb zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/05-agent-tour-in-progress.png" alt="Screenshot: agent view of an in-progress tour with the route and stop outcomes"></div>
+<p class="label" style="margin-top:1.3cqw!important">3 · Execute · agent</p><p style="font-size:1.25cqw">Start the tour, record each stop's outcome, complete it.</p></div>
+<div><div class="browser thumb zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/06-dashboard.png" alt="Screenshot: operations dashboard with resources, tours by status and stop progress"></div>
+<p class="label" style="margin-top:1.3cqw!important">4 · Supervise · planner, admin</p><p style="font-size:1.25cqw">Correct an outcome, follow the dashboard, audit every change.</p></div>
+</div>
+<p class="fn">Run it yourself: <code>tools/demo.sh</code> · planner / planner123 · agent / agent123 · admin / admin123 · full script in the appendix</p>
+<aside class="notes">
+<p>[Switch to the browser. About four minutes.]</p>
+<p>1. As planner: Tours, six demo tours; open the draft. 2. Route evaluation: four routes on the map; accept NN + 2-opt; confirm as planned. 3. Sign in as agent: My tours; start the tour, record two outcomes, complete. 4. Back as planner: correct an outcome, open the dashboard; as admin: the audit log.</p>
+<p>Fallback if the demo fails: click the four screenshots.</p>
+</aside>
+</section>
+
+<!-- =========================================================== PROOF -->
+
+<section class="slide" id="metrics">
+<header class="hd r">
+<p class="eyebrow">Proof</p>
+<h2>31,277 lines of code, mostly simple</h2>
+<p class="sub">Mean cyclomatic complexity is 2.22; the complexity sits in a handful of classes.</p>
+</header>
+<div class="bd g2" style="grid-template-columns:1.35fr 1fr;gap:3cqw">
+<div class="g3 r d1" style="align-content:start;gap:1.2cqw">
+<div class="card" style="padding:1.5cqw 1.6cqw"><p class="kpi m">31,277</p><p class="small">source lines: Java 11,441, tests 10,494, TypeScript 9,342</p></div>
+<div class="card" style="padding:1.5cqw 1.6cqw"><p class="kpi m">2,471</p><p class="small">methods in 275 classes</p></div>
+<div class="card" style="padding:1.5cqw 1.6cqw"><p class="kpi m">2.22</p><p class="small">mean cyclomatic complexity, max 39</p></div>
+<div class="card" style="padding:1.5cqw 1.6cqw"><p class="kpi m">9.15</p><p class="small">mean coupling between objects (CBO), max 67</p></div>
+<div class="card" style="padding:1.5cqw 1.6cqw"><p class="kpi m">14</p><p class="small">median lack of cohesion (LCOM), max 1,378</p></div>
+<div class="card" style="padding:1.5cqw 1.6cqw"><p class="kpi m">1.71</p><p class="small">mean depth of inheritance (DIT), max 6</p></div>
+</div>
+<div class="r d2">
+<p class="label">Hot spots: the refactoring candidates</p>
+<ul class="list tight">
+<li><code>ScenarioCsvImportService.checkRow</code> · complexity 39</li>
+<li><code>TourStop.correctOutcome</code> · complexity 33</li>
+<li><code>DemoDataService</code> · coupling 67, the highest</li>
+<li><code>TourService</code>, <code>Tour</code> · top lists for size, coupling and cohesion</li>
+<li><strong>137 PMD code smells</strong> in 35 files; top rule: cyclomatic complexity</li>
+<li>One package cycle through <code>config/</code></li>
+<li class="blue"><code>optimization/</code> · zero internal dependencies, test-enforced</li>
 </ul>
 </div>
 </div>
+<p class="fn">CKJM, PMD, JDepend and a language-aware LOC counter; vendored shadcn/ui excluded. Reproduce with <code>bash tools/metrics.sh</code>.</p>
+<aside class="notes">
+<p>For the metrology part I measured the code with CKJM, PMD, JDepend and a LOC counter, all reproducible with one script.</p>
+<p>About 31,000 lines, nearly half of the Java being tests. Complexity is low on average, 2.22 per method, and inheritance is flat. Coupling and cohesion point at the same few classes: TourService, Tour and the CSV import. High LCOM is partly an artefact of accessor-heavy entities, but where it coincides with high complexity, those are my refactoring candidates. The optimizer package stays fully isolated.</p>
+</aside>
 </section>
 
-<section class="slide" data-part="part3" id="s8">
-<h2>Use cases</h2>
-<img class="fit" src="assets/uml-use-cases.svg" alt="UML use case overview: actors and the grouped use cases of the waste management system">
-<p class="cap">25 use cases traced to 39 stories — docs/03-uml/01-use-cases.md</p>
-</section>
-
-<section class="slide" data-part="part3" id="s9">
-<h2>Operational class model and OCL</h2>
-<div class="cols" style="grid-template-columns:2fr 1fr">
-<img class="fit" src="assets/uml-class.svg" alt="UML class diagram of the operational domain: points, vehicles, agents, tours, stops, demand and outcomes">
-<div>
-<p><strong>OCL constraint</strong> (docs/03-uml/02-class-diagram.md §4)</p>
-<pre style="font-size:1.3cqw;white-space:pre-wrap;background:#f3f4f6;padding:1cqh 1cqw;margin:0">context DemandEntry
-inv PositiveDemand:
-  quantityKg &gt; 0</pre>
-<p class="note">Further invariants cover coordinates, crew and capacity, stop order and lifecycle operations.</p>
+<section class="slide" id="results">
+<header class="hd r">
+<p class="eyebrow">Proof</p>
+<h2>Shorter routes, every time</h2>
+<p class="sub">Nearest neighbor + 2-opt beat the sweep baseline on all 20 distinct routing instances.</p>
+</header>
+<div class="bd stack" style="gap:1.8cqw">
+<div class="chips r d1">
+<span class="chip"><b>60</b> seeded scenarios</span><span class="chip"><b>10–100</b> real baskets each</span><span class="chip"><b>4</b> methods</span><span class="chip"><b>3</b> repetitions</span><span class="chip"><b>720</b> measured rows</span><span class="chip blue">capacity never binds: <b>n = 20</b> distinct instances</span>
 </div>
-</div>
-</section>
-
-<section class="slide" data-part="part3" id="s10">
-<h2>Optimization sequence and tour lifecycle</h2>
-<div class="cols">
-<div><img class="fit" src="assets/uml-sequence.svg" alt="UML sequence diagram of the directed four-method evaluation and the planner decision"><p class="cap">Four-method evaluation and explicit acceptance</p></div>
-<div><img class="fit" src="assets/uml-activity.svg" alt="UML activity diagram of the tour lifecycle from draft to completion or cancellation"><p class="cap">Tour lifecycle: draft, planned, in progress, terminal</p></div>
-</div>
-</section>
-
-<section class="slide" data-part="part4" id="s11">
-<h2>Architecture</h2>
-<div class="cols" style="grid-template-columns:2.3fr 1fr">
-<img class="fit" src="assets/architecture.svg" alt="Architecture diagram: React single-page app, Vite proxy, Spring Boot packages, data sources and tools">
-<ul>
-<li><strong>Layers:</strong> web, service, domain, repository, with DTOs as Java records.</li>
-<li><strong>Embedded GraphHopper:</strong> routing runs in-process on a versioned OSM extract.</li>
-<li><strong>Isolated <code>optimization/</code>:</strong> pure Java, depends on <code>java.*</code> only.</li>
+<div class="g2 r d2" style="grid-template-columns:1.2fr 1fr;gap:3cqw;align-items:center">
+<figure class="plate zoom" style="margin:0"><img src="assets/distance-change-vs-sweep-by-size.svg" data-ratio="1.8" style="max-height:24cqw" alt="Bar chart: mean distance change versus the sweep baseline for NN and NN + 2-opt at 10, 25, 50 and 100 points"></figure>
+<div class="stack" style="gap:1.4cqw">
+<div><p class="kpi blue">−48.42 %</p><p style="font-size:1.3cqw">mean road distance against sweep · <span class="ink">−7.29 %</span> estimated duration</p></div>
+<ul class="list">
+<li><strong>20 of 20</strong> instances shorter · exact Wilcoxon p = 1.91 × 10<sup>−6</sup>, Holm-adjusted 1.72 × 10<sup>−5</sup></li>
+<li>Against a random input order: <strong>−60.18 %</strong> distance</li>
+<li>Duration moves less: 600 s of service per stop is the same for every method</li>
 </ul>
 </div>
-</section>
-
-<section class="slide" data-part="part4" id="s12">
-<h2>Technology stack and data</h2>
-<div class="cols">
-<ul>
-<li>Backend: Java 21, Spring Boot 3, Spring Security (session and CSRF), JPA, H2 file database, Maven</li>
-<li>Frontend: React 19, Vite, TypeScript strict, Tailwind v4, shadcn/ui, TanStack Query, React Leaflet</li>
-<li>Routing: GraphHopper 11.1 embedded, car profile, versioned OSM snapshot <code>osm-mn01-e1f2fabaa937</code></li>
-<li>Traffic: NYC DOT speeds as a timestamped display-only overlay</li>
-</ul>
-<table>
-<tr><th>Real</th><th>Synthetic</th></tr>
-<tr><td>449 MN01 basket locations and the MN01G garage, with source ids</td><td>Demand quantities, extra categories, demo vehicles, agents and accounts, demo tours and outcomes</td></tr>
-</table>
-</div>
-<p class="note">Attribution: NYC Open Data (DSNY, NYC DOT) and © OpenStreetMap contributors stay visible in the UI.</p>
-</section>
-
-<section class="slide" data-part="part4" id="s13">
-<h2>Collection points on the real map</h2>
-<img class="shot" src="assets/02-collection-points-map.png" alt="Screenshot: collection points list and Leaflet map of Lower Manhattan with basket markers">
-<p class="cap">Real DSNY baskets on an OpenStreetMap basemap; list and map stay synchronized</p>
-</section>
-
-<section class="slide" data-part="part4" id="s14">
-<h2>Four-method route evaluation</h2>
-<div class="cols" style="grid-template-columns:1.6fr 1fr">
-<img class="shot" src="assets/03-tour-route-evaluation.png" alt="Screenshot: route evaluation card comparing input order, nearest neighbor and NN plus 2-opt on a map">
-<div>
-<p>Demo draft tour of 8 baskets, directed road distance:</p>
-<ul>
-<li>Input order: 11.74 km</li>
-<li>Sweep (Gillett and Miller): 8.44 km</li>
-<li>Nearest neighbor: 10.21 km</li>
-<li>NN + 2-opt: 7.47 km</li>
-</ul>
-<p>The planner compares the routes and accepts the proposal or keeps the input order; nothing changes silently. Sweep is a comparison only and is never attached to a tour.</p>
-<p class="note">The screenshot shows the three-method interface of S10; the sweep row is hidden on the map by default and its distances come from a fresh <code>dev</code> start of the S11 build.</p>
 </div>
 </div>
+<p class="fn">Bounded claim: seeded MN01 scenarios only; no optimality or generalization claim (docs/06-metrics.md §6). Gain grows with tour size: −24.45 % at 10 points, −71.51 % at 100.</p>
+<aside class="notes">
+<p>Now the answer to the research question. I generated 60 seeded scenarios on real MN01 baskets, ran four methods three times each, 720 rows. Capacity never binds, so the 60 scenarios are really 20 distinct routing instances, and my statistics use n = 20.</p>
+<p>Against the sweep baseline, nearest neighbor plus 2-opt cut road distance by 48.42 % on average, and won in all 20 instances; the Wilcoxon test is highly significant. Duration falls less, 7.29 %, because service time per stop is the same for every method. The gain grows with tour size.</p>
+</aside>
 </section>
 
-<section class="slide" data-part="part4" id="s15">
-<h2>Crew execution</h2>
-<div class="cols" style="grid-template-columns:1fr 1fr">
-<img class="shot" src="assets/05-agent-tour-in-progress.png" alt="Screenshot: agent view of an in-progress tour with the route map and stop outcomes">
-<ul>
-<li>Agents see only their assigned tours (driver or collector).</li>
-<li>The map colours stops by state: pending, collected, not collected.</li>
-<li>Outcomes carry quantities per waste category and an incident reason.</li>
-<li>Planners can correct outcomes afterwards; the previous values stay visible and audited.</li>
-</ul>
+<!-- =========================================================== WRAP-UP -->
+
+<section class="slide" id="lessons">
+<header class="hd r">
+<p class="eyebrow">Wrap-up</p>
+<h2>What the retrospectives taught me</h2>
+<p class="sub">Each of the eleven retrospectives ended with one concrete process change.</p>
+</header>
+<div class="bd g3 r d1" style="align-content:start">
+<div class="card"><h3>Use a fair baseline</h3><p>My first baseline was a random order. Re-running against the published sweep (S11) cut the claimed gain from −60.18 % to −48.42 %.</p></div>
+<div class="card"><h3>Verify the tools</h3><p>JDepend silently skipped most Java 21 classes (S10). The metrics script now fails loudly instead.</p></div>
+<div class="card"><h3>Check the checks</h3><p>Three done-check assertions were wrong, not the code (S5). Corrections are kept and logged next to the original script.</p></div>
+<div class="card"><h3>Render right after editing</h3><p>Rendering every diagram immediately caught a real Mermaid error (S6).</p></div>
+<div class="card"><h3>Isolate the environment</h3><p>Foreign dev servers held the default ports (S1). Every sprint now uses spare ports and a scratch database.</p></div>
+<div class="card"><h3>Name the gaps</h3><p>The frontend was verified by build, lint and HTTP checks, not by browser tests (D-040), and that is stated, not hidden.</p></div>
 </div>
+<aside class="notes">
+<p>Every sprint ended with a retrospective and one concrete change. The most important lesson is the first: my first baseline was a random shuffle, which flattered the optimizer. In sprint 11 I replaced it with the published sweep heuristic, and the honest gain dropped from 60 to 48 %.</p>
+<p>The others are about trusting tools and checks only after verifying them, and stating known gaps openly.</p>
+</aside>
 </section>
 
-<section class="slide" data-part="part4" id="s16">
-<h2>Dashboard, evaluations, audit</h2>
-<div class="cols3">
-<div><img class="shot2" src="assets/06-dashboard.png" alt="Screenshot: operations dashboard with resources, tours by status and stop progress"><p class="cap">Operations dashboard</p></div>
-<div><img class="shot2" src="assets/07-evaluation-batch.png" alt="Screenshot: evaluation explorer with an experiment batch and its reproducibility details"><p class="cap">Evaluation explorer</p></div>
-<div><img class="shot2" src="assets/10-audit-log.png" alt="Screenshot: audit log with filters and recorded events"><p class="cap">Audit log</p></div>
+<section class="slide" id="conclusion">
+<header class="hd r">
+<p class="eyebrow">Wrap-up</p>
+<h2>What it shows, and what comes next</h2>
+<p class="sub">A complete, traceable prototype on real NYC data, and a measured, bounded answer.</p>
+</header>
+<div class="bd g3 r d1" style="gap:2.6cqw">
+<div><p class="label">What it shows</p>
+<ul class="list">
+<li>Planning, optimization, execution and audit, on real NYC locations and streets</li>
+<li>Requirements traced to stories, use cases and code</li>
+<li>NN + 2-opt: <strong>−48.42 %</strong> road distance against a published baseline, no constraint violated</li>
+</ul></div>
+<div><p class="label">Where it stops</p>
+<ul class="list">
+<li>Synthetic demand, one district, one vehicle per tour, no time windows</li>
+<li>Capacity never binds: 60 scenarios are 20 distinct instances</li>
+<li>Sweep is a published heuristic, not DSNY's real sequence</li>
+<li>Traffic is displayed, not used in the costs</li>
+</ul></div>
+<div><p class="label">What comes next</p>
+<ul class="list">
+<li>Or-opt, 3-opt or a metaheuristic; an exact solver for the optimality gap</li>
+<li>Multi-vehicle routing, a truck profile, time windows</li>
+<li>Capacity-binding demand and real operating sequences</li>
+<li>Split <code>TourService</code>, break the <code>config/</code> cycle</li>
+</ul></div>
 </div>
-<p>Also implemented: CSV import and export of evaluation data, the seeded experiment runner and the display-only NYC DOT traffic layer.</p>
+<aside class="notes">
+<p>To conclude: WasteMS is a complete, traceable prototype on real NYC data, and the research question has a measured answer, 48 % shorter routes against a published baseline.</p>
+<p>The answer is bounded: synthetic demand, one district, capacity that never binds, and a baseline that is a published heuristic rather than the real DSNY sequence. Next steps are stronger optimizers, multi-vehicle routing with time windows, and the refactorings the metrics pointed to.</p>
+</aside>
 </section>
 
-<section class="slide" data-part="part4" id="s17">
-<h2>Demo script</h2>
-<p class="note">Start: <code>cd backend &amp;&amp; ./mvnw spring-boot:run</code> and <code>cd frontend &amp;&amp; npm run dev</code>; accounts <code>planner</code>, <code>agent</code>, <code>admin</code> (README §4.6).</p>
-<ol style="font-size:1.45cqw">
-<li>Sign in as <code>planner</code>, open Tours: four demo tours, one per state.</li>
+<section class="slide hero thanks" id="thanks">
+<div class="g2" style="grid-template-columns:1.5fr 1fr;align-items:center;gap:4cqw;width:100%">
+<div class="r">
+<h1>Thank you.</h1>
+<p class="sub" style="text-align:left">Questions?</p>
+<p class="url" style="margin-top:3.2cqw!important"><a href="https://github.com/anasdeyra/waste-management-system">github.com/anasdeyra/waste-management-system</a></p>
+<p class="small" style="margin-top:.8cqw!important">Code, documentation, measured data and this deck. Try the seeded demo: <code>tools/demo.sh</code></p>
+<p class="fn" style="margin-top:2.4cqw!important">Data: NYC Open Data (DSNY, NYC DOT). Map data © OpenStreetMap contributors.</p>
+</div>
+<img class="qr r d2" src="assets/qr.png" alt="QR code linking to github.com/anasdeyra/waste-management-system">
+</div>
+<aside class="notes">
+<p>Thank you. The QR code links to the repository: code, documentation, the measured data and this deck. I'm happy to take questions.</p>
+<p>[Appendix: press A. Threats to validity, per-size results, statistics, demo script, screenshots.]</p>
+</aside>
+</section>
+
+<!-- =========================================================== APPENDIX -->
+
+<section class="slide appx" id="a-demo-script">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Demo script</h2><p class="sub">Start with <code>tools/demo.sh</code>; <code>tools/demo.sh --reset</code> rebuilds the demonstration data. Full walkthrough in the README.</p></header>
+<div class="bd g2" style="gap:3cqw">
+<ol class="list" style="list-style:decimal;padding-left:1.6cqw">
+<li>As <code>planner</code>, open Tours: six demo tours (a draft, two planned, one in progress, one completed, one cancelled).</li>
 <li>Open the draft, Route evaluation: compare the four routes, accept the NN + 2-opt proposal, confirm as planned.</li>
 <li>Open the in-progress tour: stops coloured by state, execution progress.</li>
-<li>Sign in as <code>agent</code>: My tours; open the planned tour, start it, record outcomes, complete it.</li>
-<li>As <code>planner</code>, correct a not-collected stop; cancel a planned tour with a reason.</li>
+<li>As <code>agent</code>, My tours: open the former draft, start it, record outcomes, complete it.</li>
+<li>As <code>agent2</code>: only the assigned planned tour is listed.</li>
+</ol>
+<ol class="list" start="6" style="list-style:decimal;padding-left:1.6cqw">
+<li>As <code>planner</code>, correct the not-collected stop of the completed tour; cancel a planned tour with a reason.</li>
 <li>Open History and filter by status; open the Dashboard and follow a count to the filtered list.</li>
 <li>As <code>admin</code>, open the Audit log and filter by action.</li>
 <li>As <code>admin</code>, run an experiment in Evaluations, export the CSV, import the scenarios again.</li>
 <li>Switch on the NYC DOT traffic layer: display only, routes do not change.</li>
 </ol>
+</div>
+<aside class="notes"><p>Full demo script for rehearsal or for a reviewer.</p></aside>
 </section>
 
-<section class="slide" data-part="part5" id="s18">
-<h2>Product Backlog</h2>
-<div class="cols">
+<section class="slide appx" id="a-evaluation">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Route evaluation of the demo draft</h2><p class="sub">Twelve baskets, four methods, the same road graph and the same formulas.</p></header>
+<div class="bd g2" style="grid-template-columns:1fr 1.15fr;gap:3cqw;align-items:center">
+<div class="browser zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/03-tour-route-evaluation.png" style="max-height:30cqw" alt="Screenshot: route evaluation card comparing input order, sweep, nearest neighbor and NN + 2-opt on a map"></div>
 <div>
-<p>39 user stories in 8 epics, prioritised with acceptance criteria and traceability to requirements.</p>
-<table>
-<tr><th>Priority</th><th class="n">Stories</th></tr>
-<tr><td>P0</td><td class="n">13</td></tr>
-<tr><td>P1</td><td class="n">17</td></tr>
-<tr><td>P2</td><td class="n">9</td></tr>
+<table class="tbl">
+<tr><th>Method</th><th class="n">Distance</th><th class="n">vs input</th><th class="n">vs sweep</th></tr>
+<tr><td>Input order</td><td class="n">8.74 km</td><td class="n">—</td><td class="n">—</td></tr>
+<tr><td>Sweep (Gillett &amp; Miller)</td><td class="n">7.92 km</td><td class="n">−9.4 %</td><td class="n">—</td></tr>
+<tr><td>Nearest neighbor</td><td class="n">4.64 km</td><td class="n">−46.9 %</td><td class="n">−41.4 %</td></tr>
+<tr class="em"><td>NN + 2-opt (proposal)</td><td class="n">4.64 km</td><td class="n">−46.9 %</td><td class="n">−41.4 %</td></tr>
 </table>
+<p class="small" style="margin-top:1.4cqw!important">On this small tour 2-opt finds no further gain over nearest neighbor. The planner accepts the proposal or keeps the input order; nothing changes silently. Sweep is a comparison only and is never attached to a tour.</p>
+<p class="fn">Fresh <code>dev</code> demonstration load, 5 November 2026.</p>
 </div>
-<div class="key">
-<p><strong>US-23 — Compare route geometry and indicators (P1)</strong></p>
-<p>As a planner, I want to compare baseline, nearest-neighbor and optimized routes and indicators so that I can understand where the measured improvement comes from.</p>
-<ul>
-<li>Distinct map layers for ordered stops and road geometry</li>
-<li>Synchronized table: order, distance, duration, execution time, checks</li>
-<li>Changes computed on the same scenario with the same formulas</li>
-<li>Attribution visible; traffic is not an optimizer cost</li>
+</div>
+<aside class="notes"><p>Concrete example from the demo: on the 12-basket draft, the proposal is 41 % shorter than sweep.</p></aside>
+</section>
+
+<section class="slide appx" id="a-planner">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Planning a tour</h2><p class="sub">Stops picked on the map or in the list, crew and vehicle assigned, capacity checked before confirmation.</p></header>
+<div class="bd"><div class="browser zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/04-tour-planner-overview.png" style="max-height:33cqw" alt="Screenshot: draft tour planner with stops on the map, confirmation, cancellation, capacity and assignment cards"></div></div>
+<aside class="notes"><p>The tour planner: confirmation is blocked until a road route is attached.</p></aside>
+</section>
+
+<section class="slide appx" id="a-execution">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Crew execution</h2><p class="sub">Agents see only their tours; outcomes carry quantities per category or an incident reason.</p></header>
+<div class="bd g2" style="grid-template-columns:1.2fr 1fr;gap:3cqw;align-items:center">
+<div class="browser zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/05-agent-tour-in-progress.png" style="max-height:32cqw" alt="Screenshot: agent view of an in-progress tour with the route map and stop outcomes"></div>
+<ul class="list">
+<li>Agents see only the tours they are assigned to, as driver or collector.</li>
+<li>The map colours stops by state: pending, collected, not collected.</li>
+<li>Outcomes carry quantities per waste category and an incident reason.</li>
+<li>Planners can correct outcomes afterwards; the previous values stay visible and audited.</li>
 </ul>
 </div>
+<aside class="notes"><p>Agent view during execution.</p></aside>
+</section>
+
+<section class="slide appx" id="a-supervision">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Dashboard, evaluations, audit, traffic</h2><p class="sub">Supervision views for planners and administrators.</p></header>
+<div class="bd g4" style="gap:1.6cqw">
+<div><div class="browser thumb zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/06-dashboard.png" alt="Screenshot: operations dashboard"></div><p class="small" style="margin-top:1cqw!important">Operations dashboard</p></div>
+<div><div class="browser thumb zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/07-evaluation-batch.png" alt="Screenshot: evaluation explorer with an experiment batch"></div><p class="small" style="margin-top:1cqw!important">Evaluation explorer</p></div>
+<div><div class="browser thumb zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/10-audit-log.png" alt="Screenshot: audit log with filters and recorded events"></div><p class="small" style="margin-top:1cqw!important">Audit log</p></div>
+<div><div class="browser thumb zoom"><div class="bar"><i></i><i></i><i></i><span>localhost</span></div><img src="assets/11-traffic-overlay.png" alt="Screenshot: NYC DOT traffic overlay on the collection points map, display only"></div><p class="small" style="margin-top:1cqw!important">NYC DOT traffic, display only</p></div>
 </div>
+<p class="fn">Also implemented: evaluation CSV import and export, and the seeded experiment runner.</p>
+<aside class="notes"><p>Supporting features.</p></aside>
 </section>
 
-<section class="slide" data-part="part5" id="s19">
-<h2>Sprints S1 to S11</h2>
-<table style="font-size:1.25cqw">
-<tr><th>Sprint</th><th>Theme</th><th>Stories</th></tr>
-<tr><td>S1</td><td>Secure foundation: identities, roles, waste categories</td><td>US-01 to US-07</td></tr>
-<tr><td>S2</td><td>Collection points and demand on the real map</td><td>US-08 to US-12</td></tr>
-<tr><td>S3</td><td>Fleet, crew and MN01 import groundwork</td><td>US-13 to US-17, US-33 groundwork</td></tr>
-<tr><td>S4</td><td>Tour drafts: stops, order, crew, capacity</td><td>US-18 to US-20</td></tr>
-<tr><td>S5</td><td>Directed routing and the optimizer</td><td>US-21, US-22</td></tr>
-<tr><td>S6</td><td>Optimization review, comparison, planning gate</td><td>US-23 to US-25</td></tr>
-<tr><td>S7</td><td>Agent execution loop and the complete MN01 demo</td><td>US-26 to US-29, US-33</td></tr>
-<tr><td>S8</td><td>Corrections, history and auditability</td><td>US-30 to US-32, US-39</td></tr>
-<tr><td>S9</td><td>Dashboards, evaluation explorer, CSV, traffic overlay</td><td>US-34 to US-38</td></tr>
-<tr><td>S10</td><td>Metrics campaign and project closure</td><td>Part 6, presentation</td></tr>
-<tr><td>S11</td><td>Sweep baseline and the revised research answer</td><td>US-40, Part 6 re-run</td></tr>
-</table>
-</section>
-
-<section class="slide" data-part="part5" id="s20">
-<h2>Sprint model for an AI agent</h2>
-<ul>
-<li><strong>Planner, executor, independent done-check</strong> (D-035): a planner refines the sprint, an executor implements it, and a separate scripted done-check verifies it.</li>
-<li><strong>One conventional commit per task and one branch per sprint</strong> (D-036), merged only after the done-check passes.</li>
-<li><strong>No calendar dates</strong> (D-006): sprints are ordered work packages, not time boxes.</li>
-<li>Every sprint ends with a review against a demo script and a retrospective with concrete process changes.</li>
-<li>Known deviation: the frontend was verified by build, lint and HTTP checks, not by a browser walkthrough (D-040).</li>
+<section class="slide appx" id="a-threats">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Threats to validity</h2><p class="sub">What limits how far the −48.42 % can be read.</p></header>
+<div class="bd g2" style="gap:3cqw">
+<ul class="list">
+<li><strong>Baseline</strong> · sweep is a published heuristic, not the real DSNY sequence (none is public); its angular order ignores the road network. The input order is a random shuffle and overstates any gain.</li>
+<li><strong>Objective versus legs</strong> · the optimizer minimizes distance while GraphHopper legs follow fastest paths; the <code>car</code> profile stands in for a truck.</li>
+<li><strong>Collapsed profiles</strong> · capacity never binds, so 60 scenarios are 20 distinct instances, and sizes are nested.</li>
 </ul>
-</section>
-
-<section class="slide" data-part="part5" id="s21">
-<h2>Reviews and retrospectives: highlights</h2>
-<ul style="font-size:1.5cqw">
-<li><strong>S1:</strong> foreign dev servers occupied the default ports, so every sprint now uses spare ports and a scratch database.</li>
-<li><strong>S5:</strong> three done-check assertions were wrong, not the code; corrections are kept next to the original script and logged.</li>
-<li><strong>S6:</strong> rendering every diagram right after editing caught a real Mermaid error; assertions are counted from script output.</li>
-<li><strong>S7:</strong> a rollback-only transaction trap was avoided by checking before calling services inside a transaction.</li>
-<li><strong>S9:</strong> Hibernate itself converted the ENUM columns, contradicting the plan; determinism was proven by an independent re-implementation and a round-trip.</li>
-<li><strong>S10:</strong> JDepend silently skipped most Java 21 classes; the tool now fails loudly instead.</li>
-<li><strong>S11:</strong> the S10 baseline was a random shuffle, so the answer was re-run against a published sweep baseline; the gain shrinks from -60.18 % to -48.42 %.</li>
+<ul class="list">
+<li><strong>Synthetic demand, one district</strong> · MN01 only, one depot, one vehicle, no time windows.</li>
+<li><strong>Traffic is not in the costs</strong> · durations are base travel time plus service.</li>
+<li><strong>Execution time covers sequencing only</strong> · not the road matrix; the first repetition shows JIT warm-up.</li>
 </ul>
-</section>
-
-<section class="slide" data-part="part6" id="s22">
-<h2>Code metrics</h2>
-<div class="cols" style="font-size:1.25em">
-<table>
-<tr><th>Metric</th><th class="n">Value</th></tr>
-<tr><td>Java main SLOC (240 files)</td><td class="n">11441</td></tr>
-<tr><td>Java test SLOC (71 files)</td><td class="n">10494</td></tr>
-<tr><td>TypeScript own SLOC (93 files)</td><td class="n">9342</td></tr>
-<tr><td>Class files / methods</td><td class="n">275 / 2471</td></tr>
-<tr><td>Cyclomatic complexity, mean / max</td><td class="n">2.22 / 39</td></tr>
-<tr><td>Methods with complexity of 10 or more</td><td class="n">34 of 909</td></tr>
-<tr><td>Mean CBO</td><td class="n">9.15</td></tr>
-<tr><td>PMD violations</td><td class="n">137</td></tr>
-</table>
-<div>
-<table>
-<tr><th>DIT</th><th class="n">1</th><th class="n">2</th><th class="n">3</th><th class="n">4</th><th class="n">5</th><th class="n">6</th></tr>
-<tr><td>Classes</td><td class="n">113</td><td class="n">148</td><td class="n">1</td><td class="n">9</td><td class="n">1</td><td class="n">3</td></tr>
-</table>
-<p class="note">Flat hierarchy: composition over inheritance; records have DIT 2. Vendored shadcn/ui excluded. Source: docs/results/metrics, command <code>bash tools/metrics.sh</code>.</p>
 </div>
-</div>
+<aside class="notes"><p>Full threats to validity.</p></aside>
 </section>
 
-<section class="slide" data-part="part6" id="s23">
-<h2>Hot spots and coupling</h2>
-<ul style="font-size:1.5cqw">
-<li>Highest complexity: <code>ScenarioCsvImportService.checkRow</code> (39), <code>TourStop.correctOutcome</code> (33), <code>ExperimentSpec.of</code> (32), <code>DemoDataService.advance</code> (29).</li>
-<li>Classes in several top lists: <code>TourService</code>, <code>Tour</code>, <code>ScenarioCsvImportService</code>, <code>DemoDataService</code>, <code>TrafficSnapshotParser</code> — the candidates for splitting.</li>
-<li><code>optimization/</code> depends on <code>java.*</code> only (Ce internal 0), enforced by a test.</li>
-<li>JDepend finds one package cycle through <code>config/</code> (config, security, service, traffic, web.dto), caused by <code>*Properties</code> classes living beside the start-up runners. Future work.</li>
-<li>Highest CBO: <code>DemoDataService</code> (67), <code>SecurityConfig</code> (55), <code>TourService</code> (53).</li>
-</ul>
-</section>
-
-<section class="slide" data-part="part6" id="s24">
-<h2>Experiment design</h2>
-<ul>
-<li><strong>60 scenarios</strong> = 3 demand profiles x 5 seeds x 4 sizes (10, 25, 50, 100 points), <strong>3 repetitions</strong>, 4 methods: 720 rows.</li>
-<li>Real DSNY baskets from the MN01 snapshot (238-basket pool) with synthetic demand; real MN01G depot; capacity 10 000 kg; 600 s service per stop.</li>
-<li>Road graph <code>osm-mn01-e1f2fabaa937</code>, GraphHopper 11.1, directed legs.</li>
-<li>Methods: input order (random shuffle, worst case), sweep (Gillett and Miller, best of 2n rays on road distance; the baseline), NN, NN + 2-opt. Indicators: directed road distance and duration (travel time plus service).</li>
-</ul>
-<div class="key"><p>Capacity never binds, so the three profiles give identical routes: the 60 scenarios are only <strong>20 distinct routing instances</strong>. Paired statistics use n = 20, not 60.</p></div>
-</section>
-
-<section class="slide" data-part="part6" id="s25">
-<h2>Results: against the sweep baseline</h2>
-<div class="cols">
-<div><img class="fit2" src="assets/distance-change-vs-sweep-by-size.svg" alt="Bar chart of the mean distance change versus the sweep baseline for NN and NN plus 2-opt at 10, 25, 50 and 100 points"></div>
-<table>
-<tr><th>Points</th><th class="n">NN (%)</th><th class="n">NN + 2-opt (%)</th></tr>
-<tr><td>10</td><td class="n">-16.67</td><td class="n">-24.45</td></tr>
-<tr><td>25</td><td class="n">-33.45</td><td class="n">-38.91</td></tr>
-<tr><td>50</td><td class="n">-56.82</td><td class="n">-58.80</td></tr>
-<tr><td>100</td><td class="n">-71.15</td><td class="n">-71.51</td></tr>
-<tr><td>all</td><td class="n">-44.52</td><td class="n">-48.42</td></tr>
+<section class="slide appx" id="a-sweep">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Results by size, against sweep</h2><p class="sub">Mean directed distance change, 60 scenarios, repetition 1.</p></header>
+<div class="bd g2" style="gap:3cqw;align-items:center">
+<figure class="plate zoom" style="margin:0"><img src="assets/distance-change-vs-sweep-by-size.svg" data-ratio="1.8" style="max-height:26cqw" alt="Bar chart: mean distance change versus sweep by size"></figure>
+<table class="tbl">
+<tr><th>Points</th><th class="n">NN</th><th class="n">NN + 2-opt</th></tr>
+<tr><td>10</td><td class="n">−16.67 %</td><td class="n">−24.45 %</td></tr>
+<tr><td>25</td><td class="n">−33.45 %</td><td class="n">−38.91 %</td></tr>
+<tr><td>50</td><td class="n">−56.82 %</td><td class="n">−58.80 %</td></tr>
+<tr><td>100</td><td class="n">−71.15 %</td><td class="n">−71.51 %</td></tr>
+<tr class="em"><td>All</td><td class="n">−44.52 %</td><td class="n">−48.42 %</td></tr>
 </table>
 </div>
-<p class="note">Mean directed distance change versus sweep, 60 scenarios, repetition 1. Source: docs/results/experiment-stats/summary.md (b2).</p>
+<p class="fn">Source: docs/results/experiment-stats/summary.md (b2).</p>
+<aside class="notes"><p>Per-size detail against sweep.</p></aside>
 </section>
 
-<section class="slide" data-part="part6" id="s25b">
-<h2>Results: against the input order (worst case)</h2>
-<div class="cols">
-<div><img class="fit2" src="assets/distance-change-by-size.svg" alt="Bar chart of the mean distance change versus input order for sweep, NN and NN plus 2-opt at 10, 25, 50 and 100 points"></div>
-<table>
-<tr><th>Points</th><th class="n">Sweep (%)</th><th class="n">NN (%)</th><th class="n">NN + 2-opt (%)</th></tr>
-<tr><td>10</td><td class="n">-25.47</td><td class="n">-37.78</td><td class="n">-43.89</td></tr>
-<tr><td>25</td><td class="n">-20.96</td><td class="n">-49.04</td><td class="n">-53.00</td></tr>
-<tr><td>50</td><td class="n">-21.00</td><td class="n">-66.20</td><td class="n">-67.72</td></tr>
-<tr><td>100</td><td class="n">-15.69</td><td class="n">-75.78</td><td class="n">-76.10</td></tr>
-<tr><td>all</td><td class="n">-20.78</td><td class="n">-57.20</td><td class="n">-60.18</td></tr>
+<section class="slide appx" id="a-input">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Results by size, against the input order</h2><p class="sub">The worst case: a random shuffle of the same stops.</p></header>
+<div class="bd g2" style="gap:3cqw;align-items:center">
+<figure class="plate zoom" style="margin:0"><img src="assets/distance-change-by-size.svg" data-ratio="1.8" style="max-height:26cqw" alt="Bar chart: mean distance change versus input order by size"></figure>
+<table class="tbl">
+<tr><th>Points</th><th class="n">Sweep</th><th class="n">NN</th><th class="n">NN + 2-opt</th></tr>
+<tr><td>10</td><td class="n">−25.47 %</td><td class="n">−37.78 %</td><td class="n">−43.89 %</td></tr>
+<tr><td>25</td><td class="n">−20.96 %</td><td class="n">−49.04 %</td><td class="n">−53.00 %</td></tr>
+<tr><td>50</td><td class="n">−21.00 %</td><td class="n">−66.20 %</td><td class="n">−67.72 %</td></tr>
+<tr><td>100</td><td class="n">−15.69 %</td><td class="n">−75.78 %</td><td class="n">−76.10 %</td></tr>
+<tr class="em"><td>All</td><td class="n">−20.78 %</td><td class="n">−57.20 %</td><td class="n">−60.18 %</td></tr>
 </table>
 </div>
-<p class="note">Mean directed distance change versus input order, 60 scenarios, repetition 1. Source: docs/results/experiment-stats/summary.md (b).</p>
+<p class="fn">Source: docs/results/experiment-stats/summary.md (b).</p>
+<aside class="notes"><p>Per-size detail against input order.</p></aside>
 </section>
 
-<section class="slide" data-part="part6" id="s26">
-<h2>Key finding: the research question answered</h2>
-<div class="key">
-<p class="big">Against the sweep baseline, NN + 2-opt reduced the directed road distance by -48.42 % on average and the estimated duration by -7.29 %; against the worst-case input order by -60.18 % and -10.88 %. Coverage was full and no capacity was violated.</p>
-</div>
-<ul>
-<li>NN + 2-opt was shorter than sweep in 20 of 20 instances (exact Wilcoxon p = 1.91e-06, Holm-adjusted 1.72e-05 over nine tests). Sweep was longer than plain NN in all 20 instances (0 wins).</li>
-<li>Sweep alone gives only -20.78 % against the input order; NN gives -44.52 % against sweep; 2-opt adds a further -5.58 % against NN, improving 17 of 20 instances and never worse (p = 1.53e-05, Holm 3.05e-05).</li>
-<li>Duration changes less because 600 s of service per stop is identical for every method.</li>
+<section class="slide appx" id="a-stats">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Statistical detail</h2><p class="sub">Paired tests on the 20 distinct routing instances.</p></header>
+<div class="bd">
+<ul class="list">
+<li>NN + 2-opt was shorter than sweep in 20 of 20 instances (exact Wilcoxon p = 1.91 × 10<sup>−6</sup>, Holm-adjusted 1.72 × 10<sup>−5</sup> over nine tests). Sweep was longer than plain NN in all 20 instances.</li>
+<li>Sweep alone gives −20.78 % against the input order; NN gives −44.52 % against sweep; 2-opt adds a further −5.58 % against NN, improving 17 of 20 instances and never worse (p = 1.53 × 10<sup>−5</sup>, Holm 3.05 × 10<sup>−5</sup>).</li>
+<li>Duration changes less because 600 s of service per stop is identical for every method: −7.29 % against sweep, −10.88 % against the input order.</li>
 <li>Execution time of the sequencing step: NN + 2-opt median 0.017 ms (maximum 1.616 ms), sweep median 0.070 ms; the road matrix is not in this timer.</li>
 </ul>
-<p class="note">Bounded claim: seeded MN01 scenarios only; no optimality or generalization claim (docs/06-metrics.md section 6).</p>
+</div>
+<p class="fn">Source: docs/06-metrics.md and docs/results/experiment-stats/ (<code>tools/experiment-stats.py</code>).</p>
+<aside class="notes"><p>Statistics backup.</p></aside>
 </section>
 
-<section class="slide" data-part="part6" id="s27">
-<h2>Threats to validity</h2>
-<ul style="font-size:1.5cqw">
-<li><strong>Baseline:</strong> sweep is a published heuristic, not the real DSNY sequence (none is public); its angular order ignores the road network. The input order is a random shuffle and overstates any gain.</li>
-<li><strong>Objective versus legs:</strong> the optimizer minimizes distance while GraphHopper legs follow fastest paths; the <code>car</code> profile stands in for a truck.</li>
-<li><strong>Collapsed profiles:</strong> capacity never binds, so 60 scenarios are 20 distinct instances, and sizes are nested.</li>
-<li><strong>Synthetic demand, one district</strong> (MN01), one depot, one vehicle, no time windows.</li>
-<li><strong>Traffic is not in the costs;</strong> durations are base travel time plus service.</li>
-<li><strong>Execution time covers sequencing only,</strong> not the road matrix; the first repetition shows JIT warm-up.</li>
-</ul>
+<section class="slide appx" id="a-literature">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Literature: borrowed and unsupported</h2><p class="sub">What the ten sources let me claim after measurement, and what they do not.</p></header>
+<div class="bd g2" style="gap:3cqw">
+<div><p class="label">Borrowed</p>
+<ul class="list">
+<li>Demand- and capacity-aware routing; identical capacity validation for every method</li>
+<li>Sweep heuristic (Gillett &amp; Miller) as a published, realistic baseline</li>
+<li>Deterministic nearest-neighbor construction, measured separately</li>
+<li>Deterministic 2-opt on top; results labelled heuristic</li>
+<li>Explicit single-vehicle model; excluded real-world constraints are stated</li>
+</ul></div>
+<div><p class="label">Supported after measurement</p>
+<ul class="list"><li>NN + 2-opt versus sweep (and the input order) on the specified seeded MN01 scenarios, with measured cost</li></ul>
+<p class="label" style="margin-top:1.6cqw!important">Unsupported</p>
+<ul class="list">
+<li>Global optimality or state of the art</li>
+<li>Generalization to other cities or real DSNY operations</li>
+<li>Superiority over exact solvers or metaheuristics</li>
+<li>Live-traffic or IoT benefits</li>
+</ul></div>
+</div>
+<aside class="notes"><p>Full positioning from docs/02-literature-review.md §5.</p></aside>
 </section>
 
-<section class="slide" data-part="closing" id="s28">
-<h2>Limitations and future work</h2>
-<div class="cols">
-<div>
-<p><strong>Limitations</strong></p>
-<ul>
-<li>Single vehicle per tour, no reload, no time windows</li>
-<li>Traffic is display only; no GPS or IoT, no live rerouting</li>
-<li>Frontend verified by build, lint and HTTP checks, no browser tests (D-040)</li>
-<li>Synthetic demand and operations</li>
+<section class="slide appx" id="a-repo">
+<header class="hd"><p class="eyebrow">Appendix</p><h2>Repository guide</h2><p class="sub">Where each part of the assignment lives.</p></header>
+<div class="bd">
+<ul class="list">
+<li><code>README.md</code> · setup, run and the demo walkthrough</li>
+<li><code>docs/01-analysis.md</code> · <code>docs/02-literature-review.md</code> · <code>docs/03-uml/</code> · <code>docs/05-scrum.md</code> · <code>docs/06-metrics.md</code></li>
+<li><code>docs/traceability.md</code> · requirement → user story → use case → code → test</li>
+<li><code>docs/decisions.md</code> · every project decision with its rationale</li>
+<li><code>docs/results/</code> · committed measured data: campaign, statistics, metric summaries</li>
+<li><code>presentation/</code> · this deck and its assets</li>
 </ul>
 </div>
-<div>
-<p><strong>Future work</strong></p>
-<ul>
-<li>Or-opt, 3-opt or a metaheuristic; an exact solver for the optimality gap</li>
-<li>Multi-vehicle CVRP, truck profile, time windows</li>
-<li>Real operating sequences as a baseline and capacity-binding demand</li>
-<li>Traffic-aware costs as a separate experiment</li>
-<li>Break the package cycle; split <code>TourService</code> and <code>ScenarioCsvImportService</code></li>
-</ul>
-</div>
-</div>
+<p class="fn">Attribution: NYC Open Data (DSNY, NYC DOT) and © OpenStreetMap contributors stay visible in the application.</p>
+<aside class="notes"><p>Repository map.</p></aside>
 </section>
 
-<section class="slide" data-part="closing" id="s29">
-<h2>Questions</h2>
-<ul>
-<li><code>README.md</code> — setup, run, demo walkthrough</li>
-<li><code>docs/</code> — analysis, literature review, UML, Scrum, decisions, traceability</li>
-<li><code>docs/06-metrics.md</code> — metrics, experiment and research answer</li>
-<li><code>docs/results/</code> — committed measured data (campaign, statistics, metric summaries)</li>
-<li><code>presentation/</code> — this deck and its assets</li>
-</ul>
-<p class="note">Data: NYC Open Data (DSNY, NYC DOT). Map data © OpenStreetMap contributors.</p>
-</section>
-
-<div class="bar" id="bar"></div>
+<div class="bar-progress" id="progress"></div>
 </main>
+
+<div class="help" id="help" role="note">
+<kbd>←</kbd> <kbd>→</kbd> or click the slide's sides · previous / next<br>
+<kbd>Home</kbd> first · <kbd>End</kbd> thank-you slide · <kbd>A</kbd> appendix<br>
+<kbd>S</kbd> presenter view · <kbd>F</kbd> full screen · <kbd>?</kbd> this help<br>
+Click an image to explore it: scroll to zoom, drag to pan, <kbd>Esc</kbd> to close
+</div>
+
 <div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Image viewer">
 <div class="vp" id="vp"><img id="vimg" alt="" draggable="false"></div>
+<div class="vcap" id="vcap"></div>
+<button type="button" class="vclose" data-z="close" title="Close (Esc)" aria-label="Close">×</button>
 <div class="vbar">
-<span class="vcap" id="vcap"></span>
-<span class="vkeys">wheel / + − zoom · drag or arrows pan · 0 fit · W width</span>
-<button type="button" data-z="out" title="Zoom out (−)">−</button>
+<button type="button" data-z="out" title="Zoom out (−)" aria-label="Zoom out">−</button>
 <span class="vpct" id="vpct">100%</span>
-<button type="button" data-z="in" title="Zoom in (+)">+</button>
+<button type="button" data-z="in" title="Zoom in (+)" aria-label="Zoom in">+</button>
+<span class="sep"></span>
 <button type="button" data-z="fit" title="Fit to screen (0)">Fit</button>
 <button type="button" data-z="width" title="Fit width (W)">Width</button>
-<button type="button" data-z="close" title="Close (Esc)">✕ Close</button>
 </div>
 </div>
+
 <script>
-(function () {
-  var slides = Array.prototype.slice.call(document.querySelectorAll('section.slide'));
-  var total = slides.length;
-  var names = {title: 'WasteMS', part1: 'Part 1 · Problem analysis', part2: 'Part 2 · Literature review',
-    part3: 'Part 3 · UML', part4: 'Part 4 · Prototype', part5: 'Part 5 · Scrum', part6: 'Part 6 · Metrology',
-    closing: 'Conclusion'};
-  slides.forEach(function (s, i) {
-    var f = document.createElement('div');
-    f.className = 'foot';
-    f.innerHTML = '<span>' + names[s.getAttribute('data-part')] + '</span><span>' + (i + 1) + ' / ' + total + '</span>';
-    s.appendChild(f);
-  });
-  var bar = document.getElementById('bar');
-  var current = 0;
-  function show(n, store) {
-    current = Math.max(0, Math.min(total - 1, n));
-    slides.forEach(function (s, i) { s.classList.toggle('active', i === current); });
-    bar.style.width = (100 * (current + 1) / total) + '%';
-    if (store !== false) {
-      try { history.replaceState(null, '', '#' + (current + 1)); } catch (e) { /* file:// restrictions */ }
+(() => {
+  const slides = [...document.querySelectorAll('section.slide')]
+  const total = slides.length
+  const mainCount = slides.filter((s) => !s.classList.contains('appx')).length
+  const lastMain = mainCount - 1
+  const progress = document.getElementById('progress')
+  const help = document.getElementById('help')
+  let current = 0
+
+  // Slide numbers: 1..n for the talk, A1..An for the appendix; hero slides stay clean.
+  let appendixNo = 0
+  slides.forEach((s, i) => {
+    const appx = s.classList.contains('appx')
+    if (appx) appendixNo += 1
+    if (s.classList.contains('hero')) return
+    const n = document.createElement('div')
+    n.className = 'num'
+    n.textContent = appx ? `A${appendixNo}` : `${i + 1}`
+    s.appendChild(n)
+  })
+
+  function show(n, store = true) {
+    current = Math.max(0, Math.min(total - 1, n))
+    slides.forEach((s, i) => s.classList.toggle('active', i === current))
+    progress.style.width = `${(100 * Math.min(current + 1, mainCount)) / mainCount}%`
+    if (store) {
+      try { history.replaceState(null, '', `#${current + 1}`) } catch { /* file:// restrictions */ }
     }
+    syncPresenter()
   }
   function fromHash() {
-    var n = parseInt(location.hash.replace('#', ''), 10);
-    show(isNaN(n) ? 0 : n - 1, false);
+    const n = parseInt(location.hash.slice(1), 10)
+    show(Number.isNaN(n) ? 0 : n - 1, false)
   }
-  if (/[?&]print\b/.test(location.search)) { document.body.className = 'print'; }
-  window.addEventListener('hashchange', fromHash);
-  // Full-screen image viewer: zoom by resizing (keeps SVG text sharp), pan by position.
-  var viewer = document.getElementById('viewer');
-  var vp = document.getElementById('vp');
-  var vimg = document.getElementById('vimg');
-  var vpct = document.getElementById('vpct');
-  var vcap = document.getElementById('vcap');
-  var V = {open: false, ratio: 1, w: 0, x: 0, y: 0, fitW: 1};
-  document.querySelectorAll('.slide img').forEach(function (img) {
-    img.classList.add('zoomable');
-    img.title = 'Click to enlarge';
-  });
-  function vpSize() { return {w: vp.clientWidth, h: vp.clientHeight}; }
+  if (/[?&]print\b/.test(location.search)) document.body.className = 'print'
+  window.addEventListener('hashchange', fromHash)
+
+  // ---------------- image viewer: zoom by resizing (keeps SVG text sharp), pan by position
+  const viewer = document.getElementById('viewer')
+  const vp = document.getElementById('vp')
+  const vimg = document.getElementById('vimg')
+  const vpct = document.getElementById('vpct')
+  const vcap = document.getElementById('vcap')
+  const V = { open: false, ratio: 1, w: 0, x: 0, y: 0, fitW: 1 }
+  const size = () => ({ w: vp.clientWidth, h: vp.clientHeight })
+  function ratioOf(img) {
+    const declared = parseFloat(img.getAttribute('data-ratio'))
+    if (declared) return declared
+    if (img.naturalWidth && img.naturalHeight) return img.naturalWidth / img.naturalHeight
+    const r = img.getBoundingClientRect()
+    return r.width && r.height ? r.width / r.height : 1
+  }
   function apply() {
-    vimg.style.width = V.w + 'px';
-    vimg.style.height = (V.w / V.ratio) + 'px';
-    vimg.style.left = V.x + 'px';
-    vimg.style.top = V.y + 'px';
-    vpct.textContent = Math.round(100 * V.w / V.fitW) + '%';
+    vimg.style.width = `${V.w}px`
+    vimg.style.height = `${V.w / V.ratio}px`
+    vimg.style.left = `${V.x}px`
+    vimg.style.top = `${V.y}px`
+    vpct.textContent = `${Math.round((100 * V.w) / V.fitW)}%`
   }
   function fit() {
-    var s = vpSize(), pad = 24;
-    V.fitW = Math.max(50, Math.min(s.w - 2 * pad, (s.h - 2 * pad) * V.ratio));
-    V.w = V.fitW;
-    V.x = (s.w - V.w) / 2;
-    V.y = (s.h - V.w / V.ratio) / 2;
-    apply();
+    const s = size(), padX = 48, padTop = 64, padBottom = 96
+    V.fitW = Math.max(50, Math.min(s.w - 2 * padX, (s.h - padTop - padBottom) * V.ratio))
+    V.w = V.fitW
+    V.x = (s.w - V.w) / 2
+    V.y = padTop + (s.h - padTop - padBottom - V.w / V.ratio) / 2
+    apply()
   }
   function fitWidth() {
-    var s = vpSize(), pad = 24;
-    V.w = s.w - 2 * pad;
-    V.x = pad;
-    V.y = Math.max(pad, (s.h - V.w / V.ratio) / 2);
-    apply();
+    const s = size(), pad = 48
+    V.w = s.w - 2 * pad
+    V.x = pad
+    V.y = Math.max(64, (s.h - V.w / V.ratio) / 2)
+    apply()
   }
   function zoomAt(factor, cx, cy) {
-    var nw = Math.max(V.fitW * 0.5, Math.min(V.fitW * 16, V.w * factor));
-    var f = nw / V.w;
-    V.x = cx - (cx - V.x) * f;
-    V.y = cy - (cy - V.y) * f;
-    V.w = nw;
-    apply();
+    const nw = Math.max(V.fitW * 0.5, Math.min(V.fitW * 16, V.w * factor))
+    const f = nw / V.w
+    V.x = cx - (cx - V.x) * f
+    V.y = cy - (cy - V.y) * f
+    V.w = nw
+    apply()
   }
-  function zoomCenter(factor) { var s = vpSize(); zoomAt(factor, s.w / 2, s.h / 2); }
+  const zoomCenter = (factor) => { const s = size(); zoomAt(factor, s.w / 2, s.h / 2) }
   function openViewer(img) {
-    var r = img.getBoundingClientRect();
-    V.ratio = r.width && r.height ? r.width / r.height : 1;
-    vimg.src = img.currentSrc || img.src;
-    vimg.alt = img.alt;
-    vcap.textContent = img.alt;
-    viewer.classList.add('open');
-    V.open = true;
-    fit();
+    V.ratio = ratioOf(img)
+    vimg.src = img.currentSrc || img.src
+    vimg.alt = img.alt
+    vcap.textContent = img.alt
+    viewer.classList.add('open')
+    V.open = true
+    fit()
   }
-  function closeViewer() {
-    viewer.classList.remove('open');
-    V.open = false;
-  }
-  vp.addEventListener('wheel', function (e) {
-    e.preventDefault();
-    var r = vp.getBoundingClientRect();
-    var d = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
-    zoomAt(Math.exp(-d * 0.0015), e.clientX - r.left, e.clientY - r.top);
-  }, {passive: false});
-  var drag = null;
-  vp.addEventListener('pointerdown', function (e) {
-    if (e.button !== 0) { return; }
-    drag = {px: e.clientX, py: e.clientY, x: V.x, y: V.y};
-    vp.setPointerCapture(e.pointerId);
-    vp.classList.add('drag');
-  });
-  vp.addEventListener('pointermove', function (e) {
-    if (!drag) { return; }
-    V.x = drag.x + e.clientX - drag.px;
-    V.y = drag.y + e.clientY - drag.py;
-    apply();
-  });
-  function endDrag() { drag = null; vp.classList.remove('drag'); }
-  vp.addEventListener('pointerup', endDrag);
-  vp.addEventListener('pointercancel', endDrag);
-  vp.addEventListener('dblclick', function (e) {
-    var r = vp.getBoundingClientRect();
-    zoomAt(2, e.clientX - r.left, e.clientY - r.top);
-  });
-  viewer.querySelector('.vbar').addEventListener('click', function (e) {
-    var b = e.target.closest('button');
-    if (!b) { return; }
-    var z = b.getAttribute('data-z');
-    if (z === 'in') { zoomCenter(1.4); }
-    else if (z === 'out') { zoomCenter(1 / 1.4); }
-    else if (z === 'fit') { fit(); }
-    else if (z === 'width') { fitWidth(); }
-    else if (z === 'close') { closeViewer(); }
-  });
-  window.addEventListener('resize', function () { if (V.open) { fit(); } });
+  function closeViewer() { viewer.classList.remove('open'); V.open = false }
+  vp.addEventListener('wheel', (e) => {
+    e.preventDefault()
+    const r = vp.getBoundingClientRect()
+    const d = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY
+    zoomAt(Math.exp(-d * 0.0015), e.clientX - r.left, e.clientY - r.top)
+  }, { passive: false })
+  let drag = null
+  vp.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return
+    drag = { px: e.clientX, py: e.clientY, x: V.x, y: V.y }
+    vp.setPointerCapture(e.pointerId)
+    vp.classList.add('drag')
+  })
+  vp.addEventListener('pointermove', (e) => {
+    if (!drag) return
+    V.x = drag.x + e.clientX - drag.px
+    V.y = drag.y + e.clientY - drag.py
+    apply()
+  })
+  const endDrag = () => { drag = null; vp.classList.remove('drag') }
+  vp.addEventListener('pointerup', endDrag)
+  vp.addEventListener('pointercancel', endDrag)
+  vp.addEventListener('dblclick', (e) => {
+    const r = vp.getBoundingClientRect()
+    zoomAt(2, e.clientX - r.left, e.clientY - r.top)
+  })
+  viewer.addEventListener('click', (e) => {
+    const b = e.target.closest('button')
+    if (!b) return
+    const z = b.getAttribute('data-z')
+    if (z === 'in') zoomCenter(1.4)
+    else if (z === 'out') zoomCenter(1 / 1.4)
+    else if (z === 'fit') fit()
+    else if (z === 'width') fitWidth()
+    else if (z === 'close') closeViewer()
+  })
+  window.addEventListener('resize', () => { if (V.open) fit() })
   function viewerKey(e) {
-    var k = e.key, step = 80;
-    if (k === 'Escape') { closeViewer(); }
-    else if (k === '+' || k === '=') { zoomCenter(1.4); }
-    else if (k === '-' || k === '_') { zoomCenter(1 / 1.4); }
-    else if (k === '0') { fit(); }
-    else if (k === 'w' || k === 'W') { fitWidth(); }
-    else if (k === 'ArrowLeft') { V.x += step; apply(); }
-    else if (k === 'ArrowRight') { V.x -= step; apply(); }
-    else if (k === 'ArrowUp') { V.y += step; apply(); }
-    else if (k === 'ArrowDown') { V.y -= step; apply(); }
-    else { return; }
-    e.preventDefault();
+    const k = e.key, step = 80
+    if (k === 'Escape') closeViewer()
+    else if (k === '+' || k === '=') zoomCenter(1.4)
+    else if (k === '-' || k === '_') zoomCenter(1 / 1.4)
+    else if (k === '0') fit()
+    else if (k === 'w' || k === 'W') fitWidth()
+    else if (k === 'ArrowLeft') { V.x += step; apply() }
+    else if (k === 'ArrowRight') { V.x -= step; apply() }
+    else if (k === 'ArrowUp') { V.y += step; apply() }
+    else if (k === 'ArrowDown') { V.y -= step; apply() }
+    else return
+    e.preventDefault()
   }
-  window.addEventListener('keydown', function (e) {
-    if (V.open) { viewerKey(e); return; }
-    var k = e.key;
-    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'n') { show(current + 1); e.preventDefault(); }
-    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'p') { show(current - 1); e.preventDefault(); }
-    else if (k === 'Home') { show(0); e.preventDefault(); }
-    else if (k === 'End') { show(total - 1); e.preventDefault(); }
-  });
-  document.getElementById('stage').addEventListener('click', function (e) {
-    if (e.target.closest('a')) { return; }
-    if (e.target.matches('img.zoomable')) { openViewer(e.target); return; }
-    var r = this.getBoundingClientRect();
-    var x = (e.clientX - r.left) / r.width;
-    if (x > 2 / 3) { show(current + 1); } else if (x < 1 / 3) { show(current - 1); }
-  });
-  fromHash();
-})();
+
+  // ---------------- presenter view (S): an about:blank window driven from this one
+  let presenter = null
+  let startedAt = 0
+  let timer = 0
+  const PRESENTER_CSS = `
+    html,body.pv{height:100%;overflow:hidden}
+    body.pv{display:grid;grid-template-columns:1.6fr 1fr;grid-template-rows:auto minmax(0,1fr);gap:18px;margin:0;padding:18px;background:#f5f5f7;font-family:var(--font);color:var(--ink);align-items:start;justify-content:stretch}
+    .pv .pcol{display:flex;flex-direction:column;gap:10px;min-width:0}
+    .pv .plabel{font:600 12px/1 var(--font);color:var(--muted);letter-spacing:.02em;text-transform:uppercase}
+    .pv .pstage{position:relative;width:100%;aspect-ratio:16/9;background:#fff;container-type:size;overflow:hidden;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.08)}
+    .pv .pstage .slide{opacity:1;visibility:visible;transition:none}
+    .pv .pstage .slide .r{animation:none!important}
+    .pv .pend{display:flex;align-items:center;justify-content:center;height:100%;color:var(--faint);font:500 15px var(--font)}
+    .pv .ptime{font:700 52px/1 var(--font);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+    .pv .ptime.over{color:#d70015}
+    .pv .pmeta{font:500 14px/1.5 var(--font);color:var(--muted)}
+    .pv .pmeta button{font:500 13px var(--font);border:0;border-radius:99px;padding:6px 12px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.15);cursor:pointer;margin-left:8px}
+    .pv .pnotes{grid-column:1 / span 2;height:100%;overflow:auto;background:#fff;border-radius:12px;padding:16px 22px;font:400 21px/1.5 var(--font);color:var(--ink);box-shadow:0 0 0 .5px rgba(0,0,0,.08)}
+    .pv .pnotes p{margin:0 0 .6em}
+  `
+  const PRESENTER_HTML = `
+    <div class="pcol"><div class="plabel">Current</div><div class="pstage" id="pcur"></div></div>
+    <div class="pcol"><div class="plabel">Next</div><div class="pstage" id="pnext"></div>
+      <div class="ptime" id="ptime">00:00</div>
+      <div class="pmeta"><span id="pcount"></span> · target 15:00 <button id="preset" type="button">Reset timer</button></div>
+    </div>
+    <div class="pnotes" id="pnotes"></div>`
+  function openPresenter() {
+    if (presenter && !presenter.closed) { presenter.focus(); return }
+    presenter = window.open('', 'wastems-presenter', 'width=1280,height=800')
+    if (!presenter) { alert('Allow pop-ups for this file to open the presenter view.'); return }
+    const base = location.href.replace(/[#?].*$/, '')
+    const css = document.querySelector('style').textContent
+    const d = presenter.document
+    d.open()
+    d.write(`<!doctype html><html><head><meta charset="utf-8"><title>Presenter · WasteMS</title><base href="${base}"><style>${css}${PRESENTER_CSS}</style></head><body class="pv">${PRESENTER_HTML}</body></html>`)
+    d.close()
+    d.addEventListener('keydown', onKey)
+    d.getElementById('preset').addEventListener('click', () => { startedAt = Date.now(); tick() })
+    startedAt = Date.now()
+    clearInterval(timer)
+    timer = setInterval(tick, 1000)
+    syncPresenter()
+    tick()
+  }
+  function tick() {
+    if (!presenter || presenter.closed) { clearInterval(timer); return }
+    const s = Math.floor((Date.now() - startedAt) / 1000)
+    const el = presenter.document.getElementById('ptime')
+    el.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+    el.classList.toggle('over', s > 15 * 60)
+  }
+  function renderInto(box, idx) {
+    box.textContent = ''
+    if (idx >= total) {
+      const end = presenter.document.createElement('div')
+      end.className = 'pend'
+      end.textContent = 'End of the deck'
+      box.appendChild(end)
+      return
+    }
+    const clone = slides[idx].cloneNode(true)
+    clone.classList.add('active')
+    clone.removeAttribute('id')
+    box.appendChild(presenter.document.importNode(clone, true))
+  }
+  function syncPresenter() {
+    if (!presenter || presenter.closed) return
+    const d = presenter.document
+    renderInto(d.getElementById('pcur'), current)
+    renderInto(d.getElementById('pnext'), current + 1)
+    const notes = slides[current].querySelector('.notes')
+    d.getElementById('pnotes').innerHTML = notes ? notes.innerHTML : '<p style="color:#86868b">No notes for this slide.</p>'
+    const appx = slides[current].classList.contains('appx')
+    d.getElementById('pcount').textContent = appx
+      ? `Appendix ${current - mainCount + 1} of ${total - mainCount}`
+      : `Slide ${current + 1} of ${mainCount}`
+  }
+
+  // ---------------- keyboard and clicks
+  function onKey(e) {
+    if (V.open) { viewerKey(e); return }
+    const k = e.key
+    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'n') show(current + 1)
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'p') show(current - 1)
+    else if (k === 'Home') show(0)
+    else if (k === 'End') show(lastMain)
+    else if (k === 'a' || k === 'A') show(mainCount)
+    else if (k === 's' || k === 'S') openPresenter()
+    else if ((k === 'f' || k === 'F') && e.currentTarget === window) {
+      if (document.fullscreenElement) document.exitFullscreen()
+      else document.documentElement.requestFullscreen?.()
+    }
+    else if (k === '?') help.classList.toggle('open')
+    else if (k === 'Escape') help.classList.remove('open')
+    else return
+    e.preventDefault()
+  }
+  window.addEventListener('keydown', onKey)
+  document.getElementById('stage').addEventListener('click', (e) => {
+    if (e.target.closest('a')) return
+    const zoom = e.target.closest('.zoom')
+    if (zoom) { openViewer(zoom.querySelector('img')); return }
+    const r = e.currentTarget.getBoundingClientRect()
+    const x = (e.clientX - r.left) / r.width
+    if (x > 2 / 3) show(current + 1)
+    else if (x < 1 / 3) show(current - 1)
+  })
+  window.addEventListener('beforeunload', () => { if (presenter && !presenter.closed) presenter.close() })
+  fromHash()
+})()
 </script>
 </body>
 </html>
