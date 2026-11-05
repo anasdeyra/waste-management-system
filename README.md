@@ -481,7 +481,7 @@ bash tools/metrics.sh [--publish]          # LOC, CKJM, PMD, JDepend, oxlint (Pa
 `*-summary.txt` files); `--publish` also copies the summaries to `docs/results/metrics/`. Every number
 quoted in `docs/06-metrics.md` comes from those files or from the experiment statistics.
 
-Open `presentation/index.html` in a browser for the deck (arrow keys, Home / End, `#n` in the URL;
+Open `presentation/index.html` in a browser for the deck (← / → to step, ↑ first slide, ↓ thank-you slide, mouse clicks never change slides, `#n` in the URL;
 add `?print` for a printable version). Click any image or diagram to zoom into it; **S** opens the
 presenter view (current and next slide, speaker notes, timer), **F** full screen, **A** the appendix,
 **?** the keyboard help. The screenshots in `presentation/assets/` can be regenerated
